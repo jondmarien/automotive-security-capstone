@@ -1,1 +1,11 @@
 # Python dependencies
+
+# Standard library (no need to install): queue, json, time, logging
+
+# External packages required:
+bless          # BLE server (dongle acts as peripheral; comms/ble.py)
+pywifi         # Wi-Fi communication (comms/wifi.py)
+cryptography   # Encryption (comms/encryption.py)
+
+# For hardware simulation/testing (if not running on Pico):
+pyserial       # Serial communication for debugging
