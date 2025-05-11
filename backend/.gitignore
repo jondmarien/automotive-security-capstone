@@ -6,3 +6,6 @@
 
 # implementation files
 IMPLEMENTATION_PLAN.md
+
+# pycache files
+__pycache__
