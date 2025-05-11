@@ -29,23 +29,23 @@ def main_loop():
     - Formats and queues alerts for transmission
     """
     logger.info("Starting security dongle main loop...")
-    while True:
-        # Poll RF signals (relay attack detection, etc.)
-        rf_data = detect_rf_signals(rtl)
-        # Poll NFC events (unauthorized tag detection, etc.)
-        nfc_data = detect_nfc(nfc)
-        # Analyze combined data for anomalies
-        anomaly = check_anomaly(rf_data, nfc_data)
-        # Classify the severity of the detected anomaly
-        severity = classify_threat(anomaly)
-        # Format the alert as encrypted JSON
-        alert = format_alert(anomaly, severity)
-        # Only queue alerts above 'info' severity
-        if severity != 'info':
-            alert_queue.add_alert(alert)
-        # Process the alert queue (send via BLE/Wi-Fi)
-        alert_queue.process_alerts()
-        # TODO: Add sleep or power management for efficiency
+    #while True:
+    # Poll RF signals (relay attack detection, etc.)
+    rf_data = detect_rf_signals(rtl)
+    # Poll NFC events (unauthorized tag detection, etc.)
+    nfc_data = detect_nfc(nfc)
+    # Analyze combined data for anomalies
+    anomaly = check_anomaly(rf_data, nfc_data)
+    # Classify the severity of the detected anomaly
+    severity = classify_threat(anomaly)
+    # Format the alert as encrypted JSON
+    alert = format_alert(anomaly, severity)
+    # Only queue alerts above 'info' severity
+    if severity != 'info':
+        alert_queue.add_alert(alert)
+    # Process the alert queue (send via BLE/Wi-Fi)
+    alert_queue.process_alerts()
+    # TODO: Add sleep or power management for efficiency
 
 if __name__ == "__main__":
     # Entry point when running as a script
