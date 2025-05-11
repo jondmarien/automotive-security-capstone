@@ -112,3 +112,11 @@ async def update_alert(new_alert: bytes, loop=None):
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.run_until_complete(start_ble_server(loop, b"Test alert"))
+
+
+def send_ble_alert(*args, **kwargs):
+    """
+    Stub for sending a BLE alert. Replace with real implementation.
+    """
+    logger.info("send_ble_alert called (stub)")
+    pass
