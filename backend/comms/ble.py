@@ -1,0 +1,1 @@
+# BLE communication protocol

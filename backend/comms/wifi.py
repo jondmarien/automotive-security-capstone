@@ -1,0 +1,1 @@
+# Wi-Fi communication protocol (if used)

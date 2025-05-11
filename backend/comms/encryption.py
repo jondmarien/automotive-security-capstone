@@ -1,0 +1,1 @@
+# Data encryption for BLE/Wi-Fi

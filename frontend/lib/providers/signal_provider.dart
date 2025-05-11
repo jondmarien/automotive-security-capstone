@@ -1,0 +1,1 @@
+// State management (Provider/BLoC) for signals

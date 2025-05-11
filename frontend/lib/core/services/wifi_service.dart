@@ -1,0 +1,1 @@
+// Wi-Fi communication logic (if used)

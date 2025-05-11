@@ -1,0 +1,1 @@
+// Signal event data model
