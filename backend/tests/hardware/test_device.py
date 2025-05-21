@@ -1,12 +1,12 @@
 """Unit tests for the EdgeDevice class."""
-import asyncio
+import asyncio  # noqa: F401
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from ..device import EdgeDevice
-from ..packet import Packet
-from ..report_logic import ThreatLevel
+from hardware.device import EdgeDevice
+from hardware.packet import Packet
+from hardware.report_logic import ThreatLevel
 
 
 @pytest.fixture

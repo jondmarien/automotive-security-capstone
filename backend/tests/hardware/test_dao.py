@@ -1,7 +1,7 @@
 """Unit tests for the EdgeDAO class."""
 import pytest
 
-from ..dao import EdgeDAO
+from hardware.dao import EdgeDAO
 
 
 @pytest.mark.asyncio

@@ -3,7 +3,7 @@ import time
 
 import pytest
 
-from ..packet import Packet
+from hardware.packet import Packet
 
 
 def test_packet_creation():
