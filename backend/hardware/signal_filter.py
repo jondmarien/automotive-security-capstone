@@ -16,7 +16,8 @@ FREQ_BANDS = [
     (2400, 2483.5),  # 2.4 GHz ISM band
     (5150, 5850),    # 5 GHz band
     (5725, 5875),    # 5.8 GHz band
-    (315, 433),      # Common RF bands
+    (315, 350),      # Lower ISM band
+    (433, 434),      # 433 MHz ISM band
     (868, 928),      # 915 MHz ISM band (North America)
 ]
 
@@ -33,6 +34,7 @@ class SignalFilter:
         self.packet_history = {}  # signature -> list of timestamps
         self.last_seen = {}  # signature -> last seen timestamp
         self.freq_bands = FREQ_BANDS  # Store frequency bands
+        self.active_signals = 0
     
     def is_within_freq_bands(self, freq: float) -> bool:
         """Check if frequency is within monitored bands."""
@@ -46,71 +48,72 @@ class SignalFilter:
             return False
         return rssi >= self.min_rssi
     
-    def is_duplicate(self, signature: str, timestamp: float) -> bool:
-        """Check if a packet with the same signature was seen recently."""
+    def is_duplicate(self, signature: str, timestamp: float, threshold: int = 1) -> bool:
+        """Check if a packet with the same signature was seen recently.
+        
+        Args:
+            signature: The packet signature to check
+            timestamp: The current timestamp
+            threshold: Number of previous occurrences before considering it a duplicate
+                     (1 = mark as duplicate on second occurrence, 2 = on third, etc.)
+        """
         if not signature or not isinstance(timestamp, (int, float)):
             return False
             
-        current_time = time.time()
-        
-        # Initialize signature in history if not exists
+        # Initialize packet history for this signature if it doesn't exist
         if signature not in self.packet_history:
             self.packet_history[signature] = []
-        
+            
         # Clean up old entries for this signature
-        self.packet_history[signature] = [
+        previous_timestamps = [
             ts for ts in self.packet_history[signature]
-            if current_time - ts <= self.duplicate_window_sec
+            if timestamp - ts <= self.duplicate_window_sec
         ]
         
-        # Check if we've seen this signature too many times
-        is_duplicate = len(self.packet_history[signature]) >= self.max_duplicates
+        # Check if we've seen this packet enough times to be considered a duplicate
+        is_duplicate = len(previous_timestamps) >= threshold
         
-        # Add current timestamp to history
-        self.packet_history[signature].append(timestamp)
+        # Add current timestamp to history (even if it's a duplicate timestamp)
+        previous_timestamps.append(timestamp)
+        
+        # Update the packet history with cleaned timestamps
+        self.packet_history[signature] = previous_timestamps
         self.last_seen[signature] = timestamp
         
+        # Check if we've exceeded max duplicates for this signature
+        if len(self.packet_history[signature]) > self.max_duplicates:
+            return True
+            
         return is_duplicate
-    
+
     def should_accept(self, packet: 'Packet') -> bool:
-        """Determine if a packet should be accepted based on filtering rules."""
-        if not packet or not hasattr(packet, 'rssi') or not hasattr(packet, 'freq'):
-            return False
-            
-        # Check signal strength first (cheapest check)
-        if not self.is_strong_signal(packet.rssi):
-            return False
-            
-        # Check frequency band
+        """Determine if a packet should be accepted based on all criteria."""
         if not self.is_within_freq_bands(packet.freq):
             return False
+        if not self.is_strong_signal(packet.rssi):
+            return False
+        if self.is_duplicate(packet.signature, packet.timestamp, threshold=2):
+            return False
             
-        # Check for duplicates last (most expensive check)
-        if hasattr(packet, 'signature') and hasattr(packet, 'timestamp'):
-            if self.is_duplicate(packet.signature, packet.timestamp):
-                return False
-            
+        self.active_signals += 1
         return True
     
     def get_signal_metrics(self) -> dict:
         """Get current signal metrics."""
         # Clean up old entries before reporting metrics
         current_time = time.time()
-        active_signals = 0
         
         for sig in list(self.packet_history.keys()):
             self.packet_history[sig] = [
                 ts for ts in self.packet_history[sig]
                 if current_time - ts <= self.duplicate_window_sec
             ]
-            if self.packet_history[sig]:
-                active_signals += 1
-            else:
+            if not self.packet_history[sig]:
                 del self.packet_history[sig]
                 self.last_seen.pop(sig, None)
         
         return {
-            'active_signals': active_signals,
+            'active_signals': self.active_signals,
             'min_rssi': self.min_rssi,
             'monitored_bands': self.freq_bands,
             'duplicate_window_sec': self.duplicate_window_sec,
