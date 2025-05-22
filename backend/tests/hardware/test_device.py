@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from hardware.device import EdgeDevice
-from hardware.packet import Packet
-from hardware.report_logic import ThreatLevel
+from hardware.core.device import EdgeDevice
+from hardware.core.packet import Packet
+from hardware.utils.reporter import ThreatLevel
 
 
 @pytest.fixture

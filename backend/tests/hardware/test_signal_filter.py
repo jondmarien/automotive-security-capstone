@@ -1,8 +1,8 @@
 """Unit tests for the SignalFilter class."""
 import time
 
-from hardware.packet import Packet
-from hardware.signal_filter import FREQ_BANDS, MIN_RSSI_DBM, SignalFilter
+from hardware.core.packet import Packet
+from hardware.core.signal_processor import FREQ_BANDS, MIN_RSSI_DBM, SignalFilter
 
 
 def test_signal_filter_initialization():

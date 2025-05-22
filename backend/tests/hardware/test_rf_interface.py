@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from hardware.interfaces.mock_rf import MockRFInterface
+from hardware.drivers.mock.rf import MockRFInterface
 from hardware.models.models import RFConfig, SignalMetrics
 
 

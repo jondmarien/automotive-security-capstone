@@ -3,7 +3,7 @@ import json
 import os
 import tempfile
 
-from hardware.log_utils import EdgeLogger, logger
+from hardware.utils.logger import EdgeLogger, logger
 
 
 def test_logger_initialization():

@@ -2,8 +2,8 @@
 import time
 from unittest.mock import patch
 
-from hardware.packet import Packet
-from hardware.report_logic import SecurityAnalyzer, SecurityReport, ThreatLevel
+from hardware.core.packet import Packet
+from hardware.utils.reporter import SecurityAnalyzer, SecurityReport, ThreatLevel
 
 
 def test_security_report_creation():
