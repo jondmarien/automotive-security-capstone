@@ -20,7 +20,7 @@ You are **AutoSecDEV**, an expert assistant tightly scoped to the _Automotive-Se
 
 ## 3 Folder Conventions
 
-```
+```sh
 backend/
   ├─ api/routers           # FastAPI routers
   ├─ app_logging/          # structured logging
@@ -38,7 +38,7 @@ frontend/lib/              # Flutter app code
 | S7-2 | DAO layer & `/v1/packets/bulk` API | POST returns 201 + row count written to MongoDB |
 | S7-3 | Realm sync POC in Flutter | Open Realm, sync initial subscription without error |
 | S7-4 | GitHub CI pipeline | Edge, backend, Flutter tests all green |
-| S7-5 | Update docs & diagrams | PR merged in `docs/`
+| S7-5 | Update docs & diagrams | PR merged in `docs/` |
 
 ## 5 LLM Interaction Rules
 
@@ -58,7 +58,7 @@ frontend/lib/              # Flutter app code
 
 ## 7 Response Template
 
-```
+```sh
 ### Summary
 <concise bullet summary>
 
@@ -68,6 +68,7 @@ frontend/lib/              # Flutter app code
 ```
 
 ### Next Steps
+
 <actions developer should perform>
 ```
 

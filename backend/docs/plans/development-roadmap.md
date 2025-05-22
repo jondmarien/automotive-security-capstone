@@ -23,6 +23,7 @@ Download and install everything before you begin Sprint 7.
 2. Add the following protected branches in GitHub: `main`, `dev`, `edge-dev`, `backend-dev`, `mobile-dev`.
 3. Create a mono-repo **commit template** in `.gitmessage` that enforces _scope – subject – body – footer_.
 4. Register pre-commit hooks:
+
    ```bash
    pre-commit install # runs ruff, black, and flutter format
    ```
@@ -80,7 +81,7 @@ poetry add --group dev pytest pytest-asyncio black ruff
 
 ### 3.2  Folder Conventions
 
-```
+```sh
 backend/
  ├─ app_logging/        # existing structured-logging helpers
  ├─ api/
@@ -124,6 +125,7 @@ async def insert_alert(doc: BaseModel):
 ### 3.6  Dockerfile & DO App Platform
 
 * `Dockerfile`:
+
   ```dockerfile
   FROM python:3.11-slim
   ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
@@ -133,6 +135,7 @@ async def insert_alert(doc: BaseModel):
   COPY . /app
   CMD ["uvicorn","main:app","--host","0.0.0.0","--port","8080"]
   ```
+
 * Push to GitHub → DigitalOcean will build & deploy.
 
 ---
@@ -181,10 +184,12 @@ Create `test/realm_open_test.dart` verifying `SyncService.init()` does not throw
 4. Whitelist `0.0.0.0/0` for dev; later tighten.
 5. In **Data Explorer** create collections.
 6. Open **Web Shell**:
+
    ```js
    db.alerts.createIndex({ timestamp: 1 }, { expireAfterSeconds: 7776000 })
    db.signals.createIndex({ timestamp: 1 }, { expireAfterSeconds: 7776000 })
    ```
+
 7. Copy SRV connection string → place in DO secrets & `.env.development`.
 
 ---
