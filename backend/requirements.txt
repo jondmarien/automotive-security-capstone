@@ -1,11 +1,27 @@
-# Python dependencies
+# Core Dependencies
+fastapi>=0.68.0
+uvicorn>=0.15.0
+pydantic>=1.8.0
+python-dotenv>=0.19.0
 
-# Standard library (no need to install): queue, json, time, logging
+# Database
+motor>=2.5.1
+pymongo>=3.12.0
 
-# External packages required:
-bless          # BLE server (dongle acts as peripheral; comms/ble.py)
-pywifi         # Wi-Fi communication (comms/wifi.py)
-cryptography   # Encryption (comms/encryption.py)
+# Testing
+pytest>=6.2.5
+pytest-asyncio>=0.15.1
+pytest-cov>=2.12.1
+httpx>=0.19.0
 
-# For hardware simulation/testing (if not running on Pico):
-pyserial       # Serial communication for debugging
+# Hardware Simulation
+bless>=0.2.6
+pywifi>=1.1.12
+cryptography>=35.0.0
+pyserial>=3.5
+
+# Development
+black>=21.9b0
+isort>=5.9.3
+flake8>=3.9.2
+mypy>=0.910

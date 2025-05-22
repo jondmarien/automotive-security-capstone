@@ -8,13 +8,15 @@ implementations. It's designed to work with both Python and MicroPython.
 
 # Type checking setup
 try:
-    from typing import TYPE_CHECKING
+    from typing import TYPE_CHECKING, Any, Dict
 
     TYPING = True
 except ImportError:
     # MicroPython compatibility
     TYPING = False
     TYPE_CHECKING = False
+    Dict = dict
+    Any = object
 
 # Type-related imports
 if TYPING and TYPE_CHECKING:

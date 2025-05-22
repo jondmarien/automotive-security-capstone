@@ -17,14 +17,14 @@ class TestRFInterface:
         """Create a test RF configuration."""
         return RFConfig(
             frequency=868e6,  # 868 MHz
-            tx_power=14,     # dBm
+            power=14,       # Transmit power in dBm
+            data_rate=50000, # 50 kbps
+            modulation='2-FSK',
             bandwidth=125e3, # 125 kHz
-            spreading_factor=7,
-            coding_rate=5,
-            sync_word=0x12,
-            implicit_header=False,
-            rx_timeout=5.0,
-            tx_timeout=5.0,
+            devitation=25e3, # 25 kHz
+            sync_word=b'\x12',
+            crc_enabled=True,
+            auto_ack=False
         )
 
     @pytest.fixture

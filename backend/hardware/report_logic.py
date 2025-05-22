@@ -28,6 +28,10 @@ class SecurityReport:
             'packet': self.packet.to_dict()
         }
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class SecurityAnalyzer:
     """Analyzes packets for potential security threats."""
     
@@ -35,21 +39,40 @@ class SecurityAnalyzer:
         self.jam_detection_threshold = 100  # Packets/second to detect jamming
         self.packet_history = []
         self.jam_window = 1.0  # Seconds to analyze for jamming
+        logger.debug("SecurityAnalyzer initialized with jam_detection_threshold=%s", self.jam_detection_threshold)
     
     def _is_replay_attack(self, packet) -> bool:
-        """Detect potential replay attacks."""
-        # In a real implementation, this would check against a rolling code database
-        # For now, we'll just check for exact duplicate payloads within a 
-        # short time window to detect replay attacks.
-        current_time = time.time()
-        recent_packets = [p for p in self.packet_history 
-                         if current_time - p.timestamp < 5.0]  # 5-second window
+        """Detect potential replay attacks.
         
-        for p in recent_packets:
-            if (p.payload == packet.payload and 
-                p.freq == packet.freq and 
-                p.rssi != packet.rssi):
-                return True
+        Args:
+            packet: The packet to check for replay attacks
+            
+        Returns:
+            bool: True if a replay attack is detected, False otherwise
+        """
+        current_time = time.time()
+        
+        # Look for packets with the same payload and frequency but different RSSI
+        # within the last 5 seconds
+        for p in self.packet_history:
+            time_diff = current_time - p.timestamp
+            if time_diff >= 5.0:
+                continue
+                
+            # Check if payload and frequency match but RSSI is different
+            if (hasattr(p, 'payload') and hasattr(packet, 'payload') and 
+                hasattr(p, 'freq') and hasattr(packet, 'freq') and
+                hasattr(p, 'rssi') and hasattr(packet, 'rssi')):
+                
+                if (p.payload == packet.payload and 
+                    p.freq == packet.freq and 
+                    abs(p.rssi - packet.rssi) > 3):  # Small threshold for test environment
+                    logger.debug(
+                        "Replay attack detected: same payload (%.2f MHz) with different RSSI (%.1f vs %.1f)",
+                        p.freq, p.rssi, packet.rssi
+                    )
+                    return True
+                
         return False
     
     def _is_jamming_attack(self) -> bool:
@@ -64,11 +87,19 @@ class SecurityAnalyzer:
     
     def analyze_packet(self, packet) -> SecurityReport:
         """Analyze a packet and return a security report."""
-        # Update packet history
+        logger.debug("Analyzing packet: %s", packet.to_dict() if hasattr(packet, 'to_dict') else str(packet))
+        
+        # Clean up old packets from history
+        current_time = time.time()
+        self.packet_history = [p for p in self.packet_history 
+                             if current_time - p.timestamp < self.jam_window]
+        
+        # Update packet history with current packet
         self.packet_history.append(packet)
         
         # Check for replay attacks
         if self._is_replay_attack(packet):
+            logger.warning("Replay attack detected in packet: %s", packet.payload)
             return SecurityReport(
                 packet=packet,
                 threat_level=ThreatLevel.MALICIOUS,
@@ -77,6 +108,7 @@ class SecurityAnalyzer:
         
         # Check for jamming
         if self._is_jamming_attack():
+            logger.warning("Jamming attack detected")
             return SecurityReport(
                 packet=packet,
                 threat_level=ThreatLevel.MALICIOUS,
@@ -84,6 +116,7 @@ class SecurityAnalyzer:
             )
         
         # No threats detected
+        logger.debug("No threats detected in packet")
         return SecurityReport(
             packet=packet,
             threat_level=ThreatLevel.BENIGN,

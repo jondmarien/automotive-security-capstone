@@ -43,9 +43,16 @@ class EdgeLogger:
         log_entry = {
             'timestamp': time.time(),
             'level': level.upper(),
-            'message': message,
-            **extra
+            'message': message
         }
+        
+        # Include extra data if provided - handle both direct and nested 'extra' dict
+        if extra:
+            if 'extra' in extra and isinstance(extra['extra'], dict):
+                log_entry.update(extra['extra'])
+            else:
+                log_entry.update(extra)
+            
         self.log_buffer.append(log_entry)
     
     def debug(self, message: str, **extra: Any) -> None:

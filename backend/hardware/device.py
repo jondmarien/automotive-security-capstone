@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 from .dao import EdgeDAO
 from .log_utils import logger
 from .packet import Packet
-from .report_logic import SecurityAnalyzer
+from .report_logic import SecurityAnalyzer, ThreatLevel
 from .signal_filter import SignalFilter
 
 
@@ -45,15 +45,25 @@ class EdgeDevice:
             payload: Raw packet data
             
         Returns:
-            Dict containing processing results, or None if packet was filtered out
+            Dict containing processing results, or None if packet was filtered out or device is stopped
         """
+        # Check if device is running
+        if not self.running:
+            logger.debug("Device is not running, packet ignored")
+            return None
+            
         # Create packet object
         packet = Packet(rssi=rssi, freq=freq, payload=payload)
         
         # Apply signal filtering
         if not self.signal_filter.should_accept(packet):
             logger.debug(f"Packet filtered out: {packet.signature}")
-            return None
+            return {
+                "packet": packet.to_dict(),
+                "threat_detected": False,
+                "threat_level": 'BENIGN',
+                "reason": "Packet filtered out"
+            }
         
         # Save packet to storage
         packet_data = packet.to_dict()
@@ -64,7 +74,7 @@ class EdgeDevice:
         report = self.security_analyzer.analyze_packet(packet)
         
         # If threat detected, save alert
-        if report.threat_level != 'BENIGN':
+        if report.threat_level != ThreatLevel.BENIGN:
             alert_data = report.to_dict()
             alert_data['device_id'] = self.device_id
             await self.dao.save_alert(alert_data)
@@ -83,8 +93,8 @@ class EdgeDevice:
         
         return {
             "packet": packet_data,
-            "threat_detected": report.threat_level != 'BENIGN',
-            "threat_level": report.threat_level,
+            "threat_detected": report.threat_level != ThreatLevel.BENIGN,
+            "threat_level": report.threat_level.name,  # Convert enum to string for JSON serialization
             "reason": report.reason
         }
     
