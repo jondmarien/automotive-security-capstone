@@ -1,7 +1,7 @@
 """Signal filtering and analysis for automotive security."""
 
 import time
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .packet import Packet  # noqa: F401
@@ -99,7 +99,12 @@ class SignalFilter:
         return True
     
     def get_signal_metrics(self) -> dict:
-        """Get current signal metrics."""
+        """Get current signal metrics.
+        
+        Returns:
+            dict: A dictionary containing signal metrics including active signals count,
+                 minimum RSSI, monitored frequency bands, duplicate window, and max duplicates.
+        """
         # Clean up old entries before reporting metrics
         current_time = time.time()
         
@@ -119,3 +124,13 @@ class SignalFilter:
             'duplicate_window_sec': self.duplicate_window_sec,
             'max_duplicates': self.max_duplicates
         }
+        
+    def reset(self) -> None:
+        """Reset the signal filter state.
+        
+        This method clears all packet history and resets the active signals counter.
+        It's typically called when the device is reset or reconfigured.
+        """
+        self.packet_history.clear()
+        self.last_seen.clear()
+        self.active_signals = 0

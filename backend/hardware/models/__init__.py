@@ -1,8 +1,9 @@
-from .models import MemoryUsage, PowerState, RFConfig, SignalMetrics
+from .models import DeviceStatus, MemoryUsage, PowerState, RFConfig, SignalMetrics
 
 __all__ = [
     'PowerState',
     'SignalMetrics',
     'MemoryUsage',
-    'RFConfig'
+    'RFConfig',
+    'DeviceStatus'
 ]

@@ -109,6 +109,14 @@ class EdgeDAO:
             'max_alerts': self.max_alerts
         }
     
+    async def flush(self) -> None:
+        """Flush any pending data to storage.
+        
+        This is a no-op for the in-memory implementation but is included
+        for interface compatibility with persistent storage backends.
+        """
+        pass
+        
     async def clear_all(self) -> None:
         """Clear all stored data."""
         self.packets.clear()

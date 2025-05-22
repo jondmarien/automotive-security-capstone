@@ -124,7 +124,12 @@ class SecurityAnalyzer:
         )
     
     def get_metrics(self) -> Dict[str, Any]:
-        """Return current security metrics."""
+        """Return current security metrics.
+        
+        Returns:
+            dict: A dictionary containing security metrics including packets per second,
+                 total packets analyzed, jamming threshold, and analysis window.
+        """
         current_time = time.time()
         recent_packets = [p for p in self.packet_history 
                          if current_time - p.timestamp < self.jam_window]
@@ -135,3 +140,12 @@ class SecurityAnalyzer:
             'jamming_threshold': self.jam_detection_threshold,
             'analysis_window_sec': self.jam_window
         }
+        
+    def reset(self) -> None:
+        """Reset the security analyzer state.
+        
+        This method clears all packet history and resets the analyzer's internal state.
+        It should be called when the device is reset or when a new analysis session begins.
+        """
+        self.packet_history.clear()
+        logger.debug("Security analyzer state has been reset")

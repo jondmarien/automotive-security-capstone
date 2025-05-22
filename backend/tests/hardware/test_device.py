@@ -1,18 +1,31 @@
 """Unit tests for the EdgeDevice class."""
-import asyncio  # noqa: F401
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from hardware.core.device import EdgeDevice
-from hardware.core.packet import Packet
-from hardware.utils.reporter import ThreatLevel
 
 
 @pytest.fixture
-def edge_device():
-    """Fixture that provides a test EdgeDevice instance."""
-    return EdgeDevice(device_id="test_device")
+async def edge_device():
+    """Fixture that provides a test EdgeDevice instance with proper async setup."""
+    device = EdgeDevice(device_id="test_device")
+    # Mock the hardware factory methods to avoid actual hardware initialization
+    with (
+        patch('hardware.core.device.hardware_factory.create_status_interface', 
+             new_callable=AsyncMock) as mock_status,
+        patch('hardware.core.device.hardware_factory.create_power_manager', 
+             new_callable=AsyncMock) as mock_power,
+        patch('hardware.core.device.hardware_factory.create_rf_interface', 
+             new_callable=AsyncMock) as mock_rf
+    ):
+        mock_status.return_value = AsyncMock()
+        mock_power.return_value = AsyncMock()
+        mock_rf.return_value = AsyncMock()
+        yield device
+    # Clean up any resources if needed
+    if device.running:
+        await device.stop()
 
 
 @pytest.mark.asyncio
@@ -25,8 +38,21 @@ async def test_device_initialization(edge_device):
 
 
 @pytest.mark.asyncio
-async def test_start_stop(edge_device):
+async def test_start_stop(edge_device, monkeypatch):
     """Test device start and stop functionality."""
+    # Mock the hardware factory methods
+    mock_status = AsyncMock()
+    mock_power = AsyncMock()
+    mock_rf = AsyncMock()
+    
+    # Patch the hardware factory methods
+    monkeypatch.setattr('hardware.core.device.hardware_factory.create_status_interface', 
+                      AsyncMock(return_value=mock_status))
+    monkeypatch.setattr('hardware.core.device.hardware_factory.create_power_manager', 
+                      AsyncMock(return_value=mock_power))
+    monkeypatch.setattr('hardware.core.device.hardware_factory.create_rf_interface', 
+                      AsyncMock(return_value=mock_rf))
+    
     # Start the device
     await edge_device.start()
     assert edge_device.running is True

@@ -6,11 +6,21 @@ This example demonstrates how to use the HAL to interact with hardware component
 """
 
 import asyncio
+import logging
+import sys
 from datetime import datetime
 
-# Use relative imports
-from ..factory import hardware_factory
-from ..models.models import RFConfig
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
+logger = logging.getLogger(__name__)
+
+# Use absolute imports
+from hardware.core.factory import hardware_factory
+from hardware.models.models import RFConfig
 
 
 class HALExample:
@@ -33,24 +43,25 @@ class HALExample:
         print("HAL Example - Starting...")
         
         try:
-            # Create hardware components
-            print("Creating hardware components...")
-            self.rf = hardware_factory.create_rf_interface('mock')
-            
-            # Configure RF
-            print("Configuring RF...")
+            # Create and configure RF interface
+            print("Creating and configuring RF interface...")
+            # Create RF config with required parameters
             rf_config = RFConfig(
                 frequency=433.92e6,  # 433.92 MHz
                 power=10,            # 10 dBm
                 data_rate=100000,    # 100 kbps
-                modulation='2-FSK',
+                modulation='FSK',    # FSK modulation
                 bandwidth=200000,    # 200 kHz
-                devitation=25000     # 25 kHz
+                devitation=25000,    # 25 kHz
+                sync_word=b'\x12',   # Sync word
+                crc_enabled=True,    # Enable CRC
+                auto_ack=False,      # Disable auto-ack
+                node_id=1,           # Node ID
+                network_id=1         # Network ID
             )
             
-            # Initialize RF
-            print("Initializing RF...")
-            await self.rf.initialize(rf_config)
+            # Create and initialize RF interface with config
+            self.rf = await hardware_factory.create_rf_interface('mock', rf_config)
             
             # Start receiving
             print("Starting packet reception...")
