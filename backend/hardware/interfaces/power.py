@@ -6,11 +6,11 @@ from ..exceptions.exceptions import HardwareError
 from ..models.models import PowerState
 
 
-class PowerManager(ABC):
+class PowerInterface(ABC):
     """Abstract base class for power management."""
 
     @abstractmethod
-    async def set_power_state(self, state: PowerState) -> None:
+    def set_power_state(self, state: PowerState) -> None:
         """Set the power state of the device.
         
         Args:

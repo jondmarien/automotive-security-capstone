@@ -1,29 +1,29 @@
-"""Hardware-related exceptions."""
-from typing import Optional
-
+"""Custom exceptions for the hardware abstraction layer."""
 
 class HardwareError(Exception):
-    """Base class for all hardware-related exceptions."""
-    def __init__(self, message: str, details: Optional[dict] = None):
-        self.details = details or {}
-        super().__init__(message)
-
-
-class InitializationError(HardwareError):
-    """Raised when hardware initialization fails."""
+    """Base exception for all hardware-related errors."""
     pass
 
-
-class CommunicationError(HardwareError):
-    """Raised when communication with hardware fails."""
+class HardwareNotInitializedError(HardwareError):
+    """Raised when hardware is accessed before initialization."""
     pass
 
+class HardwareConfigurationError(HardwareError):
+    """Raised when there is an error in hardware configuration."""
+    pass
 
-class TimeoutError(HardwareError):
+class HardwareCommunicationError(HardwareError):
+    """Raised when there is an error communicating with hardware."""
+    pass
+
+class HardwareNotSupportedError(HardwareError):
+    """Raised when a hardware feature is not supported."""
+    pass
+
+class HardwareTimeoutError(HardwareError):
     """Raised when a hardware operation times out."""
     pass
 
-
-class UnsupportedOperationError(HardwareError):
-    """Raised when an operation is not supported by the hardware."""
+class HardwareBusyError(HardwareError):
+    """Raised when the hardware is busy and cannot process the request."""
     pass

@@ -1,12 +1,21 @@
 """Hardware abstraction layer interfaces."""
-from .mock_rf import MockRFInterface
-from .power import PowerManager
+# Import interfaces
+from .power import PowerInterface
 from .rf import RFInterface
-from .status import HardwareStatus
+from .status import StatusInterface
 
-__all__ = [
-    'RFInterface',
-    'MockRFInterface',
-    'PowerManager',
-    'HardwareStatus'
-]
+# Import mock implementations conditionally to avoid circular imports
+if 'sphinx' not in __import__('sys').modules[__name__].__package__:
+    from hardware.drivers.mock.rf import MockRFInterface
+    __all__ = [
+        'RFInterface',
+        'MockRFInterface',
+        'PowerInterface',
+        'StatusInterface'
+    ]
+else:
+    __all__ = [
+        'RFInterface',
+        'PowerInterface',
+        'StatusInterface'
+    ]

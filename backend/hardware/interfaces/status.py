@@ -7,7 +7,7 @@ from ..exceptions.exceptions import HardwareError
 from ..models.models import MemoryUsage
 
 
-class HardwareStatus(ABC):
+class StatusInterface(ABC):
     """Abstract base class for hardware status monitoring."""
 
     @abstractmethod

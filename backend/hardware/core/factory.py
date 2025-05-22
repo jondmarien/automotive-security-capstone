@@ -1,12 +1,13 @@
-"""Factory for creating hardware components."""
-from typing import Any, Dict, Optional, Type
+"""Factory for creating and managing hardware components."""
+from typing import Any, Dict, Optional, Type, TypeVar
 
-from .implementations.mock_rf import MockRF
-from .interfaces.power import PowerManager
-from .interfaces.rf import RFInterface
-from .interfaces.status import HardwareStatus
-from .models import RFConfig
+from hardware.drivers.mock.rf import MockRFInterface
+from hardware.interfaces.power import PowerInterface
+from hardware.interfaces.rf import RFInterface
+from hardware.interfaces.status import StatusInterface
+from hardware.models.models import RFConfig
 
+T = TypeVar('T')
 
 class HardwareFactory:
     """Factory for creating hardware components."""
@@ -24,7 +25,7 @@ class HardwareFactory:
         """Initialize the factory."""
         if not self._initialized:
             self._rf_impls = {
-                'mock': MockRF,
+                'mock': MockRFInterface,
                 # Add other implementations here (e.g., 'cc1101', 'sdr')
             }
             self._power_impls = {
@@ -33,7 +34,36 @@ class HardwareFactory:
             self._status_impls = {
                 # Add status monitoring implementations here
             }
+            self._components = {}
             self._initialized = True
+    
+    def _create_rf_interface(self, config: RFConfig) -> RFInterface:
+        """Create an RF interface.
+        
+        Args:
+            config: Configuration for the RF interface
+            
+        Returns:
+            An initialized RF interface instance
+        """
+        if 'RFInterface' not in self._components:
+            # In a real implementation, this would create the appropriate RF interface
+            # based on the configuration. For now, we'll just use the mock implementation.
+            self._components['RFInterface'] = MockRFInterface()
+            self._components['RFInterface'].initialize(config)
+        return self._components['RFInterface']
+    
+    def _create_power_interface(self) -> PowerInterface:
+        """Create a power interface.
+        
+        Returns:
+            An initialized power interface instance
+        """
+        # In a real implementation, this would create the appropriate power interface
+        # based on the configuration. For now, we'll just use a default implementation.
+        if 'PowerInterface' not in self._components:
+            self._components['PowerInterface'] = PowerInterface()
+        return self._components['PowerInterface']
     
     def create_rf_interface(self, 
                            impl_name: str = 'mock',
@@ -54,16 +84,16 @@ class HardwareFactory:
         if not impl_class:
             raise ValueError(f"No RF implementation found for '{impl_name}'")
             
-        return impl_class()
+        return self._create_rf_interface(config)
     
-    def create_power_manager(self, impl_name: str = 'default') -> PowerManager:
+    def create_power_manager(self, impl_name: str = 'default') -> PowerInterface:
         """Create a power manager.
         
         Args:
             impl_name: Name of the implementation to use
             
         Returns:
-            PowerManager: An instance of the requested power manager
+            PowerInterface: An instance of the requested power interface
             
         Raises:
             ValueError: If the implementation is not found
@@ -72,25 +102,27 @@ class HardwareFactory:
         if not impl_class:
             raise ValueError(f"No power manager implementation found for '{impl_name}'")
             
-        return impl_class()
+        return self._create_power_interface()
     
-    def create_hardware_status(self, impl_name: str = 'default') -> HardwareStatus:
-        """Create a hardware status monitor.
+    def create_status_interface(self, impl_name: str = 'default') -> StatusInterface:
+        """Create a status interface.
         
         Args:
             impl_name: Name of the implementation to use
             
         Returns:
-            HardwareStatus: An instance of the requested hardware status monitor
+            StatusInterface: An instance of the requested status interface
             
         Raises:
             ValueError: If the implementation is not found
         """
         impl_class = self._status_impls.get(impl_name.lower())
         if not impl_class:
-            raise ValueError(f"No hardware status implementation found for '{impl_name}'")
+            raise ValueError(f"No status interface implementation found for '{impl_name}'")
             
-        return impl_class()
+        if 'StatusInterface' not in self._components:
+            self._components['StatusInterface'] = impl_class()
+        return self._components['StatusInterface']
     
     def register_rf_implementation(self, name: str, impl_class: Type[RFInterface]) -> None:
         """Register a custom RF interface implementation.
@@ -106,34 +138,35 @@ class HardwareFactory:
             raise TypeError("RF implementation must be a subclass of RFInterface")
         self._rf_impls[name.lower()] = impl_class
     
-    def register_power_implementation(self, name: str, impl_class: Type[PowerManager]) -> None:
+    def register_power_implementation(self, name: str, impl_class: Type[PowerInterface]) -> None:
         """Register a custom power manager implementation.
         
         Args:
             name: Name to register the implementation under
-            impl_class: The implementation class (must be a subclass of PowerManager)
+            impl_class: The implementation class (must be a subclass of PowerInterface)
             
         Raises:
-            TypeError: If impl_class is not a subclass of PowerManager
+            TypeError: If impl_class is not a subclass of PowerInterface
         """
-        if not issubclass(impl_class, PowerManager):
-            raise TypeError("Power manager implementation must be a subclass of PowerManager")
+        if not issubclass(impl_class, PowerInterface):
+            raise TypeError("Power manager implementation must be a subclass of PowerInterface")
         self._power_impls[name.lower()] = impl_class
     
-    def register_status_implementation(self, name: str, impl_class: Type[HardwareStatus]) -> None:
+    def register_status_implementation(self, name: str, impl_class: Type[StatusInterface]) -> None:
         """Register a custom hardware status implementation.
         
         Args:
             name: Name to register the implementation under
-            impl_class: The implementation class (must be a subclass of HardwareStatus)
+            impl_class: The implementation class (must be a subclass of StatusInterface)
             
         Raises:
-            TypeError: If impl_class is not a subclass of HardwareStatus
+            TypeError: If impl_class is not a subclass of StatusInterface
         """
-        if not issubclass(impl_class, HardwareStatus):
-            raise TypeError("Hardware status implementation must be a subclass of HardwareStatus")
+        if not issubclass(impl_class, StatusInterface):
+            raise TypeError("Hardware status implementation must be a subclass of StatusInterface")
         self._status_impls[name.lower()] = impl_class
 
 
 # Create a singleton instance
 hardware_factory = HardwareFactory()
+

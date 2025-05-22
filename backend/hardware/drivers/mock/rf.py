@@ -1,12 +1,16 @@
 """Mock implementation of the RF interface for testing."""
+from __future__ import annotations
+
 import asyncio
-from typing import Any, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
-from ..models.models import RFConfig, SignalMetrics
-from .rf import RFInterface
+from hardware.models.models import RFConfig, SignalMetrics
+
+if TYPE_CHECKING:
+    from hardware.interfaces.rf import RFInterface
 
 
-class MockRFInterface(RFInterface):
+class MockRFInterface:  # No direct inheritance to avoid circular imports
     """Mock implementation of the RF interface for testing.
     
     This implementation simulates an RF interface in memory without requiring
