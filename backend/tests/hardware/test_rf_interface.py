@@ -5,11 +5,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from hardware.interfaces.rf import RFInterface
+from hardware.interfaces.mock_rf import MockRFInterface
 from hardware.models.models import RFConfig, SignalMetrics
 
 
-class TestRFInterface:
+class TestMockRFInterface:
     """Test suite for the RF interface."""
 
     @pytest.fixture
@@ -28,9 +28,9 @@ class TestRFInterface:
         )
 
     @pytest.fixture
-    def rf_interface(self) -> RFInterface:
-        """Create an instance of the RF interface."""
-        return RFInterface()
+    def rf_interface(self) -> MockRFInterface:
+        """Create an instance of the mock RF interface."""
+        return MockRFInterface()
 
     @pytest.mark.asyncio
     async def test_initialize(self, rf_interface, rf_config):
@@ -43,7 +43,7 @@ class TestRFInterface:
     async def test_initialize_twice_fails(self, rf_interface, rf_config):
         """Test that initializing twice raises an error."""
         await rf_interface.initialize(rf_config)
-        with pytest.raises(Exception):
+        with pytest.raises(RuntimeError, match="RF interface already initialized"):
             await rf_interface.initialize(rf_config)
 
     @pytest.mark.asyncio
@@ -56,7 +56,7 @@ class TestRFInterface:
     @pytest.mark.asyncio
     async def test_send_packet_not_initialized(self, rf_interface):
         """Test sending a packet when not initialized raises an error."""
-        with pytest.raises(Exception):
+        with pytest.raises(RuntimeError, match="RF interface not initialized"):
             await rf_interface.send_packet(b"test")
 
     @pytest.mark.asyncio
