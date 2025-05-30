@@ -266,15 +266,16 @@ class MockRFInterface:
                 }
             ) from e
     
-    def get_signal_metrics(self) -> SignalMetrics:
+    def get_signal_metrics(self) -> dict:
         """Get current signal metrics.
         
         Returns:
-            SignalMetrics: Object containing signal metrics including:
+            dict: Dictionary containing signal metrics including:
                 - rssi: Received Signal Strength Indicator in dBm
                 - snr: Signal-to-Noise Ratio in dB
                 - frequency: Current frequency in Hz
                 - channel: Current channel number
+                - timestamp: Timestamp of when metrics were taken
                 
         Raises:
             InitializationError: If the interface is not initialized
@@ -282,13 +283,15 @@ class MockRFInterface:
         if not self._initialized:
             raise InitializationError("RF interface not initialized")
             
-        # Return mock signal metrics
-        metrics = SignalMetrics(
-            rssi=-60.0,  # Typical good signal
-            snr=25.0,    # Good SNR
-            frequency=self._config.frequency if self._config else 0,
-            channel=1    # Default channel
-        )
+        # Create and return metrics as a dictionary
+        from datetime import datetime, timezone
+        metrics = {
+            'rssi': -60.0,  # Typical good signal
+            'snr': 25.0,    # Good SNR
+            'frequency': self._config.frequency if self._config else 0,
+            'channel': 1,    # Default channel
+            'timestamp': datetime.now(timezone.utc)
+        }
         
         logger.debug("Current signal metrics: %s", metrics)
         return metrics

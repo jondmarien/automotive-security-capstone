@@ -1,8 +1,8 @@
 """Factory for creating and managing hardware components."""
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Optional, Type, TypeVar
 
-from hardware.drivers.mock.rf import MockRFInterface
 from hardware.drivers.mock.power import MockPowerInterface
+from hardware.drivers.mock.rf import MockRFInterface
 from hardware.drivers.mock.status import MockStatusInterface
 from hardware.interfaces.power import PowerInterface
 from hardware.interfaces.rf import RFInterface
