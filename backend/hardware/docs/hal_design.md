@@ -92,28 +92,34 @@ class HardwareStatus(ABC):
 ## 4. Implementations
 
 ### 4.1 CC1101 RF Module
+
 Implements `RFInterface` for the CC1101 transceiver.
 
 ### 4.2 SDR Implementation
+
 Implements `RFInterface` for Software Defined Radios.
 
 ### 4.3 Mock Implementation
+
 For testing and development without hardware.
 
 ## 5. Error Handling
 
 ### 5.1 Error Types
+
 - `HardwareError`: Base class for hardware-related errors
 - `InitializationError`: Failed to initialize hardware
 - `CommunicationError`: Communication with hardware failed
 - `TimeoutError`: Operation timed out
 
 ### 5.2 Error Recovery
+
 - Automatic retries for transient errors
 - Graceful degradation when possible
 - Clear error reporting
 
 ## 6. Threading Model
+
 - Asynchronous operations using asyncio
 - Thread-safe implementations for blocking operations
 - Event-based callbacks for hardware events
@@ -121,6 +127,7 @@ For testing and development without hardware.
 ## 7. Configuration
 
 ### 7.1 Configuration Structure
+
 ```yaml
 hardware:
   rf:
@@ -132,28 +139,33 @@ hardware:
 ```
 
 ### 7.2 Environment Variables
+
 - `HARDWARE_RF_TYPE`: Override RF hardware type
 - `HARDWARE_DEBUG`: Enable debug logging
 
 ## 8. Testing Strategy
 
 ### 8.1 Unit Tests
+
 - Test each interface in isolation
 - Mock hardware responses
 - Error condition simulation
 
 ### 8.2 Integration Tests
+
 - Test hardware interactions
 - Power management scenarios
 - Error recovery
 
 ## 9. Future Extensions
+
 - Support for additional RF modules
 - Advanced power management
 - Hardware diagnostics
 - Firmware update mechanism
 
 ## 10. Dependencies
+
 - `asyncio` for asynchronous operations
 - `pyserial` for UART communication
 - `numpy` for signal processing (SDR)
