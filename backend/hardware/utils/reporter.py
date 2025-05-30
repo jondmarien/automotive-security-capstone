@@ -37,8 +37,17 @@ class SecurityAnalyzer:
     
     def __init__(self):
         self.jam_detection_threshold = 100  # Packets/second to detect jamming
+        self.brute_force_threshold = 5  # Number of similar packets to trigger brute force detection
         self.packet_history = []
         self.jam_window = 1.0  # Seconds to analyze for jamming
+        self.brute_force_window = 10.0  # Seconds to analyze for brute force
+        self.suspicious_patterns = [
+            b'REPLAY_ATTACK',
+            b'JAMMER',
+            b'INJECT',
+            b'BRUTE',
+            b'OLD_'
+        ]
         logger.debug("SecurityAnalyzer initialized with jam_detection_threshold=%s", self.jam_detection_threshold)
     
     def _is_replay_attack(self, packet) -> bool:
@@ -84,6 +93,84 @@ class SecurityAnalyzer:
         if len(recent_packets) > self.jam_detection_threshold:
             return True
         return False
+        
+    def _is_brute_force_attack(self, packet) -> bool:
+        """Detect potential brute force attempts."""
+        current_time = time.time()
+        
+        # Check for known suspicious patterns in payload
+        if hasattr(packet, 'payload'):
+            # Convert payload to bytes if it's a string
+            if isinstance(packet.payload, str):
+                try:
+                    # First try UTF-8 encoding
+                    payload = packet.payload.encode('utf-8')
+                except UnicodeEncodeError:
+                    # If that fails, try with backslashreplace for non-UTF-8 sequences
+                    payload = packet.payload.encode('utf-8', errors='backslashreplace')
+            else:
+                payload = packet.payload
+            
+            # Ensure payload is bytes for pattern matching
+            if isinstance(payload, bytes):
+                # Check for suspicious patterns
+                for pattern in self.suspicious_patterns:
+                    if pattern in payload:
+                        logger.debug("Suspicious pattern detected in payload: %s", pattern.decode('utf-8', errors='replace'))
+                        return True
+        
+        # Count similar packets (same type) in the recent window
+        if hasattr(packet, 'payload') and hasattr(packet, 'timestamp'):
+            # Convert payload to bytes for comparison
+            if isinstance(packet.payload, str):
+                try:
+                    payload_bytes = packet.payload.encode('utf-8')
+                except UnicodeEncodeError:
+                    payload_bytes = packet.payload.encode('utf-8', errors='replace')
+            else:
+                payload_bytes = packet.payload
+            
+            # Determine packet type
+            packet_type = None
+            if isinstance(payload_bytes, bytes):
+                if b'KEYFOB' in payload_bytes:
+                    packet_type = 'KEYFOB'
+                elif b'TIRE_SENSOR' in payload_bytes:
+                    packet_type = 'TIRE_SENSOR'
+                elif b'REMOTE' in payload_bytes:
+                    packet_type = 'REMOTE'
+                elif b'BEACON' in payload_bytes:
+                    packet_type = 'BEACON'
+            
+            if packet_type:
+                similar_packets = []
+                for p in self.packet_history:
+                    if not hasattr(p, 'payload') or not hasattr(p, 'timestamp'):
+                        continue
+                        
+                    # Convert historical packet payload to bytes
+                    if isinstance(p.payload, str):
+                        try:
+                            hist_payload = p.payload.encode('utf-8')
+                        except UnicodeEncodeError:
+                            hist_payload = p.payload.encode('utf-8', errors='replace')
+                    else:
+                        hist_payload = p.payload
+                    
+                    # Check if it's within the time window and matches the type
+                    if (current_time - p.timestamp < self.brute_force_window and 
+                        isinstance(hist_payload, bytes) and 
+                        packet_type.encode('utf-8') in hist_payload):
+                        similar_packets.append(p)
+                
+                if len(similar_packets) >= self.brute_force_threshold:
+                    logger.debug(
+                        "Brute force attack detected: %d similar %s packets in %.1f seconds",
+                        len(similar_packets), packet_type, self.brute_force_window
+                    )
+                    return True
+        
+        return False
     
     def analyze_packet(self, packet) -> SecurityReport:
         """Analyze a packet and return a security report."""
@@ -113,6 +200,15 @@ class SecurityAnalyzer:
                 packet=packet,
                 threat_level=ThreatLevel.MALICIOUS,
                 reason="Potential jamming attack detected"
+            )
+            
+        # Check for brute force attacks
+        if self._is_brute_force_attack(packet):
+            logger.warning("Brute force attack detected")
+            return SecurityReport(
+                packet=packet,
+                threat_level=ThreatLevel.MALICIOUS,
+                reason="Potential brute force attack detected"
             )
         
         # No threats detected
