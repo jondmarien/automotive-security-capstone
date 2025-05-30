@@ -31,8 +31,10 @@ Example:
 
 # Type checking setup
 try:
-    from typing import TYPE_CHECKING, Any, Dict, Callable, Optional  # noqa: F401
+    from typing import TYPE_CHECKING, Any, Callable, Dict, Optional  # noqa: F401
+
     from typing_extensions import Protocol  # noqa: F401
+
     from ..models.models import RFConfig, SignalMetrics  # noqa: F401
     
     TYPING = True

@@ -1,8 +1,6 @@
 """Power management interface definitions."""
 from abc import ABC, abstractmethod
-from typing import Optional
 
-from ..exceptions.exceptions import HardwareError
 from ..models.models import PowerState
 
 
