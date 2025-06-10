@@ -1,6 +1,6 @@
 # Automotive Security Capstone Project
 
-This repository contains both the backend and frontend components for the Automotive Security Capstone system, designed to monitor, detect, and alert users about suspicious RF signals in vehicles using custom hardware and modern software stacks.
+This repository contains the backend components for the Automotive Security Capstone system, designed to monitor, detect, and alert users about suspicious RF signals in vehicles using custom hardware and modern software stacks.
 
 ---
 
@@ -20,17 +20,6 @@ This repository contains both the backend and frontend components for the Automo
 │   ├── README.md                      # Backend details
 │   └── IMPLEMENTATION_PLAN.md         # High-level project and design plan
 │
-├── frontend/                          # Flutter mobile/web app for user interface and alerts
-│   ├── android/                       # Android platform files
-│   ├── ios/                           # iOS platform files
-│   ├── linux/, macos/, windows/, web/ # Desktop/Web targets
-│   ├── lib/                           # Dart source code (UI, providers, logic)
-│   ├── assets/                        # Images, mockups, etc.
-│   ├── pubspec.yaml                   # Flutter dependencies
-│   ├── tests/                         # Frontend tests
-│   ├── README.md                      # Frontend details
-│   └── IMPLEMENTATION_PLAN.md         # High-level project and design plan
-│
 └── README.md                          # (this file)
 ```
 
@@ -39,9 +28,8 @@ This repository contains both the backend and frontend components for the Automo
 ## High-Level Plan
 
 - **Backend:** Collects and analyzes RF signals, communicates with custom hardware, and exposes APIs for the frontend.
-- **Frontend:** Cross-platform Flutter app for real-time alerts, dashboard, settings, and history, connecting to backend and hardware dongle via BLE/Wi-Fi.
 
-See either `backend/IMPLEMENTATION_PLAN.md` or `frontend/IMPLEMENTATION_PLAN.md` for the full roadmap.
+See `backend/docs/plans/IMPLEMENTATION_PLAN.md`(backend/docs/plans/IMPLEMENTATION_PLAN.md)
 
 ---
 
@@ -55,17 +43,10 @@ See either `backend/IMPLEMENTATION_PLAN.md` or `frontend/IMPLEMENTATION_PLAN.md`
   - Custom hardware interface
   - Unit testing: pytest
 
-- **Frontend:**
-  - Flutter (Dart)
-  - Provider (state management)
-  - Platform channels for BLE/Wi-Fi
-  - Material Design UI
-  - Unit/widget/integration testing (Flutter test)
-
 ---
 
 ## Further Details
 
 - For backend implementation, see [`backend/README.md`](backend/README.md)
-- For frontend implementation, see [`frontend/README.md`](frontend/README.md)
-- For project goals and architecture, see either [`backend/IMPLEMENTATION_PLAN.md`](backend/IMPLEMENTATION_PLAN.md) or [`frontend/IMPLEMENTATION_PLAN.md`](frontend/IMPLEMENTATION_PLAN.md)
+
+- For project goals and architecture, see  [`backend/docs/poc_migration_plan.md`](backend/docs/poc_migration_plan.md)
