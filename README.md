@@ -29,7 +29,7 @@ This repository contains the backend components for the Automotive Security Caps
 
 - **Backend:** Collects and analyzes RF signals, communicates with custom hardware, and exposes APIs for the frontend.
 
-See `backend/docs/plans/IMPLEMENTATION_PLAN.md`(backend/docs/plans/IMPLEMENTATION_PLAN.md)
+See [`backend/docs/plans/IMPLEMENTATION_PLAN.md`](backend/docs/plans/IMPLEMENTATION_PLAN.md)
 
 ---
 
