@@ -1,1 +1,0 @@
-// BLE communication logic
