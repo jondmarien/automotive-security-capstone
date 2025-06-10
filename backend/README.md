@@ -107,69 +107,76 @@ backend/
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. Security Dongle Backend
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-This backend implements the core firmware, signal processing, and communication logic for a low-cost automotive security dongle. The system is designed to detect suspicious RF activity (315/433 MHz, e.g. relay attacks) and NFC events (13.56 MHz) in vehicles, alerting users via BLE or Wi-Fi to potential threats.
+# Automotive Security Capstone - POC Architecture (2025)
 
-## Features
+## Overview
 
-- **RF Signal Detection:** Uses RTL-SDR to monitor 315/433 MHz for suspicious transmissions (relay attacks, spoofing, etc.).
-- **NFC Detection:** Monitors for unauthorized 13.56 MHz NFC activity using a PN532 module.
-- **Anomaly Detection:** Combines RF and NFC data with pattern recognition and RSSI thresholds to minimize false positives.
-- **Alert System:** Classifies threats, formats encrypted JSON alerts, and notifies users through BLE or Wi-Fi.
-- **Power Management:** Designed for low power consumption and safe operation from a vehicle USB/lighter port.
-- **Testing & Compliance:** Includes test plans for validation, power, and environmental compliance.
+This project implements a proof-of-concept (POC) automotive security system using an RTL-SDR V4 dongle, a computer (as intermediary), and a Raspberry Pi Pico W. The system detects and classifies automotive RF signals and NFC events, generating alerts for suspicious activity.
 
-## Architecture
+## System Architecture
 
-- **main.py:** Firmware main loop integrating hardware, detection, and alert modules.
-- **hardware/**: RTL-SDR and PN532 hardware abstraction, power management, and circuit documentation.
-- **detection/**: RF/NFC detection, anomaly detection, and alert classification.
-- **comms/**: BLE, Wi-Fi, and encryption utilities for secure alert transmission.
-- **logging/**: Logging and debug utilities.
-- **utils/**: Helper functions and configuration loaders.
-- **tests/**: Automated and manual test scripts, validation plans.
-
-## Getting Started
-
-1. Install dependencies:
-
-   ```sh
-   pip install -r requirements.txt
-   ```
-
-2. Connect RTL-SDR and PN532 modules to your Raspberry Pi Pico (see `hardware/circuit.md`).
-3. Run the backend firmware:
-
-   ```sh
-   python main.py
-   ```
-
-4. Use the mobile app to receive BLE/Wi-Fi alerts.
-
-## Project Structure
-
-```sh
-backend/
-├── main.py
-├── requirements.txt
-├── README.md
-├── IMPLEMENTATION_PLAN.md
-├── hardware/
-├── detection/
-├── comms/
-├── logging/
-├── utils/
-├── config/
-├── tests/
+```
+RTL-SDR V4 → Computer (rtl_tcp server + Python signal server) → TCP/IP → Raspberry Pi Pico W → PN532 NFC
+                                                        ↓
+                                              Alert Processing & Logging
 ```
 
-## Documentation
+- **RTL-SDR V4** is connected to the computer (not the Pico).
+- **Computer** runs `rtl_tcp` and a Python server (`rtl_tcp_server.py`, `signal_bridge.py`, `startup_server.py`) to process IQ samples and broadcast detection events over TCP.
+- **Raspberry Pi Pico W** connects as a TCP client to the computer, receives detection events, and handles alerting and NFC monitoring.
 
-- See `IMPLEMENTATION_PLAN.md` for the full system design.
-- See `hardware/circuit.md` for pinouts and integration details.
-- See `tests/test_plan.md` for validation and compliance procedures.
+## Running the POC
 
-## License
+### 1. Computer-Side Setup
 
-This project is for educational and research use. See LICENSE for details.
+- Install dependencies:
+  - Python 3.8+
+  - `numpy`, `asyncio`
+  - RTL-SDR drivers (use Zadig on Windows)
+  - `rtl_tcp` utility (from the RTL-SDR package)
+- Start the RTL-SDR TCP server and signal processing bridge:
+  1. Run `rtl_tcp_server.py` to start the RTL-SDR process and Pico TCP server.
+  2. Run `signal_bridge.py` to process IQ samples and broadcast detection events.
+  3. Use `startup_server.py` to launch both together and monitor system health.
+
+### 2. Pico-Side Setup
+
+- Flash MicroPython firmware to the Pico W.
+- Upload the Pico client code (see docs/poc_migration_plan.md for example).
+- Configure the Pico to connect to the computer's IP and port (default: 8888).
+- The Pico will receive detection events and handle alerting and NFC monitoring.
+
+## Key Changes from Previous Architecture
+
+- **No direct RTL-SDR access from the Pico.** All RF detection is performed on the computer and sent to the Pico over TCP.
+- **Mock drivers** are retained for unit testing but are not used in the POC runtime.
+- **Detection pipeline** in `main.py` and `detection/rf_detection.py` now expects detection events from the TCP server, not direct hardware.
+
+## Example: Running the Server
+
+```bash
+# Start the server (from backend directory)
+python startup_server.py
+```
+
+## Example: Pico Client
+
+- See `docs/poc_migration_plan.md` for a full example of the Pico client code.
+- The Pico should connect to the computer's IP and port 8888 to receive detection events.
+
+## Troubleshooting
+
+- Ensure the computer firewall allows incoming connections on port 8888.
+- Use `rtl_test` to verify RTL-SDR is detected.
+- Use `telnet <computer_ip> 8888` to test TCP connectivity from the Pico's network.
+
+## Dependencies
+- Python 3.8+
+- numpy
+- asyncio
+- RTL-SDR tools (rtl_tcp)
+
+## For More Details
+See `docs/poc_migration_plan.md` for a full implementation guide and test plan.

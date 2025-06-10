@@ -1,41 +1,31 @@
-[tool.poetry]
+[project]
 name = "automotive-security-backend"
 version = "0.1.0"
 description = "Backend for Automotive Security Capstone Project"
-authors = ["Jonathan Marien <jon@chron0.tech>"]
+authors = [
+    {name = "Jonathan Marien", email = "jon@chron0.tech"}
+]
 readme = "README.md"
-packages = [{include = "app"}]
+requires-python = ">=3.11"
 
-[tool.poetry.dependencies]
-python = "^3.11"
-fastapi = "^0.110.0"
-uvicorn = {extras = ["standard"], version = "^0.27.0"}
-pydantic = "^2.6.0"
-python-dotenv = "^1.0.0"
-python-jose = {extras = ["cryptography"], version = "^3.3.0"}
-passlib = {extras = ["bcrypt"], version = "^1.7.4"}
-python-multipart = "^0.0.6"
-pydantic-settings = "^2.9.1"
-python-json-logger = "^3.3.0"
-motor = "^3.7.1"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.6.0",
+    "python-dotenv>=1.0.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.6",
+    "pydantic-settings>=2.9.1",
+    "python-json-logger>=3.3.0",
+    "motor>=3.7.1",
+    "numpy>=1.26.4",
+    "asyncio>=3.4.3",
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.0"
-pytest-asyncio = "^0.23.5"
-black = "^24.3.0"
-ruff = "^0.3.0"
-httpx = "^0.27.0"
+[tool.hatch.build.targets.wheel]
+packages = ["pico", "rtl_sdr", "utils"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.black]
-line-length = 88
-target-version = ['py311']
-include = '\.pyi?$'
-
-[tool.ruff]
-line-length = 88
-target-version = "py311"
-select = ["E", "F", "I"]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
