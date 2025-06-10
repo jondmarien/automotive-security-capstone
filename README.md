@@ -8,17 +8,13 @@ This repository contains the backend components for the Automotive Security Caps
 
 ```sh
 ├── backend/                           # Python backend for RF signal analysis, hardware comms, and API
-│   ├── app_logging/                   # Logging utilities
-│   ├── comms/                         # Communication (BLE/Wi-Fi, protocol)
-│   ├── config/                        # Configuration files
-│   ├── detection/                     # Signal detection & analysis logic
-│   ├── hardware/                      # Hardware abstraction/interface
-│   ├── main.py                        # Backend entrypoint
+│   ├── docs/                          # Docs Folder
+│   ├── pico/                          # Code for the Pi Pico
+│   ├── rtl_sdr/                       # Code for the RTL_SDR
+│   ├── rtl_sdr_bin/                   # Binaries for the RTL_SDR
 │   ├── requirements.txt               # Python dependencies
-│   ├── tests/                         # Backend tests
 │   ├── utils/                         # Utility functions
 │   ├── README.md                      # Backend details
-│   └── IMPLEMENTATION_PLAN.md         # High-level project and design plan
 │
 └── README.md                          # (this file)
 ```
