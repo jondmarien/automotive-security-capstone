@@ -149,6 +149,10 @@ def render_dashboard(events, status_text):
         "Suspicious": "orange1",
     }
     for event in events[-15:]:
+        # If event is an error dict (e.g., {"error": ...}), render as a single-row error
+        if isinstance(event, dict) and "error" in event:
+            table.add_row("-", "ERROR", "[red]Error[/]", "-", str(event["error"]))
+            continue
         time_str = event.get("time") or event.get("timestamp", "-")
         event_type = event.get("type", "-")
         threat = event.get("threat", "-")

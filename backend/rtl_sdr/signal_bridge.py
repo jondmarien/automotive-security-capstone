@@ -13,6 +13,9 @@ import numpy as np
 import asyncio
 from datetime import datetime
 import struct
+from backend.detection.event_logic import analyze_event  # Unified detection/event logic
+
+# TODO: Refactor this module for future Micropython compatibility (Pico deployment).
 
 class SignalProcessingBridge:
     """
@@ -133,15 +136,15 @@ class SignalProcessingBridge:
 
     async def detect_automotive_signals(self, power_db, complex_samples):
         """
-        Automotive-specific signal detection logic.
-        Identifies peaks in power spectrum, analyzes burst patterns, and classifies signal type and threat.
+        Unified automotive signal detection logic using analyze_event().
+        Converts SDR features into detection event(s) using unified logic.
 
         Args:
             power_db (np.ndarray): Power (dB) array from IQ samples.
             complex_samples (np.ndarray): Complex IQ samples.
 
         Returns:
-            list: List of detection dicts (empty if no detection).
+            list: List of detection event dicts (empty if no detection).
         """
         detections = []
         mean_power = np.mean(power_db)
@@ -151,16 +154,24 @@ class SignalProcessingBridge:
         if len(peaks) > 0:
             max_power = np.max(power_db[peaks])
             burst_pattern = self.analyze_burst_pattern(power_db, peaks)
-            detection = {
-                'detection_id': f"det_{int(datetime.now().timestamp())}",
-                'signal_type': self.classify_signal_type(burst_pattern, max_power),
-                'power_db': float(max_power),
-                'power_above_noise': float(max_power - mean_power),
-                'peak_count': len(peaks),
-                'burst_pattern': burst_pattern,
-                'threat_level': self.calculate_threat_level(burst_pattern, max_power, mean_power)
+            # Build packet dict for unified logic
+            packet = {
+                "burst_pattern": burst_pattern,
+                "max_power": float(max_power),
+                "mean_power": float(mean_power),
+                "peak_count": len(peaks),
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "rssi": float(max_power),
+                "freq": self.rtl_server.frequency / 1e6,
+                # Feature flags for event_logic
+                "is_replay": False,  # TODO: Add replay detection logic if available
+                "is_jamming": burst_pattern == "jamming_pattern",
+                "is_brute": False,   # TODO: Add brute force logic if available
+                "is_unlock": burst_pattern == "key_fob_pattern",  # Simplified mapping
+                "is_lock": False,    # TODO: Add lock logic if available
             }
-            detections.append(detection)
+            event = analyze_event(packet, demo_mode=False)
+            detections.append(event)
         return detections
 
     def analyze_burst_pattern(self, power_db, peaks):
