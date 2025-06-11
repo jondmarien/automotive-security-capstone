@@ -264,6 +264,19 @@ async def generate_mock_events():
         event = generate_detection_event()
         yield event
 
+def flatten_detection(event, detection):
+    """Flatten detection dict for dashboard row."""
+    flat = {
+        "Time": event.get("timestamp", ""),
+        "Type": detection.get("signal_type", detection.get("event_type", "unknown")),
+        "Threat": detection.get("threat_level", "-"),
+        "Source": event.get("source", "-"),
+        "Details": detection.get("burst_pattern", detection.get("details", "-")),
+        "Power": detection.get("power_db", "-"),
+        "PeakCount": detection.get("peak_count", "-"),
+    }
+    return flat
+
 if __name__ == "__main__":
     try:
         asyncio.run(main())

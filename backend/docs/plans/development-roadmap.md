@@ -216,3 +216,24 @@ Create `test/realm_open_test.dart` verifying `SyncService.init()` does not throw
 | S7-5 | Update docs & diagrams | Eve | 2 |
 
 Review pull-requests daily; merge freeze Wednesday @ 17:00.
+
+---
+
+## June 2025 POC Debugging & Tuning Sprint - 2025-06-11 - 3:40PM
+
+### Key Fixes Implemented
+- Dashboard now unpacks and flattens each detection in `signal_detection` events for proper display.
+- Backend logs all burst analysis fields for tuning, suppresses log spam, and only processes/logs bursts if a Pico is connected.
+- Burst pattern logic is ready for tuning to specific key fobs (e.g., BMW), using a new `FOB_SETTINGS` dict in `signal_bridge.py`.
+- All logs are timestamped for easier correlation.
+
+### Tuning Recommendations
+- Use the dashboard and backend logs to observe burst characteristics when pressing your key fob.
+- Adjust `min_peak_count`, `min_max_power_db`, and pattern logic in `signal_bridge.py` to match your fob's signature.
+- Add new fob models to `FOB_SETTINGS` as you test more brands.
+
+### Next Steps
+- Capture and analyze real key fob bursts.
+- Further tune detection logic for your specific vehicle.
+- Expand dashboard columns as needed for new detection fields.
+- Continue to update this guide as new lessons are learned.

@@ -85,3 +85,8 @@ poc/
 
 # Old Backend
 old_backend/
+
+# Signals
+.iq
+.wav
+.bin

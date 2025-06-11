@@ -14,11 +14,27 @@ import asyncio
 from datetime import datetime
 import struct
 from detection.event_logic import analyze_event  # Unified detection/event logic
+import time
 
 def log(msg):
     print("[{}] {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), msg))
 
-# TODO: Refactor this module for future Micropython compatibility (Pico deployment).
+# Key fob detection settings by model/brand
+FOB_SETTINGS = {
+    "BMW_X1_2023": {
+        "min_peak_count": 6,
+        "samples_per_symbol": 10,
+        "modulation": "FSK",
+        "bits_per_symbol": 1,
+        "noise": 0.0723,
+        "center": -0.0227,
+        "error_tolerance": 1,
+        "min_max_power_db": -40,
+        "interval_consistency": 0.3,  # std/mean threshold for key fob pattern
+        # Add more fields as needed
+    },
+    # Add more models here
+}
 
 class SignalProcessingBridge:
     """
@@ -29,18 +45,22 @@ class SignalProcessingBridge:
         rtl_server_manager: Instance of RTLTCPServerManager for event broadcast.
         rtl_tcp_host (str): Host for RTL-TCP server (default 'localhost').
         rtl_tcp_port (int): Port for RTL-TCP server (default 1234).
+        fob_model (str): Key fob model for detection settings (default "BMW_X1_2023").
 
     Example:
         bridge = SignalProcessingBridge(rtl_server_manager)
         asyncio.run(bridge.start_signal_processing())
     """
-    def __init__(self, rtl_server_manager, rtl_tcp_host='localhost', rtl_tcp_port=1234):
+    def __init__(self, rtl_server_manager, rtl_tcp_host='localhost', rtl_tcp_port=1234, fob_model="BMW_X1_2023"):
         self.rtl_server = rtl_server_manager
         self.rtl_tcp_host = rtl_tcp_host
         self.rtl_tcp_port = rtl_tcp_port
         self.processing_active = False
         self.signal_buffer = []
         self.detection_threshold = -60
+        self._last_cooldown_log_time = 0
+        self._last_burst_time = 0
+        self.fob_settings = FOB_SETTINGS.get(fob_model, FOB_SETTINGS["BMW_X1_2023"])
 
     async def start_signal_processing(self):
         """
@@ -151,72 +171,67 @@ class SignalProcessingBridge:
         Returns:
             list: List of detection event dicts (empty if no detection).
         """
+        settings = self.fob_settings
         detections = []
         mean_power = np.mean(power_db)
         std_power = np.std(power_db)
         threshold = mean_power + 3 * std_power
         peaks = np.where(power_db > threshold)[0]
-        MIN_PEAK_COUNT = 35
-        MIN_MAX_POWER_DB = -40
+        now = time.time()
+
+        # Only process if Pico connected
+        if not self.rtl_server.connected_picos:
+            return []
+
+        MIN_PEAK_COUNT = settings["min_peak_count"]
+        MIN_MAX_POWER_DB = settings["min_max_power_db"]
         COOLDOWN_SECONDS = 0.5
         COOLDOWN_LOG_INTERVAL = 2.0
-        if not hasattr(self, '_last_burst_time'):
-            self._last_burst_time = 0
-        if not hasattr(self, '_last_cooldown_log_time'):
-            self._last_cooldown_log_time = 0
-        now = datetime.now().timestamp()
-        # Only log burst ignored messages if at least one Pico is connected
-        log_bursts = len(self.rtl_server.connected_picos) > 0
-        if len(peaks) >= MIN_PEAK_COUNT:
-            max_power = np.max(power_db[peaks])
-            if max_power >= MIN_MAX_POWER_DB:
-                if now - self._last_burst_time >= COOLDOWN_SECONDS:
-                    burst_pattern = self.analyze_burst_pattern(power_db, peaks)
-                    if log_bursts:
-                        log(f"[BURST] Detected burst_pattern={burst_pattern}, max_power={max_power:.2f}, mean_power={mean_power:.2f}, peak_count={len(peaks)}")
-                    # Build packet dict for unified logic
-                    packet = {
-                        "burst_pattern": burst_pattern,
-                        "max_power": float(max_power),
-                        "mean_power": float(mean_power),
-                        "peak_count": len(peaks),
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "rssi": float(max_power),
-                        "freq": self.rtl_server.frequency / 1e6,
-                        # Feature flags for event_logic
-                        "is_replay": False,  # TODO: Add replay detection logic if available
-                        "is_jamming": burst_pattern == "jamming_pattern",
-                        "is_brute": False,   # TODO: Add brute force logic if available
-                        "is_unlock": burst_pattern == "key_fob_pattern",  # Simplified mapping
-                        "is_lock": False,    # TODO: Add lock logic if available
-                    }
-                    event = analyze_event(packet, demo_mode=False)
-                    # Add burst analysis fields to detection event for downstream logging
-                    event['burst_pattern'] = burst_pattern
-                    event['max_power'] = float(max_power)
-                    event['mean_power'] = float(mean_power)
-                    event['peak_count'] = len(peaks)
-                    detections.append(event)
-                    self._last_burst_time = now
-                else:
-                    if log_bursts and now - self._last_cooldown_log_time >= COOLDOWN_LOG_INTERVAL:
-                        log(f"[BURST] Ignored due to cooldown: max_power={max_power:.2f}, peak_count={len(peaks)}")
-                        self._last_cooldown_log_time = now
-            else:
-                if log_bursts:
-                    log(f"[BURST] Ignored: max_power below threshold ({max_power:.2f} < {MIN_MAX_POWER_DB})")
-        else:
-            if len(peaks) > 0 and log_bursts:
+
+        if len(peaks) < MIN_PEAK_COUNT:
+            if now - self._last_cooldown_log_time > COOLDOWN_LOG_INTERVAL:
                 log(f"[BURST] Ignored: peak_count below threshold ({len(peaks)} < {MIN_PEAK_COUNT})")
+                self._last_cooldown_log_time = now
+            return []
+
+        max_power = np.max(power_db[peaks])
+        if max_power < MIN_MAX_POWER_DB:
+            if now - self._last_cooldown_log_time > COOLDOWN_LOG_INTERVAL:
+                log(f"[BURST] Ignored: max_power below threshold ({max_power:.2f} < {MIN_MAX_POWER_DB})")
+                self._last_cooldown_log_time = now
+            return []
+
+        if now - self._last_burst_time < COOLDOWN_SECONDS:
+            if now - self._last_cooldown_log_time > COOLDOWN_LOG_INTERVAL:
+                log(f"[BURST] Ignored due to cooldown: max_power={max_power:.2f}, peak_count={len(peaks)}")
+                self._last_cooldown_log_time = now
+            return []
+
+        self._last_burst_time = now
+
+        burst_pattern = self.analyze_burst_pattern(power_db, peaks, settings)
+        log(f"[BURST] Detected burst_pattern={burst_pattern}, max_power={max_power:.2f}, mean_power={mean_power:.2f}, peak_count={len(peaks)}")
+
+        detection = {
+            'detection_id': f"det_{int(datetime.now().timestamp())}",
+            'event_type': self.classify_signal_type(burst_pattern, max_power, peaks, settings),
+            'burst_pattern': burst_pattern,
+            'power_db': float(max_power),
+            'mean_power': float(mean_power),
+            'peak_count': len(peaks),
+            'threat_level': self.calculate_threat_level(burst_pattern, max_power, mean_power),
+        }
+        detections.append(detection)
         return detections
 
-    def analyze_burst_pattern(self, power_db, peaks):
+    def analyze_burst_pattern(self, power_db, peaks, settings):
         """
         Analyze burst pattern in detected peaks to infer signal type.
 
         Args:
             power_db (np.ndarray): Power (dB) array.
             peaks (np.ndarray): Indices of detected peaks.
+            settings (dict): Detection settings for the key fob model.
 
         Returns:
             str: Pattern label (e.g., 'key_fob_pattern', 'jamming_pattern', etc).
@@ -226,19 +241,21 @@ class SignalProcessingBridge:
         peak_intervals = np.diff(peaks)
         if len(peak_intervals) >= 2:
             interval_consistency = np.std(peak_intervals) / np.mean(peak_intervals)
-            if interval_consistency < 0.3:
+            if interval_consistency < settings.get("interval_consistency", 0.3):
                 return 'key_fob_pattern'
         if len(peaks) > 10 and np.mean(peak_intervals) < 5:
             return 'jamming_pattern'
         return 'unknown_pattern'
 
-    def classify_signal_type(self, burst_pattern, max_power):
+    def classify_signal_type(self, burst_pattern, max_power, peaks, settings):
         """
         Classify signal type based on burst pattern and power.
 
         Args:
             burst_pattern (str): Pattern label from analyze_burst_pattern.
             max_power (float): Maximum power in detected peaks.
+            peaks (np.ndarray): Indices of detected peaks.
+            settings (dict): Detection settings for the key fob model.
 
         Returns:
             str: Signal type label (e.g., 'key_fob_transmission').
@@ -247,10 +264,10 @@ class SignalProcessingBridge:
             return 'key_fob_transmission'
         elif burst_pattern == 'jamming_pattern':
             return 'potential_jamming'
-        elif max_power > -50:
+        elif max_power > -50 and len(peaks) > 40:
             return 'strong_unknown_signal'
         else:
-            return 'weak_signal'
+            return 'unknown_signal'
 
     def calculate_threat_level(self, burst_pattern, max_power, mean_power):
         """
