@@ -142,6 +142,12 @@ def render_dashboard(events, status_text):
     # Color mapping for threat levels
     colors = {"Low": "green", "Medium": "yellow", "High": "red", "Critical": "bold red"}
 
+    # Threat level colors mapping: Benign=green, Malicious=red, Suspicious=orange
+    colors = {
+        "Benign": "green",
+        "Malicious": "red",
+        "Suspicious": "orange1",
+    }
     for event in events[-15:]:
         time_str = event.get("time") or event.get("timestamp", "-")
         event_type = event.get("type", "-")
@@ -223,46 +229,25 @@ async def main():
     await dashboard_loop()
 
 # --- Mock Event Generator ---
+# --- Detection Adapter Integration ---
+from cli_dashboard_detection_adapter import generate_detection_event
+
 async def generate_mock_events():
     """
     Async generator that yields simulated detection events for dashboard demo/testing.
-    Produces realistic-looking mock events with varying types, threat levels, and sources.
+    Uses legacy detection logic and hardware mocks for realistic event types and threat levels.
 
     Yields:
-        dict: Simulated detection event.
+        dict: Simulated detection event using detection logic.
 
     Example:
         async for event in generate_mock_events():
             print(event)
     """
-    event_types = ["RF Unlock", "RF Lock", "NFC Scan", "Jamming", "Replay Attack", "Unknown"]
-    threat_levels = ["Low", "Medium", "High", "Critical"]
-    sources = ["Pico-1", "Pico-2", "Simulated", "TestBench"]
-    details = [
-        "Detected valid unlock signal.",
-        "Multiple unlock attempts detected.",
-        "NFC tag read.",
-        "RF jamming pattern detected!",
-        "Replay attack signature.",
-        "Unrecognized RF burst.",
-        "Signal strength anomaly.",
-        "Intermittent connection.",
-        "Rapid burst pattern.",
-        "All clear."
-    ]
-    
-    counter = itertools.count(1)
+    import asyncio
     while True:
-        # Simulate a new event every 1.5 seconds
         await asyncio.sleep(1.5)
-        now = datetime.now().strftime("%H:%M:%S")
-        event = {
-            "time": now,
-            "type": random.choice(event_types),
-            "threat": random.choices(threat_levels, weights=[5, 3, 2, 1])[0],
-            "source": random.choice(sources),
-            "details": random.choice(details) + f" (event #{next(counter)})"
-        }
+        event = generate_detection_event()
         yield event
 
 if __name__ == "__main__":
