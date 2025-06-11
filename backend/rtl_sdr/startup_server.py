@@ -10,8 +10,12 @@ Example usage:
 import asyncio
 import sys
 import signal
+from datetime import datetime
 from rtl_sdr.rtl_tcp_server import RTLTCPServerManager
 from rtl_sdr.signal_bridge import SignalProcessingBridge
+
+def log(msg):
+    print("[{}] {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), msg))
 
 class AutomotiveSecurityServer:
     """
@@ -38,24 +42,24 @@ class AutomotiveSecurityServer:
         Example:
             await server.start_server()
         """
-        print("🚗 Automotive Security Server - POC Mode")
-        print("=" * 45)
-        print("Starting RTL-SDR V4 TCP server...")
+        log("🚗 Automotive Security Server - POC Mode")
+        log("=" * 45)
+        log("Starting RTL-SDR V4 TCP server...")
         if not self.rtl_manager.start_rtl_tcp_server():
-            print("❌ Failed to start RTL-TCP server")
+            log("❌ Failed to start RTL-TCP server")
             return False
-        print("✅ RTL-TCP server started")
+        log("✅ RTL-TCP server started")
         tasks = [
             asyncio.create_task(self.rtl_manager.start_pico_communication_server()),
             asyncio.create_task(self.signal_bridge.start_signal_processing()),
             asyncio.create_task(self.monitor_system())
         ]
-        print("🟢 Automotive Security Server is active")
-        print("Waiting for Pico connections...")
+        log("🟢 Automotive Security Server is active")
+        log("Waiting for Pico connections...")
         try:
             await asyncio.gather(*tasks)
         except KeyboardInterrupt:
-            print("\n🛑 Shutting down server...")
+            log("\n🛑 Shutting down server...")
             self.running = False
         finally:
             await self.cleanup()
@@ -67,17 +71,17 @@ class AutomotiveSecurityServer:
         while self.running:
             await asyncio.sleep(30)
             pico_count = len(self.rtl_manager.connected_picos)
-            print(f"📊 Status: {pico_count} Pico(s) connected, RTL-SDR active")
+            log(f"📊 Status: {pico_count} Pico(s) connected, RTL-SDR active")
 
     async def cleanup(self):
         """
         Cleanup resources and terminate RTL-TCP subprocess on shutdown.
         """
-        print("Cleaning up...")
+        log("Cleaning up...")
         if self.rtl_manager.rtl_process:
             self.rtl_manager.rtl_process.terminate()
             self.rtl_manager.rtl_process.wait()
-        print("✅ Cleanup complete")
+        log("✅ Cleanup complete")
 
 if __name__ == "__main__":
     server = AutomotiveSecurityServer()
@@ -85,7 +89,7 @@ if __name__ == "__main__":
         """
         Signal handler for interrupt signals (e.g. Ctrl+C).
         """
-        print("\nReceived interrupt signal")
+        log("\nReceived interrupt signal")
         sys.exit(0)
     signal.signal(signal.SIGINT, signal_handler)
     asyncio.run(server.start_server())

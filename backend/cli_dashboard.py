@@ -178,7 +178,7 @@ async def main():
     parser.add_argument("--source", choices=["api", "tcp"], help="Event source: api or tcp")
     parser.add_argument("--api-url", type=str, default="http://localhost:8000/events", help="API URL (for --source api)")
     parser.add_argument("--tcp-host", type=str, default="localhost", help="TCP event stream host (default: localhost)")
-    parser.add_argument("--tcp-port", type=int, default=1234, help="TCP event stream port (default: 1234)")
+    parser.add_argument("--tcp-port", type=int, default=8888, help="TCP event stream port (default: 8888)")
     parser.add_argument("--mock", action="store_true", help="Enable mock mode to simulate detection events for testing and demo purposes.")
     args = parser.parse_args()
 
@@ -209,12 +209,22 @@ async def main():
         try:
             async for event in event_gen:
                 log_event(event)
-                # Add timestamp if not present
-                if "timestamp" not in event:
-                    event["timestamp"] = datetime.now().strftime("%H:%M:%S")
-                events.append(event)
-                if len(events) > 100:
-                    events.pop(0)
+                # Unpack signal_detection events with nested detections
+                if event.get('type') == 'signal_detection' and 'detections' in event:
+                    for detection in event['detections']:
+                        # Add timestamp if not present
+                        if 'timestamp' not in detection:
+                            detection['timestamp'] = event.get('timestamp', datetime.now().strftime("%H:%M:%S"))
+                        events.append(detection)
+                        if len(events) > 100:
+                            events.pop(0)
+                else:
+                    # Add timestamp if not present
+                    if "timestamp" not in event:
+                        event["timestamp"] = datetime.now().strftime("%H:%M:%S")
+                    events.append(event)
+                    if len(events) > 100:
+                        events.pop(0)
                 # Detect repeated API connection errors
                 if event.get("error") and "API connection error" in event["error"]:
                     api_error_count += 1

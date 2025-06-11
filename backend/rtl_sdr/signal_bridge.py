@@ -13,7 +13,10 @@ import numpy as np
 import asyncio
 from datetime import datetime
 import struct
-from backend.detection.event_logic import analyze_event  # Unified detection/event logic
+from detection.event_logic import analyze_event  # Unified detection/event logic
+
+def log(msg):
+    print("[{}] {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), msg))
 
 # TODO: Refactor this module for future Micropython compatibility (Pico deployment).
 
@@ -53,17 +56,19 @@ class SignalProcessingBridge:
                 reader, writer = await asyncio.open_connection(
                     self.rtl_tcp_host, self.rtl_tcp_port
                 )
-                print("Connected to RTL-SDR V4 via TCP")
+                log("Connected to RTL-SDR V4 via TCP")
                 await self.configure_rtl_sdr(writer)
                 sample_count = 0
                 while self.processing_active:
                     raw_data = await reader.read(16384)
                     if not raw_data:
-                        print("No data from RTL-SDR, reconnecting...")
+                        log("No data from RTL-SDR, reconnecting...")
                         break
-                    processed_data = await self.process_samples(raw_data, sample_count)
-                    if processed_data:
-                        await self.rtl_server.broadcast_to_picos(processed_data)
+                    # Only process if at least one Pico is connected
+                    if len(self.rtl_server.connected_picos) > 0:
+                        processed_data = await self.process_samples(raw_data, sample_count)
+                        if processed_data:
+                            await self.rtl_server.broadcast_to_picos(processed_data)
                     sample_count += 1
                     if sample_count % 100 == 0:
                         status = {
@@ -76,7 +81,7 @@ class SignalProcessingBridge:
                 writer.close()
                 await writer.wait_closed()
             except Exception as e:
-                print(f"Signal processing error: {e}")
+                log(f"Signal processing error: {e}")
                 await asyncio.sleep(2)
 
     async def configure_rtl_sdr(self, writer):
@@ -96,7 +101,7 @@ class SignalProcessingBridge:
         gain_cmd = struct.pack('>BI', 0x04, self.rtl_server.gain)
         writer.write(gain_cmd)
         await writer.drain()
-        print("RTL-SDR configured via TCP")
+        log("RTL-SDR configured via TCP")
 
     async def process_samples(self, raw_data, sample_count):
         """
@@ -151,27 +156,58 @@ class SignalProcessingBridge:
         std_power = np.std(power_db)
         threshold = mean_power + 3 * std_power
         peaks = np.where(power_db > threshold)[0]
-        if len(peaks) > 0:
+        MIN_PEAK_COUNT = 35
+        MIN_MAX_POWER_DB = -40
+        COOLDOWN_SECONDS = 0.5
+        COOLDOWN_LOG_INTERVAL = 2.0
+        if not hasattr(self, '_last_burst_time'):
+            self._last_burst_time = 0
+        if not hasattr(self, '_last_cooldown_log_time'):
+            self._last_cooldown_log_time = 0
+        now = datetime.now().timestamp()
+        # Only log burst ignored messages if at least one Pico is connected
+        log_bursts = len(self.rtl_server.connected_picos) > 0
+        if len(peaks) >= MIN_PEAK_COUNT:
             max_power = np.max(power_db[peaks])
-            burst_pattern = self.analyze_burst_pattern(power_db, peaks)
-            # Build packet dict for unified logic
-            packet = {
-                "burst_pattern": burst_pattern,
-                "max_power": float(max_power),
-                "mean_power": float(mean_power),
-                "peak_count": len(peaks),
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "rssi": float(max_power),
-                "freq": self.rtl_server.frequency / 1e6,
-                # Feature flags for event_logic
-                "is_replay": False,  # TODO: Add replay detection logic if available
-                "is_jamming": burst_pattern == "jamming_pattern",
-                "is_brute": False,   # TODO: Add brute force logic if available
-                "is_unlock": burst_pattern == "key_fob_pattern",  # Simplified mapping
-                "is_lock": False,    # TODO: Add lock logic if available
-            }
-            event = analyze_event(packet, demo_mode=False)
-            detections.append(event)
+            if max_power >= MIN_MAX_POWER_DB:
+                if now - self._last_burst_time >= COOLDOWN_SECONDS:
+                    burst_pattern = self.analyze_burst_pattern(power_db, peaks)
+                    if log_bursts:
+                        log(f"[BURST] Detected burst_pattern={burst_pattern}, max_power={max_power:.2f}, mean_power={mean_power:.2f}, peak_count={len(peaks)}")
+                    # Build packet dict for unified logic
+                    packet = {
+                        "burst_pattern": burst_pattern,
+                        "max_power": float(max_power),
+                        "mean_power": float(mean_power),
+                        "peak_count": len(peaks),
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "rssi": float(max_power),
+                        "freq": self.rtl_server.frequency / 1e6,
+                        # Feature flags for event_logic
+                        "is_replay": False,  # TODO: Add replay detection logic if available
+                        "is_jamming": burst_pattern == "jamming_pattern",
+                        "is_brute": False,   # TODO: Add brute force logic if available
+                        "is_unlock": burst_pattern == "key_fob_pattern",  # Simplified mapping
+                        "is_lock": False,    # TODO: Add lock logic if available
+                    }
+                    event = analyze_event(packet, demo_mode=False)
+                    # Add burst analysis fields to detection event for downstream logging
+                    event['burst_pattern'] = burst_pattern
+                    event['max_power'] = float(max_power)
+                    event['mean_power'] = float(mean_power)
+                    event['peak_count'] = len(peaks)
+                    detections.append(event)
+                    self._last_burst_time = now
+                else:
+                    if log_bursts and now - self._last_cooldown_log_time >= COOLDOWN_LOG_INTERVAL:
+                        log(f"[BURST] Ignored due to cooldown: max_power={max_power:.2f}, peak_count={len(peaks)}")
+                        self._last_cooldown_log_time = now
+            else:
+                if log_bursts:
+                    log(f"[BURST] Ignored: max_power below threshold ({max_power:.2f} < {MIN_MAX_POWER_DB})")
+        else:
+            if len(peaks) > 0 and log_bursts:
+                log(f"[BURST] Ignored: peak_count below threshold ({len(peaks)} < {MIN_PEAK_COUNT})")
         return detections
 
     def analyze_burst_pattern(self, power_db, peaks):

@@ -19,6 +19,9 @@ import asyncio
 from datetime import datetime
 import os
 
+def log(msg):
+    print("[{}] {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), msg))
+
 class RTLTCPServerManager:
     """
     Manages RTL-SDR V4 TCP server and Pico communication server.
@@ -74,21 +77,21 @@ class RTLTCPServerManager:
             '-g', str(self.gain),
             '-n', '1'
         ]
-        print(f"Starting RTL-SDR V4 TCP server: {' '.join(cmd)}")
+        log(f"Starting RTL-SDR V4 TCP server: {' '.join(cmd)}")
         try:
             self.rtl_process = subprocess.Popen(cmd, 
                 stdout=subprocess.PIPE, 
                 stderr=subprocess.PIPE)
             time.sleep(3)
             if self.rtl_process.poll() is None:
-                print(f"RTL-TCP server running on port {self.tcp_port}")
+                log(f"RTL-TCP server running on port {self.tcp_port}")
                 return True
             else:
                 stderr = self.rtl_process.stderr.read().decode() # type: ignore
-                print(f"RTL-TCP server failed to start: {stderr}")
+                log(f"RTL-TCP server failed to start: {stderr}")
                 return False
         except Exception as e:
-            print(f"Failed to start RTL-TCP server: {e}")
+            log(f"Failed to start RTL-TCP server: {e}")
             return False
 
     async def start_pico_communication_server(self):
@@ -104,7 +107,7 @@ class RTLTCPServerManager:
             '0.0.0.0',
             self.pico_server_port
         )
-        print(f"Pico communication server listening on port {self.pico_server_port}")
+        log(f"Pico communication server listening on port {self.pico_server_port}")
         async with server:
             await server.serve_forever()
 
@@ -118,7 +121,7 @@ class RTLTCPServerManager:
             writer (StreamWriter): Asyncio stream writer to Pico.
         """
         addr = writer.get_extra_info('peername')
-        print(f"Pico connected from {addr}")
+        log(f"Pico connected from {addr}")
         self.connected_picos.append({
             'reader': reader,
             'writer': writer,
@@ -136,22 +139,28 @@ class RTLTCPServerManager:
                 }
             }
             await self.send_to_pico(writer, config)
+            buffer = ""
             while True:
                 try:
                     data = await asyncio.wait_for(reader.read(1024), timeout=30.0)
                     if not data:
                         break
-                    try:
-                        message = json.loads(data.decode().strip())
-                        await self.handle_pico_command(message, writer)
-                    except json.JSONDecodeError:
-                        print(f"Invalid JSON from Pico {addr}")
+                    buffer += data.decode()
+                    while '\n' in buffer:
+                        line, buffer = buffer.split('\n', 1)
+                        if line.strip():
+                            try:
+                                message = json.loads(line)
+                                await self.handle_pico_command(message, writer)
+                            except json.JSONDecodeError:
+                                log(f"Invalid JSON from Pico {addr}: {line}")
                 except asyncio.TimeoutError:
-                    await self.send_to_pico(writer, {'type': 'heartbeat'})
+                    log(f"Pico {addr} heartbeat timeout")
+                await self.send_to_pico(writer, {'type': 'heartbeat'})
         except Exception as e:
-            print(f"Pico connection error from {addr}: {e}")
+            log(f"Pico connection error from {addr}: {e}")
         finally:
-            print(f"Pico {addr} disconnected")
+            log(f"Pico {addr} disconnected")
             self.connected_picos = [p for p in self.connected_picos if p['writer'] != writer]
             writer.close()
 
@@ -168,7 +177,7 @@ class RTLTCPServerManager:
             writer.write(json_data.encode())
             await writer.drain()
         except Exception as e:
-            print(f"Failed to send to Pico: {e}")
+            log(f"Failed to send to Pico: {e}")
 
     async def broadcast_to_picos(self, data):
         """
@@ -183,7 +192,7 @@ class RTLTCPServerManager:
             try:
                 await self.send_to_pico(pico['writer'], data)
             except Exception as e:
-                print(f"Failed to broadcast to {pico['address']}: {e}")
+                log(f"Failed to broadcast to {pico['address']}: {e}")
                 self.connected_picos.remove(pico)
 
     async def handle_pico_command(self, message, writer):
@@ -195,4 +204,4 @@ class RTLTCPServerManager:
             message (dict): JSON-decoded command from Pico.
             writer (StreamWriter): Asyncio stream writer to Pico.
         """
-        print(f"Received command from Pico: {message}")
+        log(f"Received command from Pico: {message}")
