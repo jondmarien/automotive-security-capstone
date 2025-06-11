@@ -88,5 +88,6 @@ old_backend/
 
 # Signals
 .iq
+output_new.iq
 .wav
 .bin
