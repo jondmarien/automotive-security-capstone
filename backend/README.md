@@ -1,182 +1,116 @@
-# Automotive Security Backend
+# Automotive Security Capstone Backend (2025)
 
-This is the backend service for the Automotive Security Capstone project, built with FastAPI and MongoDB.
+This backend powers the Automotive Security Capstone POC, enabling real-time automotive RF and NFC event detection, logging, and demo visualization via a CLI dashboard.
 
-## 🚀 Features
+## 🚘 Project Overview
 
-- **FastAPI** for high-performance API endpoints
-- **MongoDB** for data persistence
-- **JWT Authentication** for secure API access
-- **Structured Logging** for better debugging
-- **CORS** enabled for frontend integration
-- **Environment-based configuration**
+- **RTL-SDR V4** dongle connects to a computer for RF signal capture.
+- **Python signal processing** scripts analyze IQ samples and detect automotive events.
+- **Detection events** are streamed over TCP to:
+  - **Raspberry Pi Pico W** (for alerting/NFC)
+  - **CLI Dashboard** (for real-time monitoring and demo)
+- **No FastAPI/MongoDB backend** is required for the current MVP/POC.
 
-## 🛠️ Prerequisites
+## 🏗️ System Architecture
 
-- Python 3.11+
-- MongoDB (local or remote)
-- Poetry for dependency management
+```
+RTL-SDR V4
+   │
+   ▼
+Computer (Windows/Linux)
+ ├── rtl_tcp (raw IQ data server, port 1234)
+ ├── signal_bridge.py (RF analysis, event detection)
+ ├── rtl_tcp_server.py (TCP event server, port 8888)
+ ├── cli_dashboard.py (Rich-based CLI dashboard, supports --mock mode)
+ └── [optionally] startup_server.py (launches everything)
+   │
+   ▼
+Raspberry Pi Pico W (TCP client, receives events, handles alerting/NFC)
+```
 
-## 🏗️ Setup
+## 📦 Key Components
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd backend
-   ```
+- `rtl_tcp_server.py`: Manages RTL-SDR, launches `rtl_tcp`, listens for Pico clients and dashboard on TCP (default: 8888)
+- `signal_bridge.py`: Reads IQ samples from RTL-SDR, detects events, sends to TCP server
+- `cli_dashboard.py`: Rich-powered CLI dashboard for real-time event display; supports `--mock` for demo/testing
+- `pico/main.py`: MicroPython client for Pico W; connects to computer, receives events, triggers LEDs/NFC
 
-2. **Install dependencies**
-   ```bash
-   poetry install
-   ```
+## 🛠️ Setup & Usage
 
-3. **Set up environment variables**
-   Copy `.env.example` to `.env` and update the values:
-   ```bash
-   cp .env.example .env
-   ```
+### 1. Computer-Side (Windows/Linux)
 
-4. **Run the application**
-   ```bash
-   poetry run uvicorn app.main:app --reload
-   ```
+1. **Install RTL-SDR drivers/tools** (see [docs/poc_migration_plan.md](../docs/poc_migration_plan.md))
+2. **Set up Python environment**
 
-5. **Access the API documentation**
-   - Swagger UI: http://localhost:8000/docs
-   - ReDoc: http://localhost:8000/redoc
+```sh
+   python -m venv .venv
+   .venv\Scripts\activate  # (Windows) or source .venv/bin/activate (Linux)
+   pip install -r requirements.txt
+```
 
-## 📦 Project Structure
+3. **Start RTL-TCP server and event bridge**
+
+```sh
+   python rtl_tcp_server.py
+   python signal_bridge.py
+   # Or: python startup_server.py
+```
+
+4. **Run the CLI dashboard (real events or mock mode)**
+
+```sh
+   # For live events (requires running TCP server with events):
+   python cli_dashboard.py --source tcp --tcp-host localhost --tcp-port 8888
+   # For demo/testing (no hardware required):
+   python cli_dashboard.py --mock
+```
+
+### 2. Pico-Side (Raspberry Pi Pico W)
+
+- Flash MicroPython firmware
+- Upload `main.py` and required libraries (see [docs/poc_migration_plan.md](../docs/poc_migration_plan.md))
+- Configure WiFi and server IP/port (default: 8888)
+- Pico will connect to computer, receive detection events, and trigger alerts/NFC
+
+## 🖥️ CLI Dashboard
+
+- Real-time event table with threat levels, event type, source, and details
+- Supports both live TCP and `--mock` demo mode
+- Logs all events to `detection_events.log`
+- Graceful error handling and Ctrl+C exit
+
+## 🔄 Project Structure (simplified)
 
 ```
 backend/
-├── app/
-│   ├── api/
-│   │   └── v1/
-│   │       ├── endpoints/
-│   │       └── api.py
-│   ├── core/
-│   │   ├── config.py
-│   │   └── logger.py
-│   ├── db/
-│   │   └── mongodb.py
-│   ├── models/
-│   │   └── base.py
-│   └── main.py
-├── tests/
-├── .env.example
-├── .gitignore
-├── poetry.lock
-├── pyproject.toml
-└── README.md
+├── cli_dashboard.py         # CLI dashboard (Rich, --mock supported)
+├── rtl_sdr/
+│   ├── rtl_tcp_server.py    # Manages RTL-SDR, Pico TCP server
+│   └── signal_bridge.py     # Signal processing, event detection
+├── pico/
+│   └── main.py              # Pico W MicroPython TCP client
+├── requirements.txt         # Python dependencies
+├── docs/
+│   └── poc_migration_plan.md
+└── ... (other scripts, logs, configs)
 ```
 
-## 🔧 Development
+## ⚡ Troubleshooting
 
-- **Format code**
-  ```bash
-  poetry run black .
-  ```
+- **No events in dashboard?** Ensure `rtl_tcp_server.py` and `signal_bridge.py` are running, and Pico/dashboard are connecting to the correct port (default: 8888).
+- **Testing without hardware?** Use `python cli_dashboard.py --mock` for demo mode.
+- **RTL-SDR not detected?** Use `rtl_test` to verify driver installation.
+- **Firewall issues?** Allow port 8888 for incoming TCP connections.
 
-- **Lint code**
-  ```bash
-  poetry run ruff check .
-  ```
+## 🗒️ Notes
 
-- **Run tests**
-  ```bash
-  poetry run pytest
-  ```
+- **No FastAPI or MongoDB**: This MVP/POC does not require a web API or database. All event streaming is via TCP.
+- **For full hardware setup and wiring, see**: [`docs/poc_migration_plan.md`](../docs/poc_migration_plan.md)
 
-## 🌐 API Endpoints
+## 📚 References
+- [RTL-SDR Quick Start Guide](https://www.rtl-sdr.com/rtl-sdr-quick-start-guide/)
+- [MicroPython for Pico W](https://www.raspberrypi.com/documentation/microcontrollers/micropython.html)
 
-- `GET /health` - Health check endpoint
-- `POST /auth/token` - Get access token
-- `GET /api/v1/...` - Version 1 API endpoints
+---
 
-## 🔒 Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `APP_ENV` | Application environment | `development` |
-| `SECRET_KEY` | Secret key for JWT | - |
-| `ALGORITHM` | JWT algorithm | `HS256` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token expiration time | `10080` (7 days) |
-| `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017` |
-| `MONGODB_DB_NAME` | Database name | `auto_sec` |
-| `BACKEND_CORS_ORIGINS` | Allowed CORS origins | `*` |
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-# Automotive Security Capstone - POC Architecture (2025)
-
-## Overview
-
-This project implements a proof-of-concept (POC) automotive security system using an RTL-SDR V4 dongle, a computer (as intermediary), and a Raspberry Pi Pico W. The system detects and classifies automotive RF signals and NFC events, generating alerts for suspicious activity.
-
-## System Architecture
-
-```
-RTL-SDR V4 → Computer (rtl_tcp server + Python signal server) → TCP/IP → Raspberry Pi Pico W → PN532 NFC
-                                                        ↓
-                                              Alert Processing & Logging
-```
-
-- **RTL-SDR V4** is connected to the computer (not the Pico).
-- **Computer** runs `rtl_tcp` and a Python server (`rtl_tcp_server.py`, `signal_bridge.py`, `startup_server.py`) to process IQ samples and broadcast detection events over TCP.
-- **Raspberry Pi Pico W** connects as a TCP client to the computer, receives detection events, and handles alerting and NFC monitoring.
-
-## Running the POC
-
-### 1. Computer-Side Setup
-
-- Install dependencies:
-  - Python 3.8+
-  - `numpy`, `asyncio`
-  - RTL-SDR drivers (use Zadig on Windows)
-  - `rtl_tcp` utility (from the RTL-SDR package)
-- Start the RTL-SDR TCP server and signal processing bridge:
-  1. Run `rtl_tcp_server.py` to start the RTL-SDR process and Pico TCP server.
-  2. Run `signal_bridge.py` to process IQ samples and broadcast detection events.
-  3. Use `startup_server.py` to launch both together and monitor system health.
-
-### 2. Pico-Side Setup
-
-- Flash MicroPython firmware to the Pico W.
-- Upload the Pico client code (see docs/poc_migration_plan.md for example).
-- Configure the Pico to connect to the computer's IP and port (default: 8888).
-- The Pico will receive detection events and handle alerting and NFC monitoring.
-
-## Key Changes from Previous Architecture
-
-- **No direct RTL-SDR access from the Pico.** All RF detection is performed on the computer and sent to the Pico over TCP.
-- **Mock drivers** are retained for unit testing but are not used in the POC runtime.
-- **Detection pipeline** in `main.py` and `detection/rf_detection.py` now expects detection events from the TCP server, not direct hardware.
-
-## Example: Running the Server
-
-```bash
-# Start the server (from backend directory)
-python startup_server.py
-```
-
-## Example: Pico Client
-
-- See `docs/poc_migration_plan.md` for a full example of the Pico client code.
-- The Pico should connect to the computer's IP and port 8888 to receive detection events.
-
-## Troubleshooting
-
-- Ensure the computer firewall allows incoming connections on port 8888.
-- Use `rtl_test` to verify RTL-SDR is detected.
-- Use `telnet <computer_ip> 8888` to test TCP connectivity from the Pico's network.
-
-## Dependencies
-- Python 3.8+
-- numpy
-- asyncio
-- RTL-SDR tools (rtl_tcp)
-
-## For More Details
-See `docs/poc_migration_plan.md` for a full implementation guide and test plan.
+For questions or demo support, see the project documentation or contact the project maintainers.

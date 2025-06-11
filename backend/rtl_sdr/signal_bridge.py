@@ -1,11 +1,33 @@
-import socket
+"""
+signal_bridge.py
+
+Performs real-time signal processing on IQ data from RTL-SDR to detect automotive security events.
+Bridges the RTL-TCP server and Pico clients by analyzing IQ samples, detecting events, and broadcasting
+detection results. Designed for use in the Automotive Security Capstone POC project.
+
+Example usage:
+    bridge = SignalProcessingBridge(rtl_server_manager)
+    asyncio.run(bridge.start_signal_processing())
+"""
 import numpy as np
 import asyncio
-import json
 from datetime import datetime
 import struct
 
 class SignalProcessingBridge:
+    """
+    Bridges RTL-TCP server and Pico clients by processing IQ samples from RTL-SDR, detecting automotive signals,
+    and broadcasting detection events.
+
+    Args:
+        rtl_server_manager: Instance of RTLTCPServerManager for event broadcast.
+        rtl_tcp_host (str): Host for RTL-TCP server (default 'localhost').
+        rtl_tcp_port (int): Port for RTL-TCP server (default 1234).
+
+    Example:
+        bridge = SignalProcessingBridge(rtl_server_manager)
+        asyncio.run(bridge.start_signal_processing())
+    """
     def __init__(self, rtl_server_manager, rtl_tcp_host='localhost', rtl_tcp_port=1234):
         self.rtl_server = rtl_server_manager
         self.rtl_tcp_host = rtl_tcp_host
@@ -15,7 +37,13 @@ class SignalProcessingBridge:
         self.detection_threshold = -60
 
     async def start_signal_processing(self):
-        """Main signal processing loop"""
+        """
+        Main signal processing loop.
+        Connects to RTL-TCP server, processes IQ samples, detects signals, and broadcasts results.
+
+        Example:
+            await bridge.start_signal_processing()
+        """
         self.processing_active = True
         while self.processing_active:
             try:
@@ -49,7 +77,15 @@ class SignalProcessingBridge:
                 await asyncio.sleep(2)
 
     async def configure_rtl_sdr(self, writer):
-        """Send configuration commands to RTL-SDR"""
+        """
+        Send configuration commands (frequency, sample rate, gain) to RTL-SDR over TCP.
+
+        Args:
+            writer: Asyncio StreamWriter for TCP connection.
+
+        Example:
+            await bridge.configure_rtl_sdr(writer)
+        """
         freq_cmd = struct.pack('>BI', 0x01, self.rtl_server.frequency)
         writer.write(freq_cmd)
         rate_cmd = struct.pack('>BI', 0x02, self.rtl_server.sample_rate)
@@ -60,7 +96,20 @@ class SignalProcessingBridge:
         print("RTL-SDR configured via TCP")
 
     async def process_samples(self, raw_data, sample_count):
-        """Process IQ samples and detect signals"""
+        """
+        Process IQ samples and detect signals.
+        Converts raw IQ data to power spectrum, detects events, and returns detection dict.
+
+        Args:
+            raw_data (bytes): Raw IQ sample bytes from RTL-SDR.
+            sample_count (int): Current sample batch number.
+
+        Returns:
+            dict or None: Detection event dict if signals detected, else None.
+
+        Example:
+            result = await bridge.process_samples(raw_data, 42)
+        """
         samples = np.frombuffer(raw_data, dtype=np.uint8)
         i_samples = (samples[0::2].astype(np.float32) - 127.5) / 127.5
         q_samples = (samples[1::2].astype(np.float32) - 127.5) / 127.5
@@ -83,7 +132,17 @@ class SignalProcessingBridge:
         return None
 
     async def detect_automotive_signals(self, power_db, complex_samples):
-        """Automotive-specific signal detection logic"""
+        """
+        Automotive-specific signal detection logic.
+        Identifies peaks in power spectrum, analyzes burst patterns, and classifies signal type and threat.
+
+        Args:
+            power_db (np.ndarray): Power (dB) array from IQ samples.
+            complex_samples (np.ndarray): Complex IQ samples.
+
+        Returns:
+            list: List of detection dicts (empty if no detection).
+        """
         detections = []
         mean_power = np.mean(power_db)
         std_power = np.std(power_db)
@@ -105,6 +164,16 @@ class SignalProcessingBridge:
         return detections
 
     def analyze_burst_pattern(self, power_db, peaks):
+        """
+        Analyze burst pattern in detected peaks to infer signal type.
+
+        Args:
+            power_db (np.ndarray): Power (dB) array.
+            peaks (np.ndarray): Indices of detected peaks.
+
+        Returns:
+            str: Pattern label (e.g., 'key_fob_pattern', 'jamming_pattern', etc).
+        """
         if len(peaks) < 3:
             return 'single_burst'
         peak_intervals = np.diff(peaks)
@@ -117,6 +186,16 @@ class SignalProcessingBridge:
         return 'unknown_pattern'
 
     def classify_signal_type(self, burst_pattern, max_power):
+        """
+        Classify signal type based on burst pattern and power.
+
+        Args:
+            burst_pattern (str): Pattern label from analyze_burst_pattern.
+            max_power (float): Maximum power in detected peaks.
+
+        Returns:
+            str: Signal type label (e.g., 'key_fob_transmission').
+        """
         if burst_pattern == 'key_fob_pattern':
             return 'key_fob_transmission'
         elif burst_pattern == 'jamming_pattern':
@@ -127,6 +206,17 @@ class SignalProcessingBridge:
             return 'weak_signal'
 
     def calculate_threat_level(self, burst_pattern, max_power, mean_power):
+        """
+        Calculate threat level based on burst pattern and power.
+
+        Args:
+            burst_pattern (str): Pattern label.
+            max_power (float): Maximum detected power.
+            mean_power (float): Mean power of the spectrum.
+
+        Returns:
+            float: Threat score (0.0 to 1.0).
+        """
         threat_score = 0.0
         if burst_pattern == 'key_fob_pattern':
             threat_score += 0.6
@@ -134,4 +224,4 @@ class SignalProcessingBridge:
             threat_score += 0.9
         power_ratio = (max_power - mean_power) / abs(mean_power)
         threat_score += min(0.4, power_ratio / 10)
-        return min(1.0, threat_score) 
+        return min(1.0, threat_score)
