@@ -85,9 +85,9 @@ graph LR
     H --> J
     
     %% Styling
-    classDef rfChain fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
-    classDef eventDist fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef clients fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    classDef rfChain fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+    classDef eventDist fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef clients fill:#e8f5e8,stroke:#388e3c,stroke-width:2px,color:#000
     
     class A,B,C,D,E rfChain
     class F,G,H eventDist
@@ -149,8 +149,8 @@ graph TB
     PORT_8888 -->|WiFi TCP| PICO_IP
     COMPUTER_IP -.->|Same Host| PORT_8888
     
-    classDef port fill:#fff2cc,stroke:#d6b656,stroke-width:2px
-    classDef device fill:#f8cecc,stroke:#b85450,stroke-width:2px
+    classDef port fill:#fff2cc,stroke:#d6b656,stroke-width:2px,color:#000
+    classDef device fill:#f8cecc,stroke:#b85450,stroke-width:2px,color:#000
     
     class PORT_1234,PORT_8888 port
     class PICO_IP,COMPUTER_IP device
@@ -222,9 +222,9 @@ graph TB
     PROD_PC --> PROD_RTL
     PROD_PC --> PROD_PICO
     
-    classDef dev fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    classDef demo fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef prod fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    classDef dev fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
+    classDef demo fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef prod fill:#e8f5e8,stroke:#388e3c,stroke-width:2px,color:#000
     
     class DEV_PC,DEV_RTL,DEV_PICO dev
     class DEMO_PC,DEMO_PROJ demo
