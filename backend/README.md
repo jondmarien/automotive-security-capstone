@@ -30,13 +30,23 @@ Raspberry Pi Pico W (TCP client, receives events, handles alerting/NFC)
 
 ## 📦 Key Components
 
+### Core System Components
 - `rtl_tcp_server.py`: Manages RTL-SDR, launches `rtl_tcp`, listens for Pico clients and dashboard on TCP (default: 8888)
 - `signal_bridge.py`: Reads IQ samples from RTL-SDR, detects events, sends to TCP server (supports enhanced mode)
-- `rtl_sdr/automotive_signal_analyzer.py`: **NEW** - Advanced automotive signal analysis with FSK detection and pattern recognition
-- `rtl_sdr/enhanced_signal_bridge.py`: **NEW** - Enhanced signal processing with threat detection and replay attack analysis
-- `rtl_sdr/signal_history_buffer.py`: **NEW** - Signal history management for temporal analysis and replay detection
 - `cli_dashboard.py`: Rich-powered CLI dashboard for real-time event display; supports `--mock` for demo/testing
 - `pico/main.py`: MicroPython client for Pico W; connects to computer, receives events, triggers LEDs/NFC
+
+### Enhanced Signal Processing & Threat Detection (NEW)
+- `rtl_sdr/enhanced_signal_bridge.py`: **NEW** - Enhanced signal processing bridge with real-time IQ analysis and automotive signal detection
+- `rtl_sdr/automotive_signal_analyzer.py`: Advanced automotive signal analysis with FSK detection and pattern recognition
+- `rtl_sdr/brute_force_detector.py`: Enhanced brute force attack detector with temporal analysis and escalating threat levels
+- `rtl_sdr/signal_history_buffer.py`: Signal history management for temporal analysis and replay detection
+
+### Advanced Detection Modules
+- `detection/jamming_detector.py`: Advanced jamming detection for RF interference patterns and denial-of-service attacks
+- `detection/security_analyzer.py`: Comprehensive security analyzer for replay attacks, jamming, and brute force detection
+- `detection/threat_levels.py`: Standardized threat level classification system (LOW, MEDIUM, HIGH, CRITICAL)
+- `detection/replay_attack_detector.py`: Sophisticated replay attack detection with temporal analysis
 
 ## 🛠️ Setup & Usage
 
@@ -82,99 +92,67 @@ Raspberry Pi Pico W (TCP client, receives events, handles alerting/NFC)
 - Configure WiFi and server IP/port (default: 8888)
 - Pico will connect to computer, receive detection events, and trigger alerts/NFC
 
-## 🚀 Enhanced Signal Processing (NEW)
-
-The system now includes advanced automotive signal analysis capabilities with comprehensive threat detection:
-
-### AutomotiveSignalAnalyzer Features
-- **Real-time IQ Analysis**: Advanced FFT-based power spectrum computation with windowing
-- **Key Fob Detection**: FSK pattern recognition with timing analysis and confidence scoring
-- **TPMS Signal Detection**: Tire pressure monitoring system identification with automotive-specific patterns
-- **Burst Pattern Analysis**: Sophisticated burst timing and interval detection with adaptive thresholds
-- **Confidence Scoring**: Multi-factor confidence calculation for detected automotive signals
-- **Modulation Classification**: Automatic FSK/ASK/Unknown modulation detection with signal quality assessment
+## 🔍 Detection Capabilities
 
 ### Enhanced Threat Detection Engine
-The threat detection engine is fully integrated within the enhanced signal bridge, providing comprehensive automotive security analysis:
+The system now includes sophisticated multi-layer threat detection with temporal analysis and escalating threat levels.
 
-- **Replay Attack Detection**: Advanced signal similarity analysis with temporal correlation
-  - Power spectrum correlation (40% weight), burst timing (30%), frequency deviation (20%), bandwidth (10%)
-  - 95% similarity threshold within 1 second to 5 minutes timeframe
-  - Multi-factor confidence scoring with temporal analysis
+### Detection Types
+- **Rolling Code Replay Attacks**: Advanced detection using signal similarity analysis and temporal clustering
 - **Jamming Detection**: Comprehensive RF interference detection with four pattern types:
   - **Continuous Jamming**: Sustained high power with low variance detection
-  - **Pulse Jamming**: Periodic high-power bursts with regular timing analysis
+  - **Pulse Jamming**: Periodic high-power bursts with regular timing analysis  
   - **Sweep Jamming**: Systematic frequency progression with directional consistency
-  - **Spot Jamming**: Narrow-band high power with >10:1 peak-to-average ratio (updated threshold)
-  - **Noise Floor Analysis**: Detects elevation >10 dB above baseline with temporal baseline calculation
-  - **Broadband Interference**: Spectral flatness analysis (>0.5 threshold) for wideband jamming
-  - **Evidence Collection**: Technical proof including affected frequencies, interference duration, SNR degradation
-- **Brute Force Detection**: Integrated multi-tier threat detection with escalating levels
-  - **Temporal Analysis**: Multi-window analysis (30s, 60s, 300s) for comprehensive attack pattern recognition
-  - **Escalating Threat Levels**: Suspicious (5/min) → Moderate (10/min) → High (20/min) → Critical (40/min)
-  - **Pattern Recognition**: Rapid burst detection, sustained attack analysis, signal consistency scoring
-  - **Evidence Collection**: Statistical analysis, interval consistency, recommended actions per threat level
-  - **Attack Classification**: Rapid burst, sustained brute force, and persistent attack pattern identification
-- **Signal History Buffer**: Thread-safe 5-minute rolling buffer (1000 signals) for temporal analysis
-- **Threat Classification**: Automated BENIGN/SUSPICIOUS/MALICIOUS classification with confidence scoring
-- **Temporal Analysis**: Accurate timestamp-based signal correlation with chronological ordering
+  - **Spot Jamming**: Narrow-band high power with >10:1 peak-to-average ratio
+- **Brute Force Attacks**: Enhanced detection with temporal analysis and escalating threat levels (suspicious → moderate → high → critical)
+- **Signal Injection**: Identifies unauthorized signal injection attempts with pattern recognition
+- **RF Interference**: Monitors for general RF interference with confidence scoring
 
-### Performance Characteristics
-- **Real-time Processing**: <100ms latency from signal capture to threat detection
-- **Throughput**: Handles 3.2 MS/s sample rate from RTL-SDR V4
-- **Memory Management**: Efficient buffer management with automatic cleanup
-- **Processing Optimization**: Designed for 100ms signal chunks (204,800 samples at 2.048 MS/s)
-- **Analysis Speed**: <500ms for comprehensive signal analysis (10x real-time performance)
-- **Test Coverage**: 63 comprehensive tests with 100% pass rate
+### Threat Level Classification
+- **BENIGN**: Normal automotive signal activity
+- **SUSPICIOUS**: Potential threat requiring monitoring
+- **MODERATE**: Clear indicators of malicious activity
+- **HIGH**: Active attack with significant threat level
+- **CRITICAL**: Immediate threat requiring urgent response
 
-### Usage
-```sh
-# Enable enhanced mode in signal_bridge.py
-bridge = SignalProcessingBridge(rtl_server_manager, enhanced_mode=True)
+## 🧪 Testing
 
-# Or use enhanced signal bridge directly
-from rtl_sdr.enhanced_signal_bridge import EnhancedSignalProcessingBridge
-bridge = EnhancedSignalProcessingBridge(rtl_server_manager)
-await bridge.start_signal_processing()
+### Running Tests
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Run specific test files
+python -m pytest tests/test_signal_bridge.py -v
+python -m pytest tests/test_cli_dashboard.py -v
+python -m pytest tests/test_automotive_signal_analyzer.py -v
+python -m pytest tests/test_brute_force_detector.py -v
+python -m pytest tests/test_jamming_detector.py -v
+python -m pytest tests/test_replay_attack_detector.py -v
+python -m pytest tests/test_security_analyzer.py -v
+python -m pytest tests/test_threat_levels.py -v
+python -m pytest tests/test_signal_history_buffer.py -v
+python -m pytest tests/test_enhanced_signal_bridge.py -v
+
+# Run tests with coverage
+python -m pytest tests/ --cov=rtl_sdr --cov-report=html
 ```
 
-## 🖥️ CLI Dashboard
+### Enhanced Test Categories
+- **Unit Tests**: Individual component testing for all new detection modules
+- **Integration Tests**: System integration testing with enhanced signal processing
+- **Mock Tests**: Hardware-free testing using mock data and synthetic signals
+- **Performance Tests**: Signal processing performance validation for real-time analysis
+- **Security Tests**: Comprehensive threat detection validation with temporal analysis
+- **Signal Analysis Tests**: Automotive signal feature extraction and classification testing
 
-- Real-time event table with threat levels, event type, source, and details
-- Supports both live TCP and `--mock` demo mode
-- Enhanced threat indicators and confidence scores
-- Logs all events to `detection_events.log`
-- Graceful error handling and Ctrl+C exit
-
-## 🔄 Project Structure (simplified)
-
-```
-backend/
-├── cli_dashboard.py                    # CLI dashboard (Rich, --mock supported)
-├── rtl_sdr/
-│   ├── rtl_tcp_server.py              # Manages RTL-SDR, Pico TCP server
-│   ├── signal_bridge.py               # Signal processing, event detection (legacy + enhanced modes)
-│   ├── automotive_signal_analyzer.py  # Advanced automotive signal analysis (NEW)
-│   ├── enhanced_signal_bridge.py      # Enhanced signal processing with integrated threat detection (NEW)
-│   ├── signal_history_buffer.py       # Signal history for replay detection (NEW)
-│   └── startup_server.py              # System orchestration
-├── pico/
-│   └── main.py                        # Pico W MicroPython TCP client
-├── detection/                         # Core detection logic
-│   ├── event_logic.py                 # Unified event analysis
-│   ├── packet.py                      # RF packet definitions
-│   ├── threat_levels.py               # Threat classification
-│   ├── jamming_detector.py            # Advanced jamming detection (NEW)
-│   └── replay_attack_detector.py      # Replay attack detection
-├── tests/                             # Comprehensive test suite (63 tests total)
-│   ├── test_automotive_signal_analyzer.py  # Signal analyzer tests (24 tests) (NEW)
-│   ├── test_enhanced_signal_bridge.py      # Enhanced bridge tests (21 tests) (NEW)
-│   └── test_jamming_detector.py            # Jamming detection tests (18 tests) (NEW)
-├── requirements.txt                   # Python dependencies (updated with scipy)
-├── docs/
-│   └── poc_migration_plan.md
-└── ... (other scripts, logs, configs)
-```
+### Test Quality Improvements
+- **Enhanced Test Coverage**: 63 comprehensive tests with 100% pass rate across all components
+- **Realistic Signal Data**: Tests use proper Unix timestamps and chronological ordering for accurate temporal analysis
+- **Comprehensive Coverage**: >90% code coverage for detection and signal processing modules
+- **Mock Hardware**: Complete hardware simulation for testing without physical devices
+- **Performance Testing**: Real-time processing validation (<100ms latency) and memory usage monitoring
+- **Thread Safety Testing**: Concurrent access validation for signal history buffer operations
 
 ## ⚡ Troubleshooting
 
@@ -183,39 +161,6 @@ backend/
 - **RTL-SDR not detected?** Use `rtl_test` to verify driver installation.
 - **Firewall issues?** Allow port 8888 for incoming TCP connections.
 
-## 🧪 Testing
-
-The system includes comprehensive test coverage for all detection and signal processing components:
-
-```sh
-# Run all tests (63 total tests)
-pytest
-
-# Run enhanced signal processing tests
-pytest tests/test_automotive_signal_analyzer.py -v    # Signal analyzer tests (24 tests)
-pytest tests/test_enhanced_signal_bridge.py -v       # Enhanced bridge tests (21 tests)
-pytest tests/test_jamming_detector.py -v             # Jamming detection tests (18 tests)
-
-# Run all enhanced processing tests together
-pytest tests/test_automotive_signal_analyzer.py tests/test_enhanced_signal_bridge.py tests/test_jamming_detector.py -v
-
-# Run specific detection tests
-pytest tests/test_replay_attack_detector.py -v       # Replay attack detection tests
-
-# Run with coverage
-pytest --cov=detection --cov=rtl_sdr --cov-report=html
-
-# Test categories
-pytest -m unit                    # Fast unit tests
-pytest -m integration            # Integration tests
-pytest -m "not hardware"         # Skip hardware-dependent tests
-pytest -m slow                   # Performance and long-running tests
-```
-
-### Test Quality Improvements
-- **Enhanced Test Coverage**: 63 comprehensive tests with 100% pass rate across all components
-- **Realistic Signal Data**: Tests use proper Unix timestamps and chronological ordering for accurate temporal analysis
-- **Temporal Accuracy**: Improved noise floor baseline calculation with realistic signal history
 - **Comprehensive Coverage**: >90% code coverage for detection and signal processing modules
 - **Mock Hardware**: Complete hardware simulation for testing without physical devices
 - **Performance Testing**: Real-time processing validation (<100ms latency) and memory usage monitoring
