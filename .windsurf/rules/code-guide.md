@@ -12,3 +12,5 @@ Create proper subtasks with requirements. Once finished, the user will ask to go
 Once a sub-task is completed, mark it done with an `x`. Each task (and sub-task) has a symbol at the beginning, looking like `[ ]`. Make it `[x]`. Once all sub-tasks are completed, mark the parent task done as well, with an `[x]` as well.
 
 Use all availble MCP servers you have access to, including, but not limited to: Context7, Fetch, & Sequential Thinking.
+
+Always run the project with `uv run`, and install any packages with `uv`. Run all tests with `uv`. Bascially, use `uv` for this entire project -- for anything.
