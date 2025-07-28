@@ -1,13 +1,36 @@
 # Automotive RF Detection Logic: Event Types & Detection Methods
 
-This document explains how each event type in the Automotive Security Capstone project is detected, both in real (SDR) and mock/demo modes. Use this as a script or reference for professor Q&A, demos, or technical documentation.
+This document explains how each event type in the Automotive Security Capstone project is detected, both in real (SDR) and mock/demo modes. The system now includes enhanced signal processing capabilities for advanced automotive signal analysis.
 
 ---
 
 ## **General Approach**
 - **RF packets** are analyzed for frequency, timing, payload patterns, and context (e.g., repeated unlocks, signal strength, etc.).
+- **Enhanced Signal Processing** uses advanced automotive signal analysis with FSK detection, burst pattern recognition, and temporal correlation.
 - **Mock/demo mode** simulates plausible packets and cycles through all event types for demonstration purposes, but uses the same logic structure.
 - **Detection logic** is centralized in `backend/detection/event_logic.py` via the `analyze_event()` function.
+- **Enhanced detection** is available through `backend/rtl_sdr/enhanced_signal_bridge.py` with advanced threat analysis.
+
+## **Enhanced Signal Processing Architecture**
+
+### **AutomotiveSignalAnalyzer** (`automotive_signal_analyzer.py`)
+- **Real-time IQ Analysis**: Advanced FFT-based power spectrum computation
+- **Key Fob Detection**: FSK pattern recognition with timing analysis and confidence scoring
+- **TPMS Signal Detection**: Tire pressure monitoring system identification
+- **Burst Pattern Analysis**: Sophisticated burst timing and interval detection
+- **Modulation Classification**: Automatic FSK/ASK/Unknown modulation detection
+
+### **Signal History Buffer** (`signal_history_buffer.py`)
+- **Temporal Analysis**: 5-minute rolling buffer for replay attack detection
+- **Signal Similarity**: Advanced correlation analysis for duplicate signal detection
+- **Thread-safe Operations**: Concurrent access for real-time processing
+- **Memory Management**: Efficient buffer management with configurable size limits
+
+### **Enhanced Threat Detection Engine** (`enhanced_signal_bridge.py`)
+- **Replay Attack Detection**: Signal similarity analysis with temporal correlation
+- **Jamming Detection**: Broadband interference and noise floor analysis
+- **Brute Force Detection**: Rate-based attack pattern recognition
+- **Confidence Scoring**: Advanced threat confidence calculation
 
 ---
 
@@ -25,15 +48,28 @@ This document explains how each event type in the Automotive Security Capstone p
 ### 2. **Replay Attack**
 - **Definition:** An attacker records a legitimate unlock/lock signal and replays it to gain unauthorized access.
 - **Detection:**
-  - Identical or highly similar RF packets detected more than once, outside of expected timing.
+  - **Legacy Mode:** Identical or highly similar RF packets detected more than once, outside of expected timing.
+  - **Enhanced Mode:** Advanced signal similarity analysis using:
+    - Power spectrum correlation (40% weight)
+    - Burst timing pattern matching (30% weight)
+    - Frequency deviation comparison (20% weight)
+    - Signal bandwidth analysis (10% weight)
+  - **Temporal Analysis:** Signal history buffer tracks signals for 5 minutes to detect replays
+  - **Timing Characteristics:** Replay attacks typically occur 1 second to 5 minutes after original
+  - **Confidence Scoring:** Multi-factor confidence calculation with threshold-based detection
   - No rolling code progression (if rolling code is used, see [Rolling code](https://en.wikipedia.org/wiki/Rolling_code)).
-  - Unusual timing or context (e.g., unlock signal received when owner not present).
-  - **Threat Level:** Always Malicious in demo; real logic would use rolling code analysis and timing.
+  - **Threat Level:** Always Malicious in demo; enhanced logic uses sophisticated similarity analysis.
 
 ### 3. **Jamming Attack**
 - **Definition:** An attacker transmits noise or signals to block legitimate RF communication (e.g., prevent lock/unlock).
 - **Detection:**
-  - Sustained or repeated RF noise detected on the expected frequency bands.
+  - **Legacy Mode:** Sustained or repeated RF noise detected on the expected frequency bands.
+  - **Enhanced Mode:** Advanced jamming detection using:
+    - **Wideband Analysis:** Signal bandwidth > 100 kHz indicates broadband jamming
+    - **Noise Floor Monitoring:** RSSI > -80 dBm with elevated noise floor
+    - **Continuous Transmission:** No burst pattern or excessive burst count (>20)
+    - **Modulation Analysis:** Unrecognized modulation patterns indicate noise-like signals
+  - **Confidence Scoring:** Multi-factor analysis with 50% threshold for positive detection
   - High RSSI with no valid payloads.
   - Lock/unlock packets missing or failing during noise bursts.
   - **Threat Level:** Malicious.
@@ -41,7 +77,13 @@ This document explains how each event type in the Automotive Security Capstone p
 ### 4. **Brute Force Attack**
 - **Definition:** Repeated attempts to unlock/lock by cycling through possible codes or sending many packets.
 - **Detection:**
-  - Multiple unlock/lock attempts detected in rapid succession.
+  - **Legacy Mode:** Multiple unlock/lock attempts detected in rapid succession.
+  - **Enhanced Mode:** Rate-based detection using signal history buffer:
+    - **Rate Threshold:** >10 signals per minute of same type
+    - **Time Window Analysis:** 60-second sliding window for rate calculation
+    - **Pattern Analysis:** Inter-signal interval consistency analysis
+    - **Confidence Scoring:** Based on rate excess above threshold
+  - **Signal History:** Tracks recent signals by type for temporal analysis
   - Payloads differ slightly (code cycling) or repeat with invalid codes.
   - More attempts than normal user behavior would generate.
   - **Threat Level:** Malicious.

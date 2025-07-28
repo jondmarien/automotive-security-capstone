@@ -31,7 +31,10 @@ Raspberry Pi Pico W (TCP client, receives events, handles alerting/NFC)
 ## 📦 Key Components
 
 - `rtl_tcp_server.py`: Manages RTL-SDR, launches `rtl_tcp`, listens for Pico clients and dashboard on TCP (default: 8888)
-- `signal_bridge.py`: Reads IQ samples from RTL-SDR, detects events, sends to TCP server
+- `signal_bridge.py`: Reads IQ samples from RTL-SDR, detects events, sends to TCP server (supports enhanced mode)
+- `rtl_sdr/automotive_signal_analyzer.py`: **NEW** - Advanced automotive signal analysis with FSK detection and pattern recognition
+- `rtl_sdr/enhanced_signal_bridge.py`: **NEW** - Enhanced signal processing with threat detection and replay attack analysis
+- `rtl_sdr/signal_history_buffer.py`: **NEW** - Signal history management for temporal analysis and replay detection
 - `cli_dashboard.py`: Rich-powered CLI dashboard for real-time event display; supports `--mock` for demo/testing
 - `pico/main.py`: MicroPython client for Pico W; connects to computer, receives events, triggers LEDs/NFC
 
@@ -51,9 +54,16 @@ Raspberry Pi Pico W (TCP client, receives events, handles alerting/NFC)
 3. **Start RTL-TCP server and event bridge**
 
 ```sh
+   # Standard mode (legacy signal processing)
    python rtl_tcp_server.py
    python signal_bridge.py
-   # Or: python startup_server.py
+   
+   # Enhanced mode (advanced automotive signal analysis)
+   python rtl_tcp_server.py
+   python signal_bridge.py --enhanced
+   
+   # Or use startup orchestration:
+   python startup_server.py
 ```
 
 4. **Run the CLI dashboard (real events or mock mode)**
@@ -72,10 +82,39 @@ Raspberry Pi Pico W (TCP client, receives events, handles alerting/NFC)
 - Configure WiFi and server IP/port (default: 8888)
 - Pico will connect to computer, receive detection events, and trigger alerts/NFC
 
+## 🚀 Enhanced Signal Processing (NEW)
+
+The system now includes advanced automotive signal analysis capabilities:
+
+### AutomotiveSignalAnalyzer Features
+- **Real-time IQ Analysis**: Advanced FFT-based power spectrum computation
+- **Key Fob Detection**: FSK pattern recognition with timing analysis
+- **TPMS Signal Detection**: Tire pressure monitoring system identification
+- **Burst Pattern Analysis**: Sophisticated burst timing and interval detection
+- **Confidence Scoring**: Advanced confidence calculation for detected signals
+- **Modulation Classification**: Automatic FSK/ASK/Unknown modulation detection
+
+### Enhanced Threat Detection
+- **Replay Attack Detection**: Signal similarity analysis with temporal correlation
+- **Jamming Detection**: Broadband interference and noise floor analysis
+- **Brute Force Detection**: Rate-based attack pattern recognition
+- **Signal History Buffer**: 5-minute rolling buffer for temporal analysis
+- **Threat Classification**: Automated BENIGN/SUSPICIOUS/MALICIOUS classification
+
+### Usage
+```sh
+# Enable enhanced mode in signal_bridge.py
+bridge = SignalProcessingBridge(rtl_server_manager, enhanced_mode=True)
+
+# Or modify startup to use enhanced processing
+python signal_bridge.py --enhanced  # (if CLI args implemented)
+```
+
 ## 🖥️ CLI Dashboard
 
 - Real-time event table with threat levels, event type, source, and details
 - Supports both live TCP and `--mock` demo mode
+- Enhanced threat indicators and confidence scores
 - Logs all events to `detection_events.log`
 - Graceful error handling and Ctrl+C exit
 
@@ -83,13 +122,24 @@ Raspberry Pi Pico W (TCP client, receives events, handles alerting/NFC)
 
 ```
 backend/
-├── cli_dashboard.py         # CLI dashboard (Rich, --mock supported)
+├── cli_dashboard.py                    # CLI dashboard (Rich, --mock supported)
 ├── rtl_sdr/
-│   ├── rtl_tcp_server.py    # Manages RTL-SDR, Pico TCP server
-│   └── signal_bridge.py     # Signal processing, event detection
+│   ├── rtl_tcp_server.py              # Manages RTL-SDR, Pico TCP server
+│   ├── signal_bridge.py               # Signal processing, event detection (legacy + enhanced modes)
+│   ├── automotive_signal_analyzer.py  # Advanced automotive signal analysis (NEW)
+│   ├── enhanced_signal_bridge.py      # Enhanced signal processing with threat detection (NEW)
+│   ├── signal_history_buffer.py       # Signal history for replay detection (NEW)
+│   └── startup_server.py              # System orchestration
 ├── pico/
-│   └── main.py              # Pico W MicroPython TCP client
-├── requirements.txt         # Python dependencies
+│   └── main.py                        # Pico W MicroPython TCP client
+├── detection/                         # Core detection logic
+│   ├── event_logic.py                 # Unified event analysis
+│   ├── packet.py                      # RF packet definitions
+│   └── threat_levels.py               # Threat classification
+├── tests/                             # Comprehensive test suite
+│   ├── test_automotive_signal_analyzer.py  # Signal analyzer tests (NEW)
+│   └── test_enhanced_signal_bridge.py      # Enhanced bridge tests (NEW)
+├── requirements.txt                   # Python dependencies (updated with scipy)
 ├── docs/
 │   └── poc_migration_plan.md
 └── ... (other scripts, logs, configs)

@@ -255,6 +255,11 @@ def test_real_time_processing_performance():
 # Run all tests
 pytest
 
+# Run enhanced signal processing tests (NEW)
+pytest tests/test_automotive_signal_analyzer.py -v    # Signal analyzer tests (24 tests)
+pytest tests/test_enhanced_signal_bridge.py -v       # Enhanced bridge tests (21 tests)
+pytest tests/test_automotive_signal_analyzer.py tests/test_enhanced_signal_bridge.py -v  # Both enhanced tests (45 total)
+
 # Run specific test categories
 pytest -m unit                    # Fast unit tests only
 pytest -m "not hardware"         # Skip hardware-dependent tests
@@ -270,6 +275,9 @@ pytest tests/test_rtl_sdr/test_signal_bridge.py
 
 # Run with verbose output
 pytest -v -s                     # Show test names and print statements
+
+# Performance testing for enhanced components
+pytest tests/test_automotive_signal_analyzer.py::TestAutomotiveSignalAnalyzer::test_performance -v
 ```
 
 #### Continuous Integration Pipeline
@@ -407,14 +415,18 @@ class NewDetectionAlgorithm:
 #### 3. Integration and Testing
 ```bash
 # Run comprehensive tests
-pytest                          # All tests
+pytest                          # All tests (now includes 45 enhanced signal processing tests)
 pytest --cov                   # With coverage
+
+# Test enhanced signal processing components
+pytest tests/test_automotive_signal_analyzer.py tests/test_enhanced_signal_bridge.py --cov=rtl_sdr --cov-report=html
 
 # Test with hardware (if available)
 pytest -m hardware
 
 # Performance testing
 pytest -m slow
+pytest tests/test_automotive_signal_analyzer.py::TestAutomotiveSignalAnalyzer::test_performance -v
 ```
 
 #### 4. Code Review and Merge

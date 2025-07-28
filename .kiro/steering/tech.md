@@ -33,7 +33,7 @@
 
 #### NumPy Ecosystem
 - **NumPy**: Core numerical computing, FFT operations, array processing
-- **SciPy**: Advanced signal processing functions (filters, spectrograms)
+- **SciPy**: Advanced signal processing functions (filters, spectrograms, peak detection)
 - **Matplotlib**: Signal visualization and debugging (development only)
 - **Performance**: Vectorized operations for real-time processing
 
@@ -41,6 +41,13 @@
 - **pyrtlsdr**: Python wrapper for RTL-SDR hardware
 - **GNU Radio**: Optional advanced signal processing (future enhancement)
 - **Custom DSP**: Tailored algorithms for automotive signal patterns
+
+#### Enhanced Automotive Signal Analysis (NEW)
+- **AutomotiveSignalAnalyzer**: Advanced FSK detection and pattern recognition
+- **Signal History Buffer**: Temporal analysis for replay attack detection
+- **Threat Detection Engine**: Multi-algorithm threat classification
+- **Real-time Processing**: <100ms latency for threat detection
+- **Confidence Scoring**: Advanced multi-factor confidence calculation
 
 ### User Interface & Visualization
 
@@ -77,6 +84,20 @@
 - **pytest.ini**: Test configuration and markers
 
 ## Key Libraries & Frameworks
+
+### Enhanced Signal Processing Libraries (NEW)
+- **SciPy**: Advanced signal processing functions
+  - **Use Cases**: Peak detection, signal filtering, correlation analysis
+  - **Features**: FFT operations, signal analysis tools, find_peaks function
+  - **Integration**: Core component of AutomotiveSignalAnalyzer
+  - **Performance**: Optimized numerical algorithms for real-time processing
+
+### Threading & Concurrency (NEW)
+- **Threading**: Signal history buffer thread safety
+  - **Use Cases**: Concurrent signal storage and retrieval
+  - **Features**: RLock for thread-safe operations, deque for efficient buffering
+  - **Integration**: SignalHistoryBuffer concurrent access
+  - **Performance**: Non-blocking signal analysis with thread-safe operations
 
 ### Web Framework (Future Expansion)
 - **FastAPI**: Modern async web framework

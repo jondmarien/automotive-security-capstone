@@ -14,7 +14,9 @@ graph TB
     subgraph PROC ["⚙️ Signal Processing Layer"]
         TCP_SRV[RTL-TCP Server<br/>Port 1234<br/>IQ Data Stream]
         SIG_PROC[RF Signal Processing<br/>Engine<br/>Event Detection]
-        DETECT[Security Analysis<br/>& Threat Detection<br/>Classification]
+        AUTO_ANALYZER[Automotive Signal<br/>Analyzer<br/>FSK/TPMS Detection]
+        HIST_BUFFER[Signal History<br/>Buffer<br/>Temporal Analysis]
+        DETECT[Enhanced Threat<br/>Detection Engine<br/>Replay/Jamming/Brute Force]
     end
     
     %% Communication Layer
@@ -28,7 +30,10 @@ graph TB
     %% Data Flow
     RTL -->|USB<br/>Raw RF Data| TCP_SRV
     TCP_SRV -->|TCP<br/>IQ Samples| SIG_PROC
-    SIG_PROC -->|Processed<br/>Signals| DETECT
+    SIG_PROC -->|Complex<br/>Samples| AUTO_ANALYZER
+    AUTO_ANALYZER -->|Signal<br/>Features| DETECT
+    DETECT -->|Event<br/>History| HIST_BUFFER
+    HIST_BUFFER -->|Temporal<br/>Analysis| DETECT
     DETECT -->|Security<br/>Events| EVENT_SRV
     EVENT_SRV -->|TCP<br/>Events| DASH
     EVENT_SRV -->|WiFi TCP<br/>Events| WIFI
@@ -54,8 +59,10 @@ graph LR
         direction TB
         A[RTL-SDR V4 Dongle] --> B[RTL-TCP Server<br/>Port 1234]
         B --> C[Signal Bridge<br/>IQ Processing]
-        C --> D[Event Detection<br/>Algorithm]
-        D --> E[Threat Classification<br/>Security Analysis]
+        C --> C1[Automotive Signal<br/>Analyzer<br/>FSK/TPMS Detection]
+        C1 --> D[Enhanced Event<br/>Detection<br/>Pattern Recognition]
+        D --> D1[Signal History<br/>Buffer<br/>Temporal Analysis]
+        D1 --> E[Threat Detection<br/>Engine<br/>Replay/Jamming/Brute Force]
     end
     
     %% Event Distribution
@@ -164,7 +171,9 @@ graph TB
 | **Hardware** | Raspberry Pi Pico W | MicroPython | WiFi-enabled alert controller |
 | **Processing** | RTL-TCP Server | C/C++ Binary | Raw IQ data streaming |
 | **Processing** | Signal Bridge | Python + NumPy | Signal processing and analysis |
-| **Processing** | Threat Detection | Python + Pydantic | Security event classification |
+| **Processing** | Automotive Analyzer | Python + SciPy | Advanced automotive signal analysis |
+| **Processing** | Signal History Buffer | Python + Threading | Temporal analysis and replay detection |
+| **Processing** | Threat Detection Engine | Python + Pydantic | Enhanced security event classification |
 | **Communication** | Event Server | Python + asyncio | TCP event distribution |
 | **Interface** | CLI Dashboard | Python + Rich | Real-time monitoring interface |
 | **Alerts** | NFC/LED System | MicroPython | Physical security notifications |
