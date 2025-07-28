@@ -37,6 +37,11 @@ class AutomotiveSecurityPico:
         self.led_rf = Pin(26, Pin.OUT)
         self.led_nfc = Pin(27, Pin.OUT)
         self.led_alert = Pin(28, Pin.OUT)
+        # NFC correlation system
+        self.nfc_correlation_mode = False
+        self.active_rf_threat = None
+        self.correlation_timeout = 30  # seconds
+        self.correlation_timer = None
         self.init_nfc()
         self.init_status_display()
 
@@ -207,9 +212,57 @@ class AutomotiveSecurityPico:
                 await asyncio.sleep(0.1)
                 self.led_alert.off()
                 await asyncio.sleep(0.1)
+            # Activate NFC correlation for high-threat events
+            await self.activate_nfc_correlation(detections)
         await asyncio.sleep(0.5)
         self.led_rf.off()
 
+    async def activate_nfc_correlation(self, detections):
+        """Activate NFC scanning when high-threat RF events detected"""
+        print(f"[NFC CORRELATION] Activating NFC scanning for {len(detections)} high-threat events")
+        
+        # Set correlation mode active
+        self.nfc_correlation_mode = True
+        self.active_rf_threat = detections[0] if detections else None  # Store first high-threat detection
+        
+        # Visual indication of active NFC correlation mode
+        self.led_nfc.on()
+        
+        # Cancel any existing correlation timer
+        if self.correlation_timer:
+            self.correlation_timer.cancel()
+            self.correlation_timer = None
+        
+        # Set timeout to deactivate correlation mode
+        self.correlation_timer = asyncio.create_task(self.nfc_correlation_timeout())
+        
+        # Send correlation activation event to server
+        correlation_event = {
+            'type': 'nfc_correlation_activated',
+            'timestamp': time.time(),
+            'detection_count': len(detections),
+            'threat_types': [d.get('event_type', 'unknown') for d in detections]
+        }
+        await self.send_to_server(correlation_event)
+    
+    async def nfc_correlation_timeout(self):
+        """Timeout NFC correlation mode"""
+        await asyncio.sleep(self.correlation_timeout)
+        
+        if self.nfc_correlation_mode:
+            print("[NFC CORRELATION] Timeout - deactivating NFC correlation")
+            self.nfc_correlation_mode = False
+            self.active_rf_threat = None
+            self.led_nfc.off()
+            
+            # Send correlation timeout event to server
+            timeout_event = {
+                'type': 'nfc_correlation_timeout',
+                'timestamp': time.time(),
+                'reason': 'timeout'
+            }
+            await self.send_to_server(timeout_event)
+    
     async def generate_security_alert(self, detection, context):
         """Generate and send security alert"""
         alert = {
@@ -282,13 +335,17 @@ class AutomotiveSecurityPico:
                 await asyncio.sleep(5)
 
     async def handle_nfc_detection(self, uid):
-        """Handle NFC tag/card detection"""
+        """Handle NFC tag/card detection with RF correlation support"""
         uid_hex = [hex(b) for b in uid]
         uid_str = ':'.join(uid_hex)
         print("NFC detected: UID = " + uid_str)
+        
+        # Visual feedback for NFC detection
         self.led_nfc.off()
         await asyncio.sleep(0.2)
         self.led_nfc.on()
+        
+        # Prepare basic NFC data
         nfc_data = {
             'type': 'nfc_detection',
             'timestamp': time.time(),
@@ -296,7 +353,35 @@ class AutomotiveSecurityPico:
             'uid_length': len(uid),
             'detection_context': 'automotive_monitoring'
         }
-        await self.send_to_server(nfc_data)
+        
+        # Check for RF threat correlation
+        if self.nfc_correlation_mode and self.active_rf_threat:
+            print(f"[CORRELATION] NFC detection during RF threat: {self.active_rf_threat.get('event_type', 'unknown')}")
+            
+            # Generate correlated security event
+            correlated_event = {
+                'type': 'correlated_security_event',
+                'timestamp': time.time(),
+                'rf_threat': self.active_rf_threat,
+                'nfc_detection': nfc_data,
+                'correlation_type': 'rf_nfc_proximity',
+                'threat_escalation': 'high_confidence_attack'
+            }
+            
+            await self.send_to_server(correlated_event)
+            
+            # Visual indication of correlation
+            for _ in range(5):
+                self.led_alert.on()
+                self.led_nfc.on()
+                await asyncio.sleep(0.1)
+                self.led_alert.off()
+                self.led_nfc.off()
+                await asyncio.sleep(0.1)
+            self.led_nfc.on()  # Restore NFC LED state
+        else:
+            # Send regular NFC detection event
+            await self.send_to_server(nfc_data)
 
     async def heartbeat_monitor(self):
         """Send periodic heartbeat to server"""
@@ -352,8 +437,10 @@ async def main():
         pico.led_alert.off()
         print("[OK] Shutdown complete")
 
-try:
-    asyncio.run(main())
-except AttributeError:
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+# Only run main if this file is executed directly (not imported)
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except AttributeError:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
