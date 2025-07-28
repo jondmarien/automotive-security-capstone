@@ -64,15 +64,20 @@ This document explains how each event type in the Automotive Security Capstone p
 - **Definition:** An attacker transmits noise or signals to block legitimate RF communication (e.g., prevent lock/unlock).
 - **Detection:**
   - **Legacy Mode:** Sustained or repeated RF noise detected on the expected frequency bands.
-  - **Enhanced Mode:** Advanced jamming detection using:
-    - **Wideband Analysis:** Signal bandwidth > 100 kHz indicates broadband jamming
-    - **Noise Floor Monitoring:** RSSI > -80 dBm with elevated noise floor
-    - **Continuous Transmission:** No burst pattern or excessive burst count (>20)
-    - **Modulation Analysis:** Unrecognized modulation patterns indicate noise-like signals
-  - **Confidence Scoring:** Multi-factor analysis with 50% threshold for positive detection
+  - **Enhanced Mode:** Advanced jamming detection using `JammingDetector` class:
+    - **Noise Floor Analysis:** Detects elevation >10 dB above baseline noise levels with temporal baseline calculation
+    - **Broadband Interference:** Spectral flatness analysis (>0.5 threshold) for wideband jamming detection
+    - **Pattern Recognition:** Four jamming types detected:
+      - **Continuous Jamming:** Sustained high power with low variance (<25 dB²)
+      - **Pulse Jamming:** Periodic high-power bursts with regular timing intervals
+      - **Sweep Jamming:** Systematic frequency progression with >60% directional consistency
+      - **Spot Jamming:** Narrow-band high power with >10:1 peak-to-average ratio (updated threshold)
+    - **Confidence Scoring:** Weighted combination of noise elevation (30%), broadband interference (20%), and pattern detection (50%)
+    - **Evidence Collection:** Technical proof including affected frequencies, interference duration, and SNR degradation
+    - **Temporal Accuracy:** Improved detection using chronologically ordered signal history for baseline calculation
   - High RSSI with no valid payloads.
   - Lock/unlock packets missing or failing during noise bursts.
-  - **Threat Level:** Malicious.
+  - **Threat Level:** Malicious (confidence >90%), Suspicious (confidence >70%), or Benign (confidence ≤70%).
 
 ### 4. **Brute Force Attack**
 - **Definition:** Repeated attempts to unlock/lock by cycling through possible codes or sending many packets.

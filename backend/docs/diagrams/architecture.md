@@ -14,9 +14,9 @@ graph TB
     subgraph PROC ["⚙️ Signal Processing Layer"]
         TCP_SRV[RTL-TCP Server<br/>Port 1234<br/>IQ Data Stream]
         SIG_PROC[RF Signal Processing<br/>Engine<br/>Event Detection]
-        AUTO_ANALYZER[Automotive Signal<br/>Analyzer<br/>FSK/TPMS Detection]
-        HIST_BUFFER[Signal History<br/>Buffer<br/>Temporal Analysis]
-        DETECT[Enhanced Threat<br/>Detection Engine<br/>Replay/Jamming/Brute Force]
+        AUTO_ANALYZER[Automotive Signal<br/>Analyzer<br/>FSK/TPMS Detection<br/>Real-time IQ Analysis]
+        HIST_BUFFER[Signal History<br/>Buffer<br/>Temporal Analysis<br/>5-min Rolling Buffer]
+        DETECT[Enhanced Threat<br/>Detection Engine<br/>Replay/Jamming/Brute Force<br/>Advanced Pattern Recognition]
     end
     
     %% Communication Layer
@@ -171,9 +171,9 @@ graph TB
 | **Hardware** | Raspberry Pi Pico W | MicroPython | WiFi-enabled alert controller |
 | **Processing** | RTL-TCP Server | C/C++ Binary | Raw IQ data streaming |
 | **Processing** | Signal Bridge | Python + NumPy | Signal processing and analysis |
-| **Processing** | Automotive Analyzer | Python + SciPy | Advanced automotive signal analysis |
-| **Processing** | Signal History Buffer | Python + Threading | Temporal analysis and replay detection |
-| **Processing** | Threat Detection Engine | Python + Pydantic | Enhanced security event classification |
+| **Processing** | Automotive Analyzer | Python + SciPy | Advanced automotive signal analysis with FSK/TPMS detection |
+| **Processing** | Signal History Buffer | Python + Threading | Thread-safe temporal analysis and replay detection (5-min buffer) |
+| **Processing** | Threat Detection Engine | Python + Pydantic | Enhanced security event classification with confidence scoring |
 | **Communication** | Event Server | Python + asyncio | TCP event distribution |
 | **Interface** | CLI Dashboard | Python + Rich | Real-time monitoring interface |
 | **Alerts** | NFC/LED System | MicroPython | Physical security notifications |

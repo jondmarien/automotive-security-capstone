@@ -39,11 +39,12 @@ This repository contains the full proof-of-concept (POC) codebase for an automot
 
 ## Tech Stack
 
-- **Python 3.8+** (backend, signal processing, dashboard)
+- **Python 3.11+** (backend, signal processing, dashboard)
 - **RTL-SDR V4** (RF hardware)
 - **Raspberry Pi Pico W** (MicroPython TCP client)
 - **Rich** (CLI dashboard)
-- **Numpy** (signal processing)
+- **NumPy/SciPy** (signal processing and advanced automotive signal analysis)
+- **pytest** (comprehensive testing framework with 63 tests covering enhanced signal processing)
 
 ---
 

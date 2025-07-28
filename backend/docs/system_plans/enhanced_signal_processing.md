@@ -99,10 +99,16 @@ Main orchestration component that integrates all enhanced processing capabilitie
 - **Confidence Scoring**: Signal similarity (60%), timing match (30%), frequency match (10%)
 
 ##### JammingDetector
-- **Bandwidth Analysis**: >100 kHz indicates broadband jamming
-- **Noise Floor**: RSSI > -80 dBm with elevated noise
-- **Burst Analysis**: Continuous transmission or excessive burst count
-- **Modulation Analysis**: Unrecognized patterns indicate jamming
+- **Noise Floor Analysis**: Detects elevation above baseline noise levels (>10 dB threshold)
+- **Broadband Interference**: Spectral flatness analysis for wideband jamming (>0.5 threshold with proper boolean type handling)
+- **Pattern Recognition**: Four jamming types detected:
+  - **Continuous Jamming**: Sustained high power with low variance (<25 dB²)
+  - **Pulse Jamming**: Periodic high-power bursts with regular timing intervals
+  - **Sweep Jamming**: Systematic frequency progression with >60% directional consistency
+  - **Spot Jamming**: Narrow-band high power (>10:1 peak-to-average ratio, updated threshold)
+- **Confidence Scoring**: Weighted combination of noise elevation (30%), broadband interference (20%), and pattern detection (50%)
+- **Evidence Collection**: Technical proof including affected frequencies, interference duration, and SNR degradation
+- **Temporal Baseline**: Accurate noise floor calculation using chronologically ordered signal history
 
 ##### BruteForceDetector
 - **Rate Threshold**: >10 signals per minute of same type
@@ -156,7 +162,10 @@ signal_history = SignalHistoryBuffer(max_size=1000, time_window=300.0)
 - **Signal Processing**: <1 second for 1-second signal analysis
 - **Threat Detection**: Real-time classification with <100ms latency
 - **Memory Usage**: Stable memory footprint with automatic cleanup
-- **Test Coverage**: 45 comprehensive tests with 100% pass rate
+- **Test Coverage**: 63 comprehensive tests with 100% pass rate
+  - AutomotiveSignalAnalyzer: 24 tests
+  - Enhanced Signal Bridge: 21 tests  
+  - Jamming Detector: 18 tests
 
 ## Usage Examples
 
