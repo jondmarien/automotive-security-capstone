@@ -26,6 +26,8 @@ from typing import Dict, List, Any, Optional
 
 from .automotive_signal_analyzer import AutomotiveSignalAnalyzer, SignalFeatures, DetectedSignal
 from .signal_history_buffer import SignalHistoryBuffer
+from .brute_force_detector import BruteForceDetector
+
 from detection.event_logic import analyze_event
 from detection.threat_levels import ThreatLevel
 
@@ -351,59 +353,6 @@ class JammingDetector:
             'evidence': evidence
         }
 
-class BruteForceDetector:
-    """Detector for brute force attacks."""
-    
-    def __init__(self, signal_history: SignalHistoryBuffer):
-        """Initialize brute force detector."""
-        self.signal_history = signal_history
-        self.rate_threshold = 10  # signals per minute
-        self.time_window = 60  # 1 minute
-        
-    def check_brute_force(self, detected_signal: DetectedSignal) -> Dict[str, Any]:
-        """Check if signal pattern indicates brute force attack."""
-        # Get recent signals of the same type
-        recent_signals = self.signal_history.get_signals_by_type(
-            detected_signal.signal_type, 
-            self.time_window
-        )
-        
-        signal_rate = len(recent_signals) / (self.time_window / 60)  # signals per minute
-        
-        if signal_rate > self.rate_threshold:
-            # Analyze pattern for brute force characteristics
-            confidence = min(1.0, (signal_rate - self.rate_threshold) / self.rate_threshold)
-            
-            return {
-                'is_brute_force': True,
-                'confidence': confidence,
-                'evidence': {
-                    'signal_rate': signal_rate,
-                    'rate_threshold': self.rate_threshold,
-                    'time_window': self.time_window,
-                    'signal_count': len(recent_signals),
-                    'pattern_analysis': self._analyze_brute_force_pattern(recent_signals)
-                }
-            }
-        
-        return {'is_brute_force': False}
-    
-    def _analyze_brute_force_pattern(self, signals: List) -> Dict[str, Any]:
-        """Analyze signal pattern for brute force characteristics."""
-        if len(signals) < 2:
-            return {}
-        
-        # Calculate inter-signal intervals
-        timestamps = [signal.timestamp for signal in signals]
-        timestamps.sort()
-        intervals = [timestamps[i+1] - timestamps[i] for i in range(len(timestamps)-1)]
-        
-        return {
-            'avg_interval': np.mean(intervals),
-            'min_interval': np.min(intervals),
-            'max_interval': np.max(intervals),
-            'interval_consistency': np.std(intervals) / np.mean(intervals) if np.mean(intervals) > 0 else 0
-        }
 
 class EnhancedSignalProcessingBridge:
     """

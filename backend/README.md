@@ -95,6 +95,8 @@ The system now includes advanced automotive signal analysis capabilities with co
 - **Modulation Classification**: Automatic FSK/ASK/Unknown modulation detection with signal quality assessment
 
 ### Enhanced Threat Detection Engine
+The threat detection engine is fully integrated within the enhanced signal bridge, providing comprehensive automotive security analysis:
+
 - **Replay Attack Detection**: Advanced signal similarity analysis with temporal correlation
   - Power spectrum correlation (40% weight), burst timing (30%), frequency deviation (20%), bandwidth (10%)
   - 95% similarity threshold within 1 second to 5 minutes timeframe
@@ -107,7 +109,12 @@ The system now includes advanced automotive signal analysis capabilities with co
   - **Noise Floor Analysis**: Detects elevation >10 dB above baseline with temporal baseline calculation
   - **Broadband Interference**: Spectral flatness analysis (>0.5 threshold) for wideband jamming
   - **Evidence Collection**: Technical proof including affected frequencies, interference duration, SNR degradation
-- **Brute Force Detection**: Rate-based attack pattern recognition (>10 signals/minute threshold)
+- **Brute Force Detection**: Integrated multi-tier threat detection with escalating levels
+  - **Temporal Analysis**: Multi-window analysis (30s, 60s, 300s) for comprehensive attack pattern recognition
+  - **Escalating Threat Levels**: Suspicious (5/min) → Moderate (10/min) → High (20/min) → Critical (40/min)
+  - **Pattern Recognition**: Rapid burst detection, sustained attack analysis, signal consistency scoring
+  - **Evidence Collection**: Statistical analysis, interval consistency, recommended actions per threat level
+  - **Attack Classification**: Rapid burst, sustained brute force, and persistent attack pattern identification
 - **Signal History Buffer**: Thread-safe 5-minute rolling buffer (1000 signals) for temporal analysis
 - **Threat Classification**: Automated BENIGN/SUSPICIOUS/MALICIOUS classification with confidence scoring
 - **Temporal Analysis**: Accurate timestamp-based signal correlation with chronological ordering
@@ -148,7 +155,7 @@ backend/
 │   ├── rtl_tcp_server.py              # Manages RTL-SDR, Pico TCP server
 │   ├── signal_bridge.py               # Signal processing, event detection (legacy + enhanced modes)
 │   ├── automotive_signal_analyzer.py  # Advanced automotive signal analysis (NEW)
-│   ├── enhanced_signal_bridge.py      # Enhanced signal processing with threat detection (NEW)
+│   ├── enhanced_signal_bridge.py      # Enhanced signal processing with integrated threat detection (NEW)
 │   ├── signal_history_buffer.py       # Signal history for replay detection (NEW)
 │   └── startup_server.py              # System orchestration
 ├── pico/

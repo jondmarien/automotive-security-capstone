@@ -23,8 +23,7 @@
     - Integrate with existing RTL-TCP server and event broadcasting
     - _Requirements: 1.1, 1.4, 4.1_
 
-- [ ] 2. Implement Advanced Threat Detection Engine
-
+- [x] 2. Implement Advanced Threat Detection Engine
 
 
   - Create ThreatDetectionEngine with multiple detection algorithms
@@ -49,9 +48,7 @@
     - Build confidence scoring for jamming detection
     - _Requirements: 2.3, 2.5_
 
-    - [-] 2.3 Implement BruteForceDetector for rapid attempts
-
-
+    - [x] 2.3 Implement BruteForceDetector for rapid attempts
 
     - Create temporal analysis for detecting rapid signal attempts
     - Add pattern recognition for brute force attack signatures
