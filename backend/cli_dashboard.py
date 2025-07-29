@@ -41,7 +41,9 @@ from rich.columns import Columns
 from rich.console import Console
 from rich.layout import Layout
 from rich.panel import Panel
-from rich.progress import BarColumn, Progress, TextColumn
+from rich.progress import Progress, BarColumn, TextColumn
+from rich.spinner import Spinner
+from rich.status import Status
 from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
@@ -220,7 +222,7 @@ def log_event(event: Dict[str, Any]):
         f.write(f"[{ts}] {event}\n")
 
 # --- Dashboard Rendering ---
-def render_dashboard(events, selected_event, status_text="Dashboard Ready", console=Console()):
+def render_dashboard(events, selected_event, status_text="Dashboard Ready", console=Console(), selected_event_idx=-1):
     """
     Render the enhanced CLI dashboard with signal analysis and technical evidence panels.
     
@@ -338,8 +340,12 @@ def render_dashboard(events, selected_event, status_text="Dashboard Ready", cons
     layout["events_table"].update(Panel(table, title="Detection Events", border_style="bright_cyan"))
     layout["signal_metrics"].update(Panel(signal_viz, title="Signal Analysis", border_style="green"))
     layout["evidence_panel"].update(Panel(evidence_panel, title="Technical Evidence", border_style="yellow"))
-    # Set footer content directly
-    layout["footer"].update(status_text)
+    # Create footer with spinner
+    spinner = Spinner('dots', text=status_text, style="cyan")
+    footer_content = Columns([
+        spinner
+    ])
+    layout["footer"].update(footer_content)
     
     # Final dashboard panel with minimal padding
     # Use height parameter to ensure full rendering without ellipsis
@@ -746,7 +752,7 @@ async def main():
         try:
             
             # Create a single Live display outside the event loop
-            with Live(render_dashboard(events, None, status_text, console), 
+            with Live(render_dashboard(events, None, status_text, console, selected_event_idx), 
                       refresh_per_second=4, console=console, screen=True, 
                       vertical_overflow="visible") as live:
                 
@@ -840,11 +846,24 @@ async def main():
                             if selected_event_idx == -1:
                                 nav_status += " (Latest)"
                             
-                            # Simple navigation status
-                            full_status = f"{status_text} | {nav_status} | Use Up/Down to navigate, '?' for help"
+                            # Get current time for footer
+                            current_time = datetime.now().strftime("%H:%M:%S")
+                            
+                            # Format event counter with light blue color
+                            event_status = f"[cyan1]Events: {abs_idx + 1}/{len(events)}"
+                            if selected_event_idx == -1:
+                                event_status += " (Latest)[/cyan1]"
+                            else:
+                                event_status += "[/cyan1]"
+                            
+                            # Format timestamp with light green color
+                            time_status = f"[spring_green3]Time: {current_time}[/spring_green3]"
+                            
+                            # Comprehensive status with all elements and colors
+                            full_status = f"Source: MOCK DATA (demo/testing mode) | {event_status} | {time_status} | Press ? for help"
                         
                         # Update the live display with navigation
-                        live.update(render_dashboard(events, selected_event, full_status, console))
+                        live.update(render_dashboard(events, selected_event, full_status, console, selected_event_idx))
                         await asyncio.sleep(0.1)
                 
                 # Create a background task for input handling
