@@ -34,13 +34,48 @@ from rich.table import Table
 from rich.panel import Panel
 from rich.layout import Layout
 from rich.text import Text
+from rich.tree import Tree
 from rich.progress import BarColumn, Progress, TextColumn
 from rich.columns import Columns
 from rich.align import Align
 from rich import box
 import aiohttp
+import pyfiglet
+from rich.theme import Theme
 
 LOG_FILE = "detection_events.log"
+
+# Define a global theme for consistent styling
+custom_theme = Theme({
+    "header": "bold cyan",
+    "threat.low": "green",
+    "threat.medium": "yellow",
+    "threat.high": "bold red",
+    "threat.critical": "bold reverse red",
+    "metric.label": "bold magenta",
+    "table.border": "dim white",
+    "table.header": "bold underline white"
+})
+console = Console(theme=custom_theme)
+
+# ASCII art logo using pyfiglet
+def display_logo():
+    """Display the ASCII art logo for the Automotive Security PoC."""
+    logo_text = pyfiglet.figlet_format("AutoSec Monitor", font="standard")
+    console.print(logo_text, style="bold cyan")
+    console.print("Automotive Cybersecurity Proof of Concept", style="dim white", justify="center")
+    console.print("=" * console.width, style="dim white")
+
+# Gradient header for dashboard title
+def create_gradient_header():
+    """Create a gradient header for the dashboard title."""
+    title = "Automotive Security Monitor"
+    # Build gradient by splitting title: first segment cyan, second segment magenta
+    split_at = 10
+    header_text = Text()
+    header_text.append(title[:split_at], style="bold cyan")
+    header_text.append(title[split_at:], style="bold magenta")
+    return header_text
 
 # --- Event Source Abstractions ---
 async def fetch_events_api(api_url: str):
@@ -144,13 +179,14 @@ def render_dashboard(events, current_event=None, status_text="Dashboard Ready", 
     layout = Layout(name="root")
     
     # Create child layouts with optimized ratios
-    events_layout = Layout(name="events_table", ratio=3)  # Give events table 75% of vertical space
+    events_layout = Layout(name="events_table", ratio=2)  # Adjust ratio to give more space to lower section
     lower_section = Layout(name="lower_section", ratio=1)
     signal_metrics = Layout(name="signal_metrics")
     evidence_layout = Layout(name="evidence_panel")
     
     # Configure the layout hierarchy - maximize event table space
     layout.split(
+        Layout(name="header", size=3),
         events_layout,
         lower_section
     )
@@ -160,16 +196,32 @@ def render_dashboard(events, current_event=None, status_text="Dashboard Ready", 
         evidence_layout
     )
     
-    # Create events table
-    table = Table(title="Automotive Security CLI Dashboard", expand=True, box=box.ROUNDED)
+    # Header with gradient title
+    header_panel = Panel(
+        create_gradient_header(),
+        border_style="dim white",
+        expand=True,
+        height=3,
+        padding=(0, 1)
+    )
+    layout["header"].update(header_panel)
+
+    # Create events table with minimal styling
+    table = Table(
+        title="Automotive Security CLI Dashboard", 
+        expand=True, 
+        box=box.SIMPLE,  # More minimal box style
+        padding=(0, 1),  # Reduced padding
+        collapse_padding=True  # Help with multi-line content
+    )
     table.add_column("Time", style="cyan", no_wrap=True)
-    table.add_column("Type", style="magenta")
-    table.add_column("Threat", style="bold")
-    table.add_column("Source", style="blue")
-    table.add_column("Details", style="white")
-    table.add_column("Signal", style="green")
+    table.add_column("Type", style="magenta", no_wrap=True)
+    table.add_column("Threat", style="threat.low", no_wrap=True)
+    table.add_column("Source", style="blue", no_wrap=True)
+    table.add_column("Details", style="white", width=30)  # Fixed width for details to prevent affecting other columns
+    table.add_column("Signal", style="green", no_wrap=True)
     # Add NFC correlation indicator column
-    table.add_column("NFC", style="bold red", justify="center", width=3)
+    table.add_column("NFC", style="bold red", justify="center", width=3, no_wrap=True)
 
     # Enhanced color mapping for threat levels including Critical for correlated attacks
     colors = {
@@ -213,7 +265,12 @@ def render_dashboard(events, current_event=None, status_text="Dashboard Ready", 
             
         # Apply color to threat level
         threat_colored = f"[{colors.get(threat, 'white')}]" + threat + "[/]"
-        table.add_row(time_str, event_type, threat_colored, source, details, signal_str, nfc_indicator)
+        
+        # Handle multi-line details more gracefully
+        # This prevents a single column from forcing all others to expand vertically
+        formatted_details = details.replace("\n", " ") if isinstance(details, str) else str(details)
+        
+        table.add_row(time_str, event_type, threat_colored, source, formatted_details, signal_str, nfc_indicator)
 
     # Assemble the layout
     layout["events_table"].update(Panel(table, title="Detection Events", border_style="bright_cyan"))
@@ -236,130 +293,71 @@ def render_dashboard(events, current_event=None, status_text="Dashboard Ready", 
 
 def render_evidence_panel(event):
     """
-    Renders a technical evidence panel with detailed attack information.
-    Implements NFC correlation indicators.
+    Renders a technical evidence panel as a collapsible tree for better organization.
     
     Args:
-        event (dict): The latest event with evidence data.
+        event (dict): The event with evidence data.
         
     Returns:
-        rich content: Formatted technical evidence panel.
+        rich.tree.Tree or rich.text.Text: Formatted evidence tree or status text.
     """
     if not event or not isinstance(event, dict) or "error" in event:
         return Text("No evidence available", style="dim")
-        
-    # Check if this is a security-relevant event OR an NFC event (new condition for NFC correlation)
+
     security_types = ["Replay Attack", "Brute Force", "Jamming Attack", "NFC Scan", "NFC Tag Present"]
     is_security_event = (event.get("type", "") in security_types or 
                          event.get("threat", "") in ["Malicious", "Critical", "Suspicious"] or
                          event.get("nfc_correlated", False) or 
                          "NFC" in event.get("type", ""))
-    
+
     if not is_security_event:
-        return Text("No security evidence available for this event", style="dim")
-        
+        return Text("No security evidence for this event", style="dim")
+
     # Extract evidence data
     evidence = event.get("evidence", {})
     # Always show panel for NFC events even without evidence
     if not evidence and not event.get("nfc_correlated", False) and "NFC" not in event.get("type", ""):
-        return Text("Event lacks detailed evidence data", style="dim")
-    
-    # Build evidence summary
-    evidence_items = []
-    
-    # Title based on event type
-    title = Text()
-    title.append(f"{event.get('type', 'Security Event')} Analysis", style="bold yellow")
-    title.append("\n")
-    evidence_items.append(title)
-    
-    # Confidence scores if available
+        return Text("Event lacks detailed evidence", style="dim")
+
+    tree = Tree(f":file_folder: [bold yellow]{event.get('type', 'Security Event')} Analysis[/]")
+
     if evidence.get("detection_confidence"):
         confidence = evidence["detection_confidence"] * 100
-        confidence_text = Text(f"Detection Confidence: {confidence:.1f}%", 
-                              style="green" if confidence > 75 else "yellow" if confidence > 50 else "red")
-        evidence_items.append(confidence_text)
-    
-    # Signal match score for replay attacks
+        style = "green" if confidence > 75 else "yellow" if confidence > 50 else "red"
+        tree.add(f"[bold]Confidence:[/] [{style}]{confidence:.1f}%[/]")
+
     if evidence.get("signal_match_score"):
         match_score = evidence["signal_match_score"] * 100
-        match_text = Text(f"Signal Match: {match_score:.1f}%", 
-                         style="green" if match_score > 75 else "yellow" if match_score > 50 else "red")
-        evidence_items.append(match_text)
-    
-    # Temporal analysis for brute force attacks
+        style = "green" if match_score > 75 else "yellow" if match_score > 50 else "red"
+        tree.add(f"[bold]Signal Match:[/] [{style}]{match_score:.1f}%[/]")
+
     if evidence.get("temporal_analysis"):
         temp = evidence["temporal_analysis"]
-        temp_text = Text()
-        temp_text.append("\nTemporal Analysis:", style="bold")
-        temp_text.append("\n")
-        temp_text.append(f"- {temp.get('detection_count', 0)} detections in ")
-        temp_text.append(f"{temp.get('time_window_seconds', 0)}s window", style="cyan")
-        temp_text.append("\n")
-        temp_text.append(f"- Burst interval: {temp.get('burst_interval_ms', 0)}ms\n")
-        evidence_items.append(temp_text)
-    
-    # Burst pattern information
+        temp_branch = tree.add(":stopwatch: [bold]Temporal Analysis[/]")
+        temp_branch.add(f"{temp.get('detection_count', 0)} detections in {temp.get('time_window_seconds', 0)}s")
+        temp_branch.add(f"Burst interval: {temp.get('burst_interval_ms', 0)}ms")
+
     if evidence.get("burst_pattern"):
-        burst_text = Text(f"Pattern: {evidence['burst_pattern']}", style="blue")
-        evidence_items.append(burst_text)
-    
-    # NFC correlation evidence (high priority security indicator)
+        tree.add(f":chart_increasing: [bold]Pattern:[/] [blue]{evidence['burst_pattern']}[/]")
+
     if "NFC" in event.get("type", "") or event.get("nfc_correlated", False) or event.get("nfc_tag_id"):
-        nfc_text = Text()
-        
-        # Different display for correlated attacks vs. regular NFC events
+        nfc_branch = tree.add(":signal_strength: [bold blue]NFC Activity[/]")
         if event.get("nfc_correlated", False):
-            nfc_text.append("\n")
-            nfc_text.append("!!! MULTI-MODAL ATTACK DETECTED !!!", style="bold red on white")
-            nfc_text.append("\n")
-            nfc_text.append("RF signal correlated with NFC proximity\n")
-            nfc_text.append("This correlation indicates a sophisticated attack attempt", style="yellow")
-            nfc_text.append("\n")
-        else:
-            nfc_text.append("\n")
-            nfc_text.append("NFC ACTIVITY DETECTED", style="bold blue")
-            nfc_text.append("\n")
-            
-        # NFC tag details
+            nfc_branch.label = ":warning: [bold red on white]MULTI-MODAL ATTACK[/]"
+            nfc_branch.add("RF signal correlated with NFC proximity")
         if event.get("nfc_tag_id"):
-            nfc_text.append("NFC Tag ID: ")
-            nfc_text.append(f"{event['nfc_tag_id']}", style="cyan")
-            nfc_text.append("\n")
-            
-        # Add timestamp if available
+            nfc_branch.add(f"Tag ID: [cyan]{event['nfc_tag_id']}[/]")
         if event.get("nfc_timestamp"):
-            nfc_text.append(f"Detected at: {event['nfc_timestamp']}\n")
-            
-        # Add proximity information if available
+            nfc_branch.add(f"Timestamp: {event['nfc_timestamp']}")
         if event.get("nfc_proximity"):
-            proximity = event["nfc_proximity"]
-            nfc_text.append(f"Proximity: {proximity} cm\n")
-            
-        evidence_items.append(nfc_text)
-    
-    # Peak frequencies information
+            nfc_branch.add(f"Proximity: {event['nfc_proximity']} cm")
+
     if evidence.get("peak_frequencies"):
         peaks = evidence["peak_frequencies"]
-        peak_text = Text("\nPeak Frequencies: ")
-        for i, peak in enumerate(peaks):
-            if peak > 1000000:  # MHz range
-                peak_text.append(f"{peak/1000000:.3f}MHz", style="cyan")
-            else:
-                peak_text.append(f"{peak/1000:.1f}kHz", style="cyan")
-            if i < len(peaks) - 1:
-                peak_text.append(", ")
-        evidence_items.append(peak_text)
-    
-    # Combine all evidence items
-    result = Text()
-    for item in evidence_items:
-        if isinstance(item, Text):
-            result.append_text(item)
-        else:
-            result.append(str(item))
-    
-    return Align.left(Columns([result]))
+        peak_str = ", ".join([f"{p/1e6:.3f}MHz" if p > 1e6 else f"{p/1e3:.1f}kHz" for p in peaks])
+        tree.add(f":radio: [bold]Peak Frequencies:[/] [cyan]{peak_str}[/]")
+
+    return Align.left(tree)
 
 
 def render_signal_metrics(event):
@@ -538,13 +536,10 @@ async def main():
     if args.mock:
         args.source = None
 
-    console = Console()
-    console.print(Panel(
-        "[bold green]Enhanced Automotive Security CLI Dashboard[/]\n"
-        "[yellow]With signal analysis and technical evidence presentation[/]",
-        border_style="cyan"
-    ))
-    
+    display_logo()  # Display ASCII art logo at startup
+    console.print("Initializing real-time event streaming...", style="dim white")
+    console.print("=" * console.width, style="dim white")
+
     events = []
     status_text = "Starting..."
     # Track currently selected event index for navigation
