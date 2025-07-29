@@ -25,6 +25,8 @@ import argparse
 import asyncio
 import random
 import itertools
+import os
+import sys
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 
@@ -42,6 +44,14 @@ from rich import box
 import aiohttp
 import pyfiglet
 from rich.theme import Theme
+
+# prompt_toolkit imports for keyboard navigation
+from prompt_toolkit import Application
+from prompt_toolkit.input import create_input
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.layout import Layout as PTLayout
+from prompt_toolkit.layout.containers import Window
+from prompt_toolkit.layout.controls import FormattedTextControl
 
 LOG_FILE = "detection_events.log"
 
@@ -521,6 +531,7 @@ async def main():
         python cli_dashboard.py --source tcp --tcp-host localhost --tcp-port 8888
         python cli_dashboard.py --mock
     """
+    
     parser = argparse.ArgumentParser(description="Automotive Security Enhanced CLI Dashboard")
     parser.add_argument("--source", choices=["api", "tcp"], help="Event source: api or tcp")
     parser.add_argument("--api-url", type=str, default="http://localhost:8000/events", help="API URL (for --source api)")
@@ -554,82 +565,157 @@ async def main():
     else:
         event_gen = stream_events_tcp(args.tcp_host, args.tcp_port)
         status_text = f"Source: TCP ({args.tcp_host}:{args.tcp_port})"
+    
+    # Set up prompt_toolkit key bindings for keyboard navigation
+    bindings = KeyBindings()
+    
+    @bindings.add('up')
+    def handle_up(event):
+        nonlocal selected_event_idx
+        if not events:
+            return
+        if selected_event_idx == -1:
+            # If currently showing latest, go to the second-to-last event
+            if len(events) > 1:
+                selected_event_idx = -2
+        elif selected_event_idx > -len(events):
+            # Move up in history (decrease index)
+            selected_event_idx -= 1
+    
+    @bindings.add('down')
+    def handle_down(event):
+        nonlocal selected_event_idx
+        if not events:
+            return
+        if selected_event_idx < -1:
+            # Move down in history (increase index)
+            selected_event_idx += 1
+        elif selected_event_idx == -1 and len(events) > 0:
+            # If at latest event, stay there
+            pass
+    
+    @bindings.add('home')
+    def handle_home(event):
+        nonlocal selected_event_idx
+        if events:
+            # Go to first event
+            selected_event_idx = -len(events)
+    
+    @bindings.add('end')
+    def handle_end(event):
+        nonlocal selected_event_idx
+        # Go to latest event
+        selected_event_idx = -1
+    
+    @bindings.add('q')
+    @bindings.add('c-c')  # Ctrl+C
+    def handle_quit(event):
+        event.app.exit()
+    
+    @bindings.add('?')
+    def handle_help(event):
+        nonlocal status_text
+        # Toggle help text in status bar
+        if "HELP" in status_text:
+            status_text = status_text.replace(" | HELP: Up/Down=Navigate, Home/End=First/Last, ?=Help, q=Quit", "")
+        else:
+            status_text += " | HELP: Up/Down=Navigate, Home/End=First/Last, ?=Help, q=Quit"
+
+    # Create a minimal prompt_toolkit application for keyboard input
+    app = Application(
+        layout=PTLayout(Window(FormattedTextControl(""))),  # Empty layout as Rich handles rendering
+        key_bindings=bindings,
+        full_screen=True,
+        mouse_support=True
+    )
 
     async def dashboard_loop():
         """
         Main event loop for the dashboard. Renders events and handles errors/interrupts.
-        Implements simple event navigation system.
+        Implements keyboard navigation system with prompt_toolkit.
         """
-        nonlocal selected_event_idx
+        nonlocal selected_event_idx, status_text
         api_error_count = 0
         MAX_API_ERRORS = 5
         
         # Use the command-line argument for initial selected event
         selected_event_idx = args.event
+        
         try:
             # Create a single Live display outside the event loop
-            with Live(render_dashboard(events, status_text), refresh_per_second=2, console=console, screen=False, auto_refresh=True) as live:
-                async for event in event_gen:
-                    log_event(event)
-                    # Unpack signal_detection events with nested detections
-                    if event.get('type') == 'signal_detection' and 'detections' in event:
-                        for detection in event['detections']:
+            with Live(render_dashboard(events, None, status_text, console), 
+                      refresh_per_second=4, console=console, screen=True, 
+                      vertical_overflow="visible") as live:
+                
+                # Create async tasks for event fetching and rendering
+                async def event_fetcher():
+                    async for event in event_gen:
+                        log_event(event)
+                        # Unpack signal_detection events with nested detections
+                        if event.get('type') == 'signal_detection' and 'detections' in event:
+                            for detection in event['detections']:
+                                # Add timestamp if not present
+                                if 'timestamp' not in detection:
+                                    detection['timestamp'] = event.get('timestamp', datetime.now().strftime("%H:%M:%S"))
+                                events.append(detection)
+                                if len(events) > 100:
+                                    events.pop(0)
+                        else:
                             # Add timestamp if not present
-                            if 'timestamp' not in detection:
-                                detection['timestamp'] = event.get('timestamp', datetime.now().strftime("%H:%M:%S"))
-                            events.append(detection)
+                            if "timestamp" not in event:
+                                event["timestamp"] = datetime.now().strftime("%H:%M:%S")
+                            
+                            # Enhance with additional signal processing details if missing
+                            event = enhance_event_with_signal_details(event)
+                                
+                            events.append(event)
                             if len(events) > 100:
                                 events.pop(0)
-                    else:
-                        # Add timestamp if not present
-                        if "timestamp" not in event:
-                            event["timestamp"] = datetime.now().strftime("%H:%M:%S")
-                        
-                        # Enhance with additional signal processing details if missing
-                        event = enhance_event_with_signal_details(event)
-                            
-                        events.append(event)
-                        if len(events) > 100:
-                            events.pop(0)
-                    # Detect repeated API connection errors
-                    if event.get("error") and "API connection error" in event["error"]:
-                        api_error_count += 1
-                        if api_error_count >= MAX_API_ERRORS:
-                            console.print(f"[bold red]Unable to connect to API after {MAX_API_ERRORS} attempts. Exiting dashboard.[/bold red]")
-                            return
-                    else:
-                        api_error_count = 0
-                        
-                    # Every 10th event, automatically switch back to latest
-                    # This ensures we don't miss new events while navigating history
-                    if len(events) % 10 == 0 and len(events) > 0:
-                        selected_event_idx = -1
-                    
-                    # Update the live display with new content
-                    
-                    # Handle keyboard input for navigation
-                    # Only navigate through existing events
-                    current_event = None
-                    full_status = status_text
-                    
-                    if events:
-                        # Default to showing the most recent event when a new one arrives
-                        if selected_event_idx == -1:
-                            current_event = events[-1]
+                        # Detect repeated API connection errors
+                        if event.get("error") and "API connection error" in event["error"]:
+                            api_error_count += 1
+                            if api_error_count >= MAX_API_ERRORS:
+                                console.print(f"[bold red]Unable to connect to API after {MAX_API_ERRORS} attempts. Exiting dashboard.[/bold red]")
+                                return
                         else:
+                            api_error_count = 0
+                
+                async def renderer():
+                    while True:
+                        # Determine which event to display in detail panels
+                        current_event = None
+                        full_status = status_text
+                        
+                        if events:
                             # Convert relative index to absolute (negative indices count from the end)
-                            abs_idx = len(events) - 1 + selected_event_idx if selected_event_idx < 0 else selected_event_idx
-                            # Keep index in bounds
-                            abs_idx = max(0, min(abs_idx, len(events) - 1))
-                            current_event = events[abs_idx]
+                            if selected_event_idx == -1:
+                                # Show latest event
+                                current_event = events[-1]
+                                abs_idx = len(events) - 1
+                            else:
+                                # Calculate absolute index from relative
+                                abs_idx = len(events) + selected_event_idx if selected_event_idx < 0 else selected_event_idx
+                                # Keep index in bounds
+                                abs_idx = max(0, min(abs_idx, len(events) - 1))
+                                current_event = events[abs_idx]
                             
-                        # Update navigation status
-                        nav_status = f"Event {abs_idx + 1}/{len(events)}" if 'abs_idx' in locals() else f"Latest Event ({len(events)} total)"
-                        full_status = f"{status_text} | {nav_status} | Use --event <number> to view specific events"
-                    
-                    # Update the live display with navigation
-                    live.update(render_dashboard(events, current_event, full_status, console))
-                    await asyncio.sleep(0.1)
+                            # Update navigation status
+                            nav_status = f"Event {abs_idx + 1}/{len(events)}"
+                            if selected_event_idx == -1:
+                                nav_status += " (Latest)"
+                            full_status = f"{status_text} | {nav_status} | Use Up/Down to navigate, '?' for help"
+                        
+                        # Update the live display with navigation
+                        live.update(render_dashboard(events, current_event, full_status, console))
+                        await asyncio.sleep(0.1)
+                
+                # Run all tasks concurrently
+                await asyncio.gather(
+                    event_fetcher(),
+                    renderer(),
+                    app.run_async()
+                )
+                
         except KeyboardInterrupt:
             console.print("\n[bold yellow]Dashboard interrupted by user (Ctrl+C). Exiting gracefully.[/bold yellow]")
         except Exception as e:
