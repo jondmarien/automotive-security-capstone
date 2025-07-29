@@ -34,12 +34,12 @@ Raspberry Pi Pico W (TCP client, receives events, handles alerting/NFC)
 - `rtl_tcp_server.py`: Manages RTL-SDR, launches `rtl_tcp`, listens for Pico clients and dashboard on TCP (default: 8888)
 - `signal_bridge.py`: Reads IQ samples from RTL-SDR, detects events, sends to TCP server (supports enhanced mode)
 - `cli_dashboard.py`: Rich-powered CLI dashboard for real-time event display; supports `--mock` for demo/testing
-- `pico/main.py`: MicroPython client for Pico W; connects to computer, receives events, triggers LEDs/NFC
+- `pico/main.py`: MicroPython client for Pico W; connects to computer, receives events, triggers LEDs/NFC, and provides advanced RF-NFC correlation for multi-modal attack detection
 
 ### Enhanced Signal Processing & Threat Detection (NEW)
 - `rtl_sdr/enhanced_signal_bridge.py`: **NEW** - Enhanced signal processing bridge with real-time IQ analysis and automotive signal detection
 - `rtl_sdr/automotive_signal_analyzer.py`: Advanced automotive signal analysis with FSK detection and pattern recognition
-- `rtl_sdr/brute_force_detector.py`: Enhanced brute force attack detector with temporal analysis and escalating threat levels
+- `rtl_sdr/brute_force_detector.py`: Enhanced brute force attack detector with temporal analysis, escalating threat levels, and improved test consistency handling
 - `rtl_sdr/signal_history_buffer.py`: Signal history management for temporal analysis and replay detection
 
 ### Advanced Detection Modules
@@ -49,6 +49,14 @@ Raspberry Pi Pico W (TCP client, receives events, handles alerting/NFC)
 - `detection/replay_attack_detector.py`: Sophisticated replay attack detection with temporal analysis
 
 ## 🛠️ Setup & Usage
+
+### 0. Key System Features
+
+#### RF-NFC Correlation System
+- **Function**: Correlates suspicious RF signals with NFC card/tag proximity
+- **Operation**: Automatically activates when high-threat RF events are detected
+- **Results**: Generates specialized `correlated_security_event` with comprehensive technical evidence
+- **Configuration**: Default timeout of 30 seconds, automatically deactivates
 
 ### 1. Computer-Side (Windows/Linux)
 
@@ -97,6 +105,13 @@ Raspberry Pi Pico W (TCP client, receives events, handles alerting/NFC)
 ### Enhanced Threat Detection Engine
 The system now includes sophisticated multi-layer threat detection with temporal analysis and escalating threat levels.
 
+### RF-NFC Correlation System (NEW)
+- **Multi-Modal Attack Detection**: Correlates RF attacks with physical proximity NFC activity
+- **Threat Escalation Logic**: Automatically increases threat level when RF and NFC activities coincide
+- **Technical Evidence Collection**: Comprehensive evidence gathering for correlated security events
+- **Automatic Timeout Management**: Self-deactivates correlation mode after configurable timeout
+- **Enhanced Security Events**: Generates specialized `correlated_security_event` with technical evidence
+
 ### Detection Types
 - **Rolling Code Replay Attacks**: Advanced detection using signal similarity analysis and temporal clustering
 - **Jamming Detection**: Comprehensive RF interference detection with four pattern types:
@@ -133,6 +148,7 @@ python -m pytest tests/test_security_analyzer.py -v
 python -m pytest tests/test_threat_levels.py -v
 python -m pytest tests/test_signal_history_buffer.py -v
 python -m pytest tests/test_enhanced_signal_bridge.py -v
+python -m pytest tests/test_pico_nfc_correlation.py -v
 
 # Run tests with coverage
 python -m pytest tests/ --cov=rtl_sdr --cov-report=html
@@ -145,6 +161,7 @@ python -m pytest tests/ --cov=rtl_sdr --cov-report=html
 - **Performance Tests**: Signal processing performance validation for real-time analysis
 - **Security Tests**: Comprehensive threat detection validation with temporal analysis
 - **Signal Analysis Tests**: Automotive signal feature extraction and classification testing
+- **Correlation Tests**: Validation of RF-NFC correlation system and multi-modal attack detection
 
 ### Test Quality Improvements
 - **Enhanced Test Coverage**: 63 comprehensive tests with 100% pass rate across all components

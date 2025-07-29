@@ -1,6 +1,6 @@
 # Automotive Security Capstone Project (2025)
 
-This repository contains the full proof-of-concept (POC) codebase for an automotive RF/NFC security monitoring system. The system uses an RTL-SDR V4 dongle, Python signal processing, and a Raspberry Pi Pico W to detect, classify, and alert on suspicious automotive wireless activity. A CLI dashboard provides real-time visualization for demos and development.
+This repository contains the full proof-of-concept (POC) codebase for an automotive RF/NFC security monitoring system. The system uses an RTL-SDR V4 dongle, Python signal processing, and a Raspberry Pi Pico W to detect, classify, and alert on suspicious automotive wireless activity. Enhanced with multi-modal attack detection through NFC correlation, the system can identify coordinated physical and wireless attacks. A CLI dashboard provides real-time visualization for demos and development.
 
 ---
 
@@ -26,6 +26,8 @@ This repository contains the full proof-of-concept (POC) codebase for an automot
 - **Event Streaming**: Detection events are broadcast over TCP to both the Pico W and the CLI dashboard.
 - **CLI Dashboard**: Terminal UI (Rich) for live event display and demo/testing (`--mock` mode supported).
 - **Pico W Client**: Receives events, triggers alerts (LEDs, NFC), connects via WiFi to the backend TCP server.
+- **NFC Correlation System**: Enhanced security through multi-modal attack detection, correlating RF signals with physical NFC proximity events.
+- **Enhanced Threat Detection**: Temporal analysis and pattern recognition for brute force attacks with escalating threat levels and detailed evidence collection.
 - **No FastAPI/MongoDB**: All event transport is via TCP; no web API or database is required for the MVP/POC.
 
 ---
@@ -42,9 +44,11 @@ This repository contains the full proof-of-concept (POC) codebase for an automot
 - **Python 3.11+** (backend, signal processing, dashboard)
 - **RTL-SDR V4** (RF hardware)
 - **Raspberry Pi Pico W** (MicroPython TCP client)
+- **PN532 NFC Module** (NFC reader for proximity detection)
 - **Rich** (CLI dashboard)
 - **NumPy/SciPy** (signal processing and advanced automotive signal analysis)
-- **pytest** (comprehensive testing framework with 63 tests covering enhanced signal processing)
+- **MicroPython + asyncio** (correlation system for multi-modal attack detection)
+- **pytest** (comprehensive testing framework with extensive coverage of signal processing and NFC correlation)
 
 ---
 
@@ -52,5 +56,7 @@ This repository contains the full proof-of-concept (POC) codebase for an automot
 
 - Backend implementation: [`backend/README.md`](backend/README.md)
 - Architecture and hardware: [`backend/docs/poc_migration_plan.md`](backend/docs/poc_migration_plan.md)
+- NFC Correlation System: [`backend/docs/api/nfc_correlation.md`](backend/docs/api/nfc_correlation.md)
+- Implementation Plan: [`backend/docs/plans/nfc_correlation_implementation.md`](backend/docs/plans/nfc_correlation_implementation.md)
 
 For questions or demo support, see the project documentation or contact the maintainers.

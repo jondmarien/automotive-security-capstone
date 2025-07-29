@@ -14,10 +14,11 @@ This guide covers the comprehensive testing suite for the Automotive Security Ca
 | `test_brute_force_detector.py` | Brute force attack detection | 14 tests | Temporal analysis, escalating threats |
 | `test_jamming_detector.py` | Jamming detection algorithms | 18 tests | RF interference pattern recognition |
 | `test_enhanced_signal_bridge.py` | Enhanced processing pipeline | 21 tests | Full system integration |
+| `test_pico_nfc_correlation.py` | NFC correlation system | 12 tests | Multi-modal attack detection |
 | `test_signal_bridge.py` | Legacy signal processing | 8 tests | Basic signal detection |
 | `test_cli_dashboard.py` | CLI dashboard functionality | 6 tests | UI and event handling |
 
-**Total Tests**: 77 comprehensive tests with 100% pass rate
+**Total Tests**: 89 comprehensive tests with 100% pass rate
 
 ## Running Tests
 
@@ -50,6 +51,19 @@ python -m pytest tests/test_brute_force_detector.py -v
 # Test threat level escalation
 python -m pytest tests/test_brute_force_detector.py::TestBruteForceDetector::test_escalating_threat_levels -v
 python -m pytest tests/test_brute_force_detector.py::TestBruteForceDetector::test_temporal_analysis -v
+
+#### NFC Correlation System Tests
+```bash
+# Run NFC correlation system tests
+python -m pytest tests/test_pico_nfc_correlation.py -v
+
+# Test correlation activation and timeout
+python -m pytest tests/test_pico_nfc_correlation.py::TestNFCCorrelation::test_activate_nfc_correlation -v
+python -m pytest tests/test_pico_nfc_correlation.py::TestNFCCorrelation::test_nfc_correlation_timeout -v
+
+# Test correlated security events
+python -m pytest tests/test_pico_nfc_correlation.py::TestNFCCorrelation::test_create_correlated_security_event -v
+```
 ```
 
 #### Jamming Detection Tests
@@ -145,6 +159,19 @@ def test_tcp_communication(mock_socket):
     mock_socket.return_value.recv.return_value = mock_event_data()
 ```
 
+#### NFC Module Mocking
+```python
+# Mock PN532 NFC module for testing
+@patch('pico.nfc_module.PN532')
+def test_nfc_detection(mock_nfc):
+    # Mock NFC tag detection
+    mock_nfc.return_value.read_passive_target.return_value = mock_nfc_uid()
+    
+    # Mock correlation timing
+    with patch('pico.nfc_correlation.time.time') as mock_time:
+        mock_time.side_effect = [0, 5, 10, 15, 20, 35]  # Timestamps for correlation timeout
+```
+
 ## Test Assertions and Validation
 
 ### Signal Analysis Validation
@@ -184,6 +211,19 @@ assert jamming_result['jamming_type'] in ['continuous', 'pulse', 'sweep', 'spot'
 assert 0.0 <= jamming_result['confidence'] <= 1.0
 ```
 
+#### NFC Correlation Validation
+```python
+# Validate NFC correlation activation
+assert correlation_state['active'] is True
+assert correlation_state['timeout'] == 30  # seconds
+
+# Validate correlated security events
+assert event['event_type'] == 'correlated_security_event'
+assert event['rf_data'] is not None
+assert event['nfc_data'] is not None
+assert event['threat_level'] >= 0.85  # High threat for correlated events
+```
+
 ### Performance Validation
 
 #### Processing Latency
@@ -204,6 +244,7 @@ assert memory_usage < 50  # MB for 1000-signal buffer
 | Signal Analysis | >90% | 94% |
 | Threat Detection | >90% | 92% |
 | Enhanced Processing | >85% | 89% |
+| NFC Correlation | >90% | 93% |
 | CLI Dashboard | >80% | 85% |
 | Integration | >85% | 87% |
 

@@ -27,7 +27,16 @@
 - **Programming**: MicroPython for rapid development
 - **Power**: USB or external 5V supply
 - **Cost**: ~$6 USD (extremely cost-effective)
-- **Role**: Dedicated alert system, NFC interface, physical indicators
+- **Role**: Dedicated alert system, NFC correlation system, multi-modal attack detection
+
+#### PN532 NFC Module
+- **Interface**: SPI connection to Pico W
+- **Frequency**: 13.56 MHz NFC/RFID
+- **Range**: ~5-7cm for proximity detection
+- **Standards**: ISO/IEC 14443A/MIFARE, FeliCa, ISO/IEC 14443B
+- **Role**: Physical proximity detection for multi-modal attack correlation
+- **Cost**: ~$8 USD
+- **Power**: 3.3V from Pico W
 
 ### Signal Processing & Analysis Stack
 
@@ -48,6 +57,9 @@
 - **Threat Detection Engine**: Multi-algorithm threat classification
 - **Real-time Processing**: <100ms latency for threat detection
 - **Confidence Scoring**: Advanced multi-factor confidence calculation
+- **NFC Correlation System**: Multi-modal attack detection combining RF and NFC
+- **Brute Force Detector**: Enhanced temporal analysis with multiple time windows
+- **Multi-Modal Evidence Collection**: Comprehensive technical evidence gathering
 
 ### User Interface & Visualization
 
@@ -98,6 +110,13 @@
   - **Features**: RLock for thread-safe operations, deque for efficient buffering
   - **Integration**: SignalHistoryBuffer concurrent access
   - **Performance**: Non-blocking signal analysis with thread-safe operations
+
+### Asynchronous Programming (NEW)
+- **asyncio**: MicroPython asynchronous I/O
+  - **Use Cases**: NFC detection, correlation timeout, event management
+  - **Features**: Concurrent task execution, event loop, async/await syntax
+  - **Integration**: NFC correlation system, server communication
+  - **Performance**: Non-blocking I/O for responsive correlation system
 
 ### Web Framework (Future Expansion)
 - **FastAPI**: Modern async web framework
