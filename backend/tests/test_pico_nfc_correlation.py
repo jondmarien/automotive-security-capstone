@@ -7,6 +7,7 @@ import json
 from unittest.mock import Mock, patch, AsyncMock
 import sys
 import os
+import time
 
 # Add the pico directory to the path so we can import the module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'pico'))
@@ -130,12 +131,14 @@ async def test_correlated_nfc_detection(pico_client):
     pico_client.nfc_correlation_mode = True
     pico_client.active_rf_threat = {
         'event_type': 'key_fob_transmission',
-        'threat_level': 0.8
+        'threat_level': 0.8,
+        'frequency_mhz': 433.92,
+        'power_db': -50.5
     }
     
     # Simulate NFC detection
-    test_uid = [0x01, 0x02, 0x03, 0x04]
-    await pico_client.handle_nfc_detection(test_uid)
+    uid = [0x01, 0x02, 0x03, 0x04]
+    await pico_client.handle_nfc_detection(uid)
     
     # Verify correlated event was sent
     pico_client.send_to_server.assert_called_once()
@@ -143,7 +146,59 @@ async def test_correlated_nfc_detection(pico_client):
     assert call_args['type'] == 'correlated_security_event'
     assert 'rf_threat' in call_args
     assert 'nfc_detection' in call_args
-    assert call_args['correlation_type'] == 'rf_nfc_proximity'
+    assert 'threat_level' in call_args
+    assert 'technical_evidence' in call_args
+    assert 'recommended_action' in call_args
+    assert 'confidence_score' in call_args
+    assert call_args['correlation_type'] == 'rf_nfc_proximity_attack'
+
+@pytest.mark.asyncio
+async def test_create_correlated_security_event(pico_client):
+    """Test the creation of correlated security events with all required fields"""
+    rf_threat = {
+        'event_type': 'replay_attack',
+        'threat_level': 0.9,
+        'frequency_mhz': 315.0,
+        'power_db': -45.2,
+        'timing_analysis': {'burst_interval_ms': 150},
+        'modulation': 'fsk'
+    }
+    
+    nfc_detection = {
+        'type': 'nfc_detection',
+        'timestamp': time.time(),
+        'uid': ['0x1', '0x2', '0x3', '0x4'],
+        'uid_length': 4,
+        'detection_context': 'automotive_monitoring'
+    }
+    
+    # Create correlated event
+    correlated_event = pico_client.create_correlated_security_event(rf_threat, nfc_detection)
+    
+    # Verify all required fields are present
+    assert correlated_event['type'] == 'correlated_security_event'
+    assert 'event_id' in correlated_event
+    assert 'timestamp' in correlated_event
+    assert correlated_event['rf_threat'] == rf_threat
+    assert correlated_event['nfc_detection'] == nfc_detection
+    assert correlated_event['correlation_type'] == 'rf_nfc_proximity_attack'
+    assert 'threat_level' in correlated_event
+    assert correlated_event['threat_category'] == 'multi_modal_attack'
+    assert 'technical_evidence' in correlated_event
+    assert 'recommended_action' in correlated_event
+    assert 'confidence_score' in correlated_event
+    
+    # Verify threat escalation (should be higher than original RF threat)
+    assert correlated_event['threat_level'] > rf_threat['threat_level']
+    
+    # Verify technical evidence structure
+    evidence = correlated_event['technical_evidence']
+    assert 'rf_evidence' in evidence
+    assert 'nfc_evidence' in evidence
+    assert 'correlation_evidence' in evidence
+    
+    # Verify recommended action
+    assert correlated_event['recommended_action'] == 'immediate_security_investigation_required'
 
 @pytest.mark.asyncio
 async def test_regular_nfc_detection(pico_client):

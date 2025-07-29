@@ -358,15 +358,8 @@ class AutomotiveSecurityPico:
         if self.nfc_correlation_mode and self.active_rf_threat:
             print(f"[CORRELATION] NFC detection during RF threat: {self.active_rf_threat.get('event_type', 'unknown')}")
             
-            # Generate correlated security event
-            correlated_event = {
-                'type': 'correlated_security_event',
-                'timestamp': time.time(),
-                'rf_threat': self.active_rf_threat,
-                'nfc_detection': nfc_data,
-                'correlation_type': 'rf_nfc_proximity',
-                'threat_escalation': 'high_confidence_attack'
-            }
+            # Generate enhanced correlated security event with combined RF-NFC threat structures
+            correlated_event = self.create_correlated_security_event(self.active_rf_threat, nfc_data)
             
             await self.send_to_server(correlated_event)
             
@@ -382,6 +375,99 @@ class AutomotiveSecurityPico:
         else:
             # Send regular NFC detection event
             await self.send_to_server(nfc_data)
+    
+    def create_correlated_security_event(self, rf_threat, nfc_detection):
+        """Create combined RF-NFC threat event structures with technical evidence and threat escalation"""
+        # Calculate threat escalation based on both RF and NFC characteristics
+        rf_threat_level = rf_threat.get('threat_level', 0)
+        if isinstance(rf_threat_level, str):
+            # Convert string threat levels to numeric values
+            threat_mapping = {'benign': 0.1, 'suspicious': 0.5, 'malicious': 0.9}
+            rf_threat_level = threat_mapping.get(rf_threat_level.lower(), 0.5)
+        
+        # Enhanced threat escalation for correlated events (higher than either individual threat)
+        base_threat_level = max(rf_threat_level, 0.6)  # Minimum 0.6 for any correlation
+        escalated_threat_level = min(1.0, base_threat_level + 0.3)  # Escalate by 0.3 (capped at 1.0)
+        
+        # Collect technical evidence for multi-modal attacks
+        technical_evidence = self.collect_technical_evidence(rf_threat, nfc_detection)
+        
+        # Generate recommended action for correlated threats
+        recommended_action = self.get_correlated_recommended_action(rf_threat, nfc_detection)
+        
+        # Create combined RF-NFC threat event structure
+        correlated_event = {
+            'type': 'correlated_security_event',
+            'event_id': "correlated_{}_{}".format(int(time.time()), self.detection_count),
+            'timestamp': time.time(),
+            'rf_threat': rf_threat,
+            'nfc_detection': nfc_detection,
+            'correlation_type': 'rf_nfc_proximity_attack',
+            'threat_level': escalated_threat_level,
+            'threat_category': 'multi_modal_attack',
+            'technical_evidence': technical_evidence,
+            'recommended_action': recommended_action,
+            'confidence_score': self.calculate_correlation_confidence(rf_threat, nfc_detection)
+        }
+        
+        return correlated_event
+    
+    def collect_technical_evidence(self, rf_threat, nfc_detection):
+        """Collect technical evidence for multi-modal attacks"""
+        evidence = {
+            'rf_evidence': {
+                'signal_type': rf_threat.get('event_type', 'unknown'),
+                'frequency_mhz': rf_threat.get('frequency_mhz', 0),
+                'power_db': rf_threat.get('power_db', 0),
+                'timing_characteristics': rf_threat.get('timing_analysis', {}),
+                'modulation_type': rf_threat.get('modulation', 'unknown')
+            },
+            'nfc_evidence': {
+                'uid': nfc_detection.get('uid', []),
+                'uid_length': nfc_detection.get('uid_length', 0),
+                'detection_timestamp': nfc_detection.get('timestamp', 0)
+            },
+            'correlation_evidence': {
+                'time_delta_seconds': time.time() - rf_threat.get('timestamp', time.time()),
+                'proximity_indicators': ['rf_nfc_temporal_correlation', 'multi_modal_attack_pattern']
+            }
+        }
+        
+        return evidence
+    
+    def get_correlated_recommended_action(self, rf_threat, nfc_detection):
+        """Generate recommended action for correlated threats"""
+        rf_threat_type = rf_threat.get('event_type', 'unknown')
+        rf_threat_level = rf_threat.get('threat_level', 0)
+        
+        if isinstance(rf_threat_level, str):
+            threat_mapping = {'benign': 0.1, 'suspicious': 0.5, 'malicious': 0.9}
+            rf_threat_level = threat_mapping.get(rf_threat_level.lower(), 0.5)
+        
+        # High confidence multi-modal attack
+        if rf_threat_level > 0.8:
+            return 'immediate_security_investigation_required'
+        elif rf_threat_type in ['replay_attack', 'brute_force']:
+            return 'enhanced_monitoring_and_alert_security_team'
+        else:
+            return 'log_correlated_event_and_continue_monitoring'
+    
+    def calculate_correlation_confidence(self, rf_threat, nfc_detection):
+        """Calculate confidence score for the correlation"""
+        # Base confidence on temporal proximity (NFC detected during correlation window)
+        temporal_confidence = 0.8  # High confidence since NFC was detected during correlation mode
+        
+        # Adjust based on RF threat level
+        rf_threat_level = rf_threat.get('threat_level', 0)
+        if isinstance(rf_threat_level, str):
+            threat_mapping = {'benign': 0.1, 'suspicious': 0.5, 'malicious': 0.9}
+            rf_threat_level = threat_mapping.get(rf_threat_level.lower(), 0.5)
+        
+        threat_confidence = min(1.0, rf_threat_level + 0.2)  # Boost confidence based on RF threat
+        
+        # Combined confidence score
+        combined_confidence = (temporal_confidence + threat_confidence) / 2.0
+        return round(combined_confidence, 2)
 
     async def heartbeat_monitor(self):
         """Send periodic heartbeat to server"""

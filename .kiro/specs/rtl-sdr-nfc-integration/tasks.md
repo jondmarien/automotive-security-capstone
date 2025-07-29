@@ -56,7 +56,7 @@
     - Build evidence collection for brute force proof
     - _Requirements: 2.2, 2.5_
 
-- [-] 3. Enhance Pico W NFC Correlation System
+- [X] 3. Enhance Pico W NFC Correlation System
 
   - Upgrade Pico W client with NFC correlation capabilities
   - Implement RF threat triggered NFC scanning
@@ -71,7 +71,7 @@
     - Implement correlation event data structures
     - _Requirements: 3.1, 3.5_
 
-    - [ ] 3.2 Build correlated security event generation
+    - [x] 3.2 Build correlated security event generation
     - Create combined RF-NFC threat event structures
     - Implement threat escalation for correlated events
     - Add technical evidence collection for multi-modal attacks

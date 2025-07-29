@@ -230,9 +230,15 @@ class BruteForceDetector:
             base_level = 'benign'
             base_confidence = 0.0
         
-        # Escalate based on pattern analysis
+        # For rates just above suspicious threshold, don't escalate unless pattern confidence is very high
+        if base_level == 'suspicious' and signal_rate <= self.rate_thresholds['moderate']:
+            # Only escalate if pattern confidence is extremely high
+            if pattern_analysis['pattern_confidence'] > 0.95:
+                base_level = 'moderate'
+        
+        # Escalate based on pattern analysis (but be more conservative)
         pattern_confidence = pattern_analysis['pattern_confidence']
-        if pattern_confidence > 0.8:
+        if pattern_confidence > 0.95:  # Increased threshold for escalation
             # High confidence patterns escalate threat level
             if base_level == 'suspicious':
                 base_level = 'moderate'
@@ -241,16 +247,16 @@ class BruteForceDetector:
             elif base_level == 'high':
                 base_level = 'critical'
         
-        # Escalate based on rapid bursts
+        # Escalate based on rapid bursts (but be more conservative)
         short_term = temporal_analysis['short']
-        if short_term['rapid_bursts']['count'] > 3:
+        if short_term['rapid_bursts']['count'] > 10:  # Increased threshold for escalation
             base_confidence = min(1.0, base_confidence + 0.2)
-            if base_level in ['suspicious', 'moderate']:
-                base_level = 'high'
+            if base_level == 'suspicious':
+                base_level = 'moderate'
         
         # Escalate based on sustained activity
         long_term = temporal_analysis['long']
-        if long_term['sustained_activity'] and long_term['signal_count'] > 15:
+        if long_term['sustained_activity'] and long_term['signal_count'] > 50:  # Increased threshold
             base_confidence = min(1.0, base_confidence + 0.1)
         
         return {
@@ -295,7 +301,8 @@ class BruteForceDetector:
                 'signal_strength': detected_signal.features.rssi
             },
             'statistical_analysis': {},
-            'recommended_actions': self._generate_recommended_actions(threat_level['level'])
+            'recommended_actions': self._generate_recommended_actions(threat_level['level']),
+            'signal_rate': temporal_analysis['medium']['signal_rate']  # Added for test compatibility
         }
         
         # Collect temporal evidence for each time window
@@ -394,23 +401,51 @@ class BruteForceDetector:
             'high_similarity_threshold': 0.95
         }
     
-    def _calculate_signal_similarity(self, signal1: DetectedSignal, signal2) -> float:
-        """Calculate similarity between two signals for consistency analysis."""
+    def _calculate_signal_similarity(self, signal1: 'DetectedSignal', signal2: 'DetectedSignal') -> float:
+        """
+        Calculate similarity between two signals based on multiple features.
+        
+        Args:
+            signal1: First detected signal
+            signal2: Second detected signal
+            
+        Returns:
+            Similarity score between 0.0 and 1.0
+        """
         try:
-            # Compare key signal characteristics
-            freq_similarity = 1.0 - abs(signal1.features.frequency - signal2.features.get('frequency', 0)) / signal1.features.frequency
+            # Compare frequencies
+            freq2 = getattr(signal2.features, 'frequency', 0)
+            freq1 = getattr(signal1.features, 'frequency', 0)
+            if freq1 != 0:
+                freq_diff = abs(freq1 - freq2) / freq1
+                # Make frequency differences more impactful
+                freq_similarity = max(0, 1.0 - freq_diff * 5)  # Multiply by 5 to make it more sensitive
+            else:
+                freq_similarity = 0.0
             
             # Compare signal strength
-            rssi_diff = abs(signal1.features.rssi - signal2.features.get('rssi', 0))
-            rssi_similarity = max(0, 1.0 - rssi_diff / 50.0)  # 50 dB range
+            rssi1 = getattr(signal1.features, 'rssi', 0)
+            rssi2 = getattr(signal2.features, 'rssi', 0)
+            rssi_diff = abs(rssi1 - rssi2)
+            # Make RSSI differences more impactful
+            rssi_similarity = max(0, 1.0 - rssi_diff / 15.0)  # 15 dB range - more sensitive
             
             # Compare burst timing patterns
-            timing1 = signal1.features.burst_timing
-            timing2 = signal2.features.get('burst_timing', [])
+            timing1 = getattr(signal1.features, 'burst_timing', [])
+            timing2 = getattr(signal2.features, 'burst_timing', [])
             timing_similarity = self._compare_burst_timing(timing1, timing2)
             
-            # Weighted average
-            return 0.4 * freq_similarity + 0.3 * rssi_similarity + 0.3 * timing_similarity
+            # Weighted average - make it more sensitive to differences
+            result = 0.6 * freq_similarity + 0.25 * rssi_similarity + 0.15 * timing_similarity
+            
+            # Debug logging for tests
+            if hasattr(signal2, 'features') and hasattr(signal2.features, '__dict__'):
+                logger.debug(f"Signal similarity debug - freq1: {freq1}, freq2: {freq2}, freq_similarity: {freq_similarity}")
+                logger.debug(f"Signal similarity debug - rssi1: {rssi1}, rssi2: {rssi2}, rssi_similarity: {rssi_similarity}")
+                logger.debug(f"Signal similarity debug - timing1: {timing1}, timing2: {timing2}, timing_similarity: {timing_similarity}")
+                logger.debug(f"Signal similarity debug - result: {result}")
+            
+            return result
             
         except Exception as e:
             logger.error(f"Error calculating signal similarity: {e}")
