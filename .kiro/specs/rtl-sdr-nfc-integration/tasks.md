@@ -78,7 +78,7 @@
     - Build recommended action generation for correlated threats
     - _Requirements: 3.4, 6.6_
 
-- [ ] 4. Implement Real-Time Event Streaming Enhancements
+- [-] 4. Implement Real-Time Event Streaming Enhancements
 
   - Enhance CLI dashboard with detailed signal analysis display
   - Add real-time technical evidence presentation
@@ -86,7 +86,7 @@
   - Create professional demonstration interface
   - _Requirements: 4.1, 4.2, 4.3, 6.5_
 
-    - [ ] 4.1 Enhance CLI dashboard with signal analysis details
+    - [-] 4.1 Enhance CLI dashboard with signal analysis details
     - Add signal feature display (power, frequency, modulation type)
     - Implement threat evidence presentation in dashboard
     - Create real-time signal strength and quality indicators

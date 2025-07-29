@@ -3,10 +3,17 @@ cli_dashboard_detection_adapter.py
 
 Adapter for generating detection events for the CLI dashboard using only the new backend detection logic.
 All event types and threat levels are logic-driven and demo logic is unified with real detection logic.
+
+ENHANCED VERSION: Now includes detailed signal analysis features, modulation types, and RF metrics
+to support the technical evidence presentation in the enhanced CLI dashboard.
 """
+import random
+import time
+import logging
+import json
 from datetime import datetime
 from itertools import count
-import random
+
 from detection.event_logic import analyze_event
 
 # Counter for event numbering
@@ -28,139 +35,162 @@ SOURCES = ["Pico-1", "Pico-2", "Simulated", "TestBench"]
 
 def generate_detection_event():
     """
-    Generate a detection event using mock hardware and unified logic-driven analysis.
-    Uses analyze_event() from detection.event_logic with demo_mode=True.
+    Generate a mock detection event for the CLI dashboard.
+    Uses unified detection logic for consistency with actual events.
+    Enhanced for refactored event enrichment for signal details.
+    
     Returns:
-        dict: Detection event for dashboard (with keys: type, threat, time, source, details)
+        dict: An enhanced detection event with detailed signal features and evidence.
     """
-    # Generate a mock packet with plausible fields (simulate SDR or NFC payload)
     event_types = list(DETAILS_MAP.keys())
     event_idx = next(_counter) % len(event_types)
     forced_event_type = event_types[event_idx]
-    mock_packet = {
-        "event_type": forced_event_type,
-        "rssi": random.randint(-80, -30),
-        "freq": random.choice([433.92, 315.0, 868.0]),
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "is_replay": forced_event_type == "Replay Attack",
-        "is_jamming": forced_event_type == "Jamming Attack",
-        "is_brute": forced_event_type == "Brute Force",
-        "is_unlock": forced_event_type == "RF Unlock",
-        "is_lock": forced_event_type == "RF Lock",
-    }
-    event = analyze_event(mock_packet, demo_mode=True)
-    # Map to dashboard keys: type, threat, time, source, details
-    return {
-        "type": event.get("event_type", "Unknown"),
-        "threat": event.get("threat_level", "Suspicious"),
-        "time": event.get("timestamp"),
-        "source": SOURCES[event_idx % len(SOURCES)],
-        "details": DETAILS_MAP.get(event.get("event_type", "Unknown"), "Automotive event detected."),
-        # Optionally include any other fields for debugging/demo
-        **{k: v for k, v in event.items() if k not in ["event_type", "threat_level", "timestamp", "details"]}
-    }
-
-# -----------------------------------------------------------------------------
-# Legacy Detection Logic and Mock Hardware (DEPRECATED/UNUSED)
-# This section is preserved for reference and possible future use.
-# -----------------------------------------------------------------------------
-
-try:
-    from detection.packet import Packet
-    from detection.security_analyzer import SecurityAnalyzer
-    from hardware.mock.rf import MockRFInterface
-    from hardware.mock.nfc import MockNFCInterface
-except ImportError:
-    Packet = SecurityAnalyzer = MockRFInterface = MockNFCInterface = None
-
-# Example legacy event generator (NOT USED):
-def legacy_generate_detection_event():
-    """
-    Legacy event generator using SecurityAnalyzer and mock hardware. Deprecated.
-    """
-    import time
-    if not (Packet and SecurityAnalyzer and MockRFInterface and MockNFCInterface):
-        return None
-    _analyzer = SecurityAnalyzer()
-    # Cycle through event types for demo
-    event_types = [
-        "RF Unlock", "RF Lock", "NFC Scan", "Jamming Attack",
-        "Replay Attack", "Brute Force", "Unknown", "NFC Tag Present"
-    ]
-    event_idx = next(_counter) % len(event_types)
-    forced_event_type = event_types[event_idx]
-    forced_payload_map = {
-        "RF Unlock": b'UNLOCK',
-        "RF Lock": b'LOCK',
-        "NFC Scan": b'NFC_SCAN',
-        "Jamming Attack": b'JAMMER',
-        "Replay Attack": b'REPLAY_ATTACK',
-        "Brute Force": b'BRUTE',
-        "Unknown": b'NORMAL',
-        "NFC Tag Present": b'NFC_SCAN',
-    }
-    payload = forced_payload_map.get(forced_event_type, b'NORMAL')
-    rf = MockRFInterface()
-    nfc = MockNFCInterface()
-    rf_metrics = rf.get_signal_metrics()
-    nfc_data = nfc.get_nfc_data()
-    tag_id = nfc_data.get('tag_id')
-    if forced_event_type == "NFC Tag Present":
-        tag_id = f"DEMO_TAG_{event_idx}"
-    # Simulate analyzer state for demo attacks
-    if forced_event_type == "Replay Attack":
-        rssi = -55 + (event_idx % 5) * 2
-        freq = rf.frequency
-        prev_packet = Packet(payload=b'REPLAY_ATTACK', freq=freq, rssi=rssi + 10, snr=20, tag_id=None)
-        prev_packet.timestamp = time.time() - 2
-        _analyzer.packet_history.append(prev_packet)
-    elif forced_event_type == "Jamming Attack":
-        now = time.time()
-        for i in range(_analyzer.jam_detection_threshold + 1):
-            p = Packet(payload=b'JAMMER', freq=rf.frequency, rssi=-50, snr=20, tag_id=None)
-            p.timestamp = now - (i * 0.005)
-            _analyzer.packet_history.append(p)
-        rssi = -50
-        freq = rf.frequency
-    elif forced_event_type == "Brute Force":
-        now = time.time()
-        for i in range(_analyzer.brute_force_threshold + 1):
-            p = Packet(payload=b'BRUTE', freq=rf.frequency, rssi=-58, snr=18, tag_id=None)
-            p.timestamp = now - (i * 0.5)
-            _analyzer.packet_history.append(p)
-        rssi = -58
-        freq = rf.frequency
+    
+    # Signal characteristics - enhanced for more detailed visualization
+    frequency = random.choice([433.92e6, 315.0e6, 868.0e6, 915.0e6, 2.4e9])
+    rssi = random.randint(-80, -30)
+    snr = random.randint(8, 25)
+    burst_count = random.randint(3, 12)
+    
+    # More varied modulation types for better visualization testing
+    if forced_event_type in ["Jamming Attack", "Signal Interference"]:
+        modulation_type = "Noise"
+    elif forced_event_type in ["Rolling Code", "Fixed Code"]:
+        modulation_type = random.choice(["OOK", "ASK"]) 
+    elif "Brute Force" in forced_event_type:
+        modulation_type = random.choice(["FSK", "GFSK", "ASK"])
     else:
-        rssi = rf_metrics['rssi']
-        freq = rf_metrics['frequency']
-    packet = Packet(
-        payload=payload,
-        freq=freq,
-        rssi=rssi,
-        snr=rf_metrics['snr'],
-        tag_id=tag_id
-    )
-    report = _analyzer.analyze_packet(packet)
-    event_type = forced_event_type
-    details = DETAILS_MAP.get(event_type, "Automotive event detected.")
-    now_str = datetime.now().strftime("%H:%M:%S")
-    threat = report.threat_level.name.capitalize()
-    if event_type == "Replay Attack":
-        threat = "Malicious"
-    elif event_type in ["Jamming Attack", "Brute Force"] and event_idx % 2 == 1:
-        threat = "Malicious"
-    if event_type == "Unknown":
-        threat = "Suspicious"
-    event = {
-        "time": now_str,
-        "type": event_type,
-        "threat": threat,
-        "source": SOURCES[event_idx % len(SOURCES)],
-        "details": f"{details} (event #{event_idx + 1})",
-        "rssi": packet.rssi,
-        "snr": packet.snr,
-        "frequency": packet.freq,
-        "nfc_tag": packet.tag_id,
-        "reason": report.reason
+        modulation_type = random.choice(["FSK", "GFSK", "ASK", "OOK", "PSK", "QPSK"])
+    
+    # Technical signal parameters
+    frequency_deviation = random.randint(25000, 85000) if modulation_type in ["FSK", "GFSK"] else 0
+    bandwidth = random.randint(10000, 50000)
+    symbol_rate = random.randint(1000, 20000)
+    
+    # NFC correlation parameters
+    is_nfc_event = "NFC" in forced_event_type
+    # Higher chance of correlation for certain attack types
+    correlation_chance = 0.6 if "Brute Force" in forced_event_type or "Replay" in forced_event_type else 0.15
+    nfc_correlated = random.random() < correlation_chance and not is_nfc_event
+    nfc_tag_id = f"TAG_{random.randint(10000, 99999)}" if (nfc_correlated or is_nfc_event) else None
+    nfc_proximity = round(random.uniform(0.5, 10.0), 1) if (nfc_correlated or is_nfc_event) else None
+    nfc_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] if (nfc_correlated or is_nfc_event) else None
+    
+    # TECHNICAL EVIDENCE DATA
+    evidence = {}
+    
+    # Common evidence fields for all security events
+    if forced_event_type not in ["Fixed Code", "Rolling Code", "Normal Operation"]:
+        evidence["detection_confidence"] = random.uniform(0.70, 0.98)
+    
+    # Event-specific evidence fields
+    if "Replay Attack" in forced_event_type:
+        evidence.update({
+            "signal_match_score": random.uniform(0.75, 0.98),
+            "burst_pattern": "".join(random.choice(["#", "-"]) for _ in range(8)),
+            "peak_frequencies": [frequency + random.uniform(-0.05e6, 0.05e6) for _ in range(2)],
+            "spectral_similarity": random.uniform(0.80, 0.95),
+            "timing_analysis": {
+                "replay_delay_ms": random.randint(50, 2000),
+                "original_detection_time": (datetime.now().timestamp() - random.uniform(1, 60)),
+            },
+            "demodulated_data_similarity": random.uniform(0.85, 0.99)
+        })
+    
+    elif "Brute Force" in forced_event_type:
+        evidence.update({
+            "temporal_analysis": {
+                "detection_count": burst_count,
+                "time_window_seconds": random.randint(10, 60),
+                "burst_interval_ms": random.randint(200, 500),
+                "pattern_regularity": random.uniform(0.7, 0.95)
+            },
+            "burst_pattern": "".join(random.choice(["#", "-"]) for _ in range(8)),
+            "key_space_coverage": {
+                "estimated_percent": random.uniform(1, 15),
+                "key_entropy_bits": random.randint(24, 32)
+            },
+            "escalation": {
+                "consecutive_attempts": random.randint(1, 20),
+                "threat_escalation_level": random.randint(1, 5)
+            }
+        })
+    
+    elif "Jamming Attack" in forced_event_type:
+        evidence.update({
+            "affected_bands": random.randint(1, 3),
+            "noise_floor_elevation_db": random.randint(10, 25),
+            "spectral_characteristics": {
+                "bandwidth_affected_khz": random.randint(200, 2000),
+                "center_frequency_mhz": round(frequency / 1e6, 3),
+                "spectral_mask": random.choice(["Flat", "Gaussian", "Pulsed", "Swept"])
+            },
+            "legitimate_signal_loss": random.uniform(0.5, 1.0),
+            "directionality": random.choice(["Omni", "Directional"]),
+            "estimated_power_mw": random.randint(50, 500)
+        })
+    
+    elif is_nfc_event:
+        evidence.update({
+            "tag_type": random.choice(["ISO14443A", "ISO14443B", "FeliCa", "ISO15693"]),
+            "scan_duration_ms": random.randint(100, 2000),
+            "authentication_status": random.choice(["Success", "Failed", "Partial"]),
+            "read_sectors": [random.randint(0, 15) for _ in range(random.randint(1, 8))]
+        })
+    
+    # Mock a detection packet for unified analysis
+    mock_packet = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "frequency": frequency,
+        "rssi": rssi,
+        "snr": snr,
+        "modulation": modulation_type,
+        "event_type": forced_event_type,
+        "burst_count": burst_count,
+        "frequency_deviation": frequency_deviation,
+        "bandwidth": bandwidth,
+        "symbol_rate": symbol_rate,
+        "nfc_correlated": nfc_correlated,
+        "nfc_tag_id": nfc_tag_id,
+        "nfc_proximity": nfc_proximity,
+        "nfc_timestamp": nfc_timestamp,
+        "evidence": evidence
     }
-    return event
+    
+    # Unified analysis through detection logic
+    event = analyze_event(mock_packet, demo_mode=True)
+    
+    # Build the comprehensive result with all signal details
+    result = {
+        "type": event.get("event_type", forced_event_type),
+        "threat": event.get("threat_level", "Suspicious"),
+        "time": event.get("timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+        "source": SOURCES[event_idx % len(SOURCES)],
+        "details": DETAILS_MAP.get(event.get("event_type", forced_event_type), "Automotive event detected."),
+        # Signal characteristics
+        "modulation_type": modulation_type,
+        "frequency": frequency,
+        "rssi": rssi,
+        "snr": snr,
+        "burst_count": burst_count,
+        "bandwidth": bandwidth,
+        "frequency_deviation": frequency_deviation,
+        "symbol_rate": symbol_rate,
+        # NFC correlation data
+        "nfc_correlated": nfc_correlated,
+        "nfc_tag_id": nfc_tag_id,
+        "nfc_proximity": nfc_proximity,
+        "nfc_timestamp": nfc_timestamp,
+        # Technical evidence
+        "evidence": evidence
+    }
+    
+    # Handle special case for critical multi-modal attacks (combined RF + NFC)
+    if nfc_correlated and event.get("threat_level", "") in ["Malicious", "Suspicious"]:
+        result["threat"] = "Critical"
+        result["details"] = f"Multi-modal attack detected: {result['details']}"
+
+    # Log the generated event for debugging and evidence collection
+    logging.debug(f"Generated event: {json.dumps(result, default=str)}")
+    
+    return result
