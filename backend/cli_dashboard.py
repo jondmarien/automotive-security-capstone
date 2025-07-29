@@ -46,11 +46,11 @@ import pyfiglet
 from rich.theme import Theme
 
 # prompt_toolkit imports for keyboard navigation
-from prompt_toolkit import Application
+from prompt_toolkit.application import Application
 from prompt_toolkit.input import create_input
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout as PTLayout
-from prompt_toolkit.layout.containers import Window
+from prompt_toolkit.layout.containers import Window, VSplit
 from prompt_toolkit.layout.controls import FormattedTextControl
 
 LOG_FILE = "detection_events.log"
@@ -171,13 +171,13 @@ def log_event(event: Dict[str, Any]):
         f.write(f"[{ts}] {event}\n")
 
 # --- Dashboard Rendering ---
-def render_dashboard(events, current_event=None, status_text="Dashboard Ready", console=Console()):
+def render_dashboard(events, selected_event, status_text="Dashboard Ready", console=Console()):
     """
     Render the enhanced CLI dashboard with signal analysis and technical evidence panels.
     
     Args:
         events (list): List of detection events to display
-        current_event (dict, optional): Currently selected event for evidence display
+        selected_event (dict, optional): Currently selected event for evidence display
                                          If None, uses the most recent event
         status_text (str): Status text to display at the bottom
         console (Console): Rich Console object to use for rendering
@@ -185,25 +185,28 @@ def render_dashboard(events, current_event=None, status_text="Dashboard Ready", 
     Returns:
         rich.panel.Panel: The dashboard panel
     """
-    # Create a more compact layout
-    layout = Layout(name="root")
-    
-    # Create child layouts with optimized ratios
-    events_layout = Layout(name="events_table", ratio=2)  # Adjust ratio to give more space to lower section
-    lower_section = Layout(name="lower_section", ratio=1)
-    signal_metrics = Layout(name="signal_metrics")
-    evidence_layout = Layout(name="evidence_panel")
-    
-    # Configure the layout hierarchy - maximize event table space
-    layout.split(
+    # Get console dimensions
+    width = console.width
+    height = console.height
+
+    # Create layout
+    layout = Layout()
+    layout.split_column(
         Layout(name="header", size=3),
-        events_layout,
-        lower_section
+        Layout(name="body"),
+        Layout(name="footer", size=1)
+    )
+
+    # Split body into main event table (70%) and bottom section (30%)
+    layout["body"].split_column(
+        Layout(name="events_table", ratio=7),  # Maximize event table space
+        Layout(name="bottom_panels", ratio=3)  # Increased bottom section for analysis and evidence
     )
     
-    lower_section.split_row(
-        signal_metrics, 
-        evidence_layout
+    # Split bottom panels into signal metrics and evidence panel
+    layout["bottom_panels"].split_row(
+        Layout(name="signal_metrics", ratio=1),
+        Layout(name="evidence_panel", ratio=1)
     )
     
     # Header with gradient title
@@ -243,11 +246,11 @@ def render_dashboard(events, current_event=None, status_text="Dashboard Ready", 
     
     # Prepare signal metrics and evidence from the selected event for visualization
     # If no event is explicitly selected, use the most recent one
-    if current_event is None and events:
-        current_event = events[-1]
+    if selected_event is None and events:
+        selected_event = events[-1]
     
-    signal_viz = render_signal_metrics(current_event) if current_event else Text("No signal data available")
-    evidence_panel = render_evidence_panel(current_event) if current_event else Text("No evidence data available")
+    signal_viz = render_signal_metrics(selected_event) if selected_event else Text("No signal data available")
+    evidence_panel = render_evidence_panel(selected_event) if selected_event else Text("No evidence data available")
     
     # Show most recent events first
     recent_events = events[-15:] if len(events) > 15 else events
@@ -286,6 +289,8 @@ def render_dashboard(events, current_event=None, status_text="Dashboard Ready", 
     layout["events_table"].update(Panel(table, title="Detection Events", border_style="bright_cyan"))
     layout["signal_metrics"].update(Panel(signal_viz, title="Signal Analysis", border_style="green"))
     layout["evidence_panel"].update(Panel(evidence_panel, title="Technical Evidence", border_style="yellow"))
+    # Set footer content directly
+    layout["footer"].update(status_text)
     
     # Final dashboard panel with minimal padding
     # Use height parameter to ensure full rendering without ellipsis
@@ -293,7 +298,8 @@ def render_dashboard(events, current_event=None, status_text="Dashboard Ready", 
     console_height = console.height if hasattr(console, 'height') else 40
     panel = Panel(
         layout, 
-        subtitle=status_text, 
+        title="Automotive Security Dashboard",
+        subtitle=None,  # Remove subtitle to avoid duplication with footer
         border_style="bright_cyan", 
         padding=(0, 0),
         height=console_height - 2  # Subtract 2 for margins/borders
@@ -325,11 +331,14 @@ def render_evidence_panel(event):
 
     # Extract evidence data
     evidence = event.get("evidence", {})
+    technical_evidence = event.get("technical_evidence", {})
+    
     # Always show panel for NFC events even without evidence
-    if not evidence and not event.get("nfc_correlated", False) and "NFC" not in event.get("type", ""):
+    if not evidence and not technical_evidence and not event.get("nfc_correlated", False) and "NFC" not in event.get("type", ""):
         return Text("Event lacks detailed evidence", style="dim")
 
-    tree = Tree(f":file_folder: [bold yellow]{event.get('type', 'Security Event')} Analysis[/]")
+    # Create a more detailed tree with better visual structure
+    tree = Tree(f":shield: [bold yellow]{event.get('type', 'Security Event')} Analysis[/]", guide_style="bright_blue")
 
     if evidence.get("detection_confidence"):
         confidence = evidence["detection_confidence"] * 100
@@ -531,6 +540,11 @@ async def main():
         python cli_dashboard.py --source tcp --tcp-host localhost --tcp-port 8888
         python cli_dashboard.py --mock
     """
+    # Flag to control the main loop
+    running = True
+    
+    # Flag to control auto-follow behavior (automatically show latest event)
+    auto_follow = True
     
     parser = argparse.ArgumentParser(description="Automotive Security Enhanced CLI Dashboard")
     parser.add_argument("--source", choices=["api", "tcp"], help="Event source: api or tcp")
@@ -555,6 +569,8 @@ async def main():
     status_text = "Starting..."
     # Track currently selected event index for navigation
     selected_event_idx = -1  # -1 means latest event
+    # Flag to track if we should follow the latest event
+    follow_latest = False
 
     if args.mock:
         event_gen = generate_mock_events()
@@ -571,45 +587,52 @@ async def main():
     
     @bindings.add('up')
     def handle_up(event):
-        nonlocal selected_event_idx
+        nonlocal selected_event_idx, follow_latest
         if not events:
             return
-        if selected_event_idx == -1:
-            # If currently showing latest, go to the second-to-last event
-            if len(events) > 1:
-                selected_event_idx = -2
-        elif selected_event_idx > -len(events):
-            # Move up in history (decrease index)
-            selected_event_idx -= 1
+        # Move selection up (earlier in time)
+        selected_event_idx -= 1
+        # Ensure we don't go out of bounds
+        selected_event_idx = max(-len(events), min(-1, selected_event_idx))
+        # Disable follow latest when manually navigating
+        follow_latest = False
     
     @bindings.add('down')
     def handle_down(event):
-        nonlocal selected_event_idx
+        nonlocal selected_event_idx, follow_latest
         if not events:
             return
+        # Move selection down (later in time)
         if selected_event_idx < -1:
-            # Move down in history (increase index)
             selected_event_idx += 1
-        elif selected_event_idx == -1 and len(events) > 0:
-            # If at latest event, stay there
-            pass
+        # Ensure we don't go out of bounds
+        selected_event_idx = max(-len(events), min(-1, selected_event_idx))
+        # Disable follow latest when manually navigating
+        follow_latest = False
     
     @bindings.add('home')
     def handle_home(event):
-        nonlocal selected_event_idx
+        nonlocal selected_event_idx, follow_latest
         if events:
             # Go to first event
             selected_event_idx = -len(events)
+            # Disable follow latest when manually navigating
+            follow_latest = False
     
     @bindings.add('end')
     def handle_end(event):
-        nonlocal selected_event_idx
-        # Go to latest event
+        nonlocal selected_event_idx, follow_latest
+        # Go to latest event and enable following the latest event
         selected_event_idx = -1
+        follow_latest = True
     
     @bindings.add('q')
+    @bindings.add('Q')
     @bindings.add('c-c')  # Ctrl+C
     def handle_quit(event):
+        # Set a flag to exit the application
+        nonlocal running
+        running = False
         event.app.exit()
     
     @bindings.add('?')
@@ -621,11 +644,19 @@ async def main():
         else:
             status_text += " | HELP: Up/Down=Navigate, Home/End=First/Last, ?=Help, q=Quit"
 
-    # Create a minimal prompt_toolkit application for keyboard input
+    # Create a prompt_toolkit application with a proper layout for keyboard input
+    # This ensures key bindings are properly processed
+    input_field = Window(height=1, content=FormattedTextControl(
+        "[Press Up/Down to navigate, Home/End for first/last event, q to quit]"))
+    
+    root_container = VSplit([
+        input_field,
+    ])
+    
     app = Application(
-        layout=PTLayout(Window(FormattedTextControl(""))),  # Empty layout as Rich handles rendering
+        layout=PTLayout(root_container),
         key_bindings=bindings,
-        full_screen=True,
+        full_screen=False,  # Don't take over the full screen
         mouse_support=True
     )
 
@@ -642,14 +673,38 @@ async def main():
         selected_event_idx = args.event
         
         try:
+            
             # Create a single Live display outside the event loop
             with Live(render_dashboard(events, None, status_text, console), 
                       refresh_per_second=4, console=console, screen=True, 
                       vertical_overflow="visible") as live:
                 
                 # Create async tasks for event fetching and rendering
+                # Flag to track if we should follow the latest event
+                follow_latest = False
+                
                 async def event_fetcher():
+                    nonlocal selected_event_idx, follow_latest
+                    
+                    # Track absolute position of selected event
+                    abs_selected_idx = None
+                    
                     async for event in event_gen:
+                        # Check if we should exit
+                        if not running:
+                            break
+                        
+                        # Special case: if End key was pressed, we want to stay at the latest event
+                        if follow_latest:
+                            # We'll set the index to -1 after adding the event
+                            pass
+                        # Otherwise, remember the absolute position of the selected event
+                        elif events and selected_event_idx != -1:
+                            # Convert relative index to absolute
+                            abs_selected_idx = len(events) + selected_event_idx if selected_event_idx < 0 else selected_event_idx
+                        else:
+                            abs_selected_idx = None
+                        
                         log_event(event)
                         # Unpack signal_detection events with nested detections
                         if event.get('type') == 'signal_detection' and 'detections' in event:
@@ -671,6 +726,16 @@ async def main():
                             events.append(event)
                             if len(events) > 100:
                                 events.pop(0)
+                        
+                        # After adding new events, update the selected event index
+                        if follow_latest:
+                            # If End key was pressed, always show the latest event
+                            selected_event_idx = -1
+                        elif abs_selected_idx is not None:
+                            # Keep the absolute position the same
+                            selected_event_idx = abs_selected_idx - len(events)
+                            # Ensure we don't go out of bounds
+                            selected_event_idx = max(-len(events), min(-1, selected_event_idx))
                         # Detect repeated API connection errors
                         if event.get("error") and "API connection error" in event["error"]:
                             api_error_count += 1
@@ -681,40 +746,59 @@ async def main():
                             api_error_count = 0
                 
                 async def renderer():
-                    while True:
+                    while running:
                         # Determine which event to display in detail panels
-                        current_event = None
+                        selected_event = None
                         full_status = status_text
                         
                         if events:
                             # Convert relative index to absolute (negative indices count from the end)
                             if selected_event_idx == -1:
                                 # Show latest event
-                                current_event = events[-1]
+                                selected_event = events[-1]
                                 abs_idx = len(events) - 1
                             else:
                                 # Calculate absolute index from relative
                                 abs_idx = len(events) + selected_event_idx if selected_event_idx < 0 else selected_event_idx
                                 # Keep index in bounds
                                 abs_idx = max(0, min(abs_idx, len(events) - 1))
-                                current_event = events[abs_idx]
+                                selected_event = events[abs_idx]
                             
                             # Update navigation status
                             nav_status = f"Event {abs_idx + 1}/{len(events)}"
                             if selected_event_idx == -1:
                                 nav_status += " (Latest)"
+                            
+                            # Simple navigation status
                             full_status = f"{status_text} | {nav_status} | Use Up/Down to navigate, '?' for help"
                         
                         # Update the live display with navigation
-                        live.update(render_dashboard(events, current_event, full_status, console))
+                        live.update(render_dashboard(events, selected_event, full_status, console))
                         await asyncio.sleep(0.1)
                 
-                # Run all tasks concurrently
-                await asyncio.gather(
-                    event_fetcher(),
-                    renderer(),
-                    app.run_async()
-                )
+                # Create a background task for input handling
+                async def input_handler():
+                    nonlocal selected_event_idx, auto_follow, running
+                    while running:
+                        # Process a single key press without blocking
+                        await app.run_async(pre_run=lambda: asyncio.sleep(0.1))
+                        await asyncio.sleep(0.01)  # Small delay to prevent CPU hogging
+                
+                # Create tasks for event fetching, rendering, and input handling
+                fetch_task = asyncio.create_task(event_fetcher())
+                render_task = asyncio.create_task(renderer())
+                input_task = asyncio.create_task(input_handler())
+                
+                # Wait for all tasks to complete (or until running=False)
+                try:
+                    await asyncio.gather(fetch_task, render_task, input_task)
+                except asyncio.CancelledError:
+                    pass
+                finally:
+                    # Ensure all tasks are properly cancelled when exiting
+                    for task in [fetch_task, render_task, input_task]:
+                        if not task.done():
+                            task.cancel()
                 
         except KeyboardInterrupt:
             console.print("\n[bold yellow]Dashboard interrupted by user (Ctrl+C). Exiting gracefully.[/bold yellow]")
