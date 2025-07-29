@@ -23,35 +23,84 @@ See backend/README.md for full project context.
 """
 import argparse
 import asyncio
-import random
-import itertools
+import json
+import logging
 import os
 import sys
+import time
 from datetime import datetime
+from collections import deque
 from typing import Dict, Any, List, Optional, Tuple
 
-from rich.console import Console
-from rich.live import Live
-from rich.table import Table
-from rich.panel import Panel
-from rich.layout import Layout
-from rich.text import Text
-from rich.tree import Tree
-from rich.progress import BarColumn, Progress, TextColumn
-from rich.columns import Columns
-from rich.align import Align
-from rich import box
 import aiohttp
 import pyfiglet
+from rich import box
+from rich.live import Live
+from rich.align import Align
+from rich.columns import Columns
+from rich.console import Console
+from rich.layout import Layout
+from rich.panel import Panel
+from rich.progress import BarColumn, Progress, TextColumn
+from rich.table import Table
+from rich.text import Text
+from rich.tree import Tree
 from rich.theme import Theme
 
 # prompt_toolkit imports for keyboard navigation
 from prompt_toolkit.application import Application
 from prompt_toolkit.input import create_input
 from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout import Layout as PTLayout
 from prompt_toolkit.layout.containers import Window, VSplit
 from prompt_toolkit.layout.controls import FormattedTextControl
+
+# Global variables
+# Store RSSI history for sparkline visualization (max 20 values)
+rssi_history = deque(maxlen=20)
+
+def generate_sparkline(values, min_value=-90, max_value=-20, width=20):
+    """
+    Generate a sparkline visualization using Unicode block characters.
+    
+    Args:
+        values (list): List of numerical values to visualize
+        min_value (int): Minimum value for scaling (default: -90 dBm)
+        max_value (int): Maximum value for scaling (default: -20 dBm)
+        width (int): Width of the sparkline (default: 20 characters)
+        
+    Returns:
+        str: Unicode sparkline representation
+    """
+    if not values:
+        return "" 
+    
+    # Ensure we don't exceed the width
+    if len(values) > width:
+        values = values[-width:]
+    
+    # Unicode block characters for different heights (1/8, 2/8, ..., 8/8)
+    blocks = [' ', '▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
+    
+    # Scale values to 0-8 range for block selection
+    range_size = max_value - min_value
+    scaled_values = []
+    
+    for val in values:
+        # Clamp value to min_value..max_value range
+        clamped = max(min_value, min(max_value, val))
+        # Scale to 0..8 range for block selection
+        normalized = (clamped - min_value) / range_size
+        block_idx = int(normalized * 8)
+        scaled_values.append(block_idx)
+    
+    # Generate sparkline string
+    sparkline = ''
+    for idx in scaled_values:
+        sparkline += blocks[idx]
+    
+    return sparkline
 
 LOG_FILE = "detection_events.log"
 
@@ -381,7 +430,7 @@ def render_evidence_panel(event):
 
 def render_signal_metrics(event):
     """
-    Renders signal quality visualization with progress bars and indicators.
+    Renders signal quality visualization with progress bars, indicators, and sparklines.
     
     Args:
         event (dict): The latest event with signal metrics.
@@ -389,6 +438,8 @@ def render_signal_metrics(event):
     Returns:
         rich.columns.Columns: Visual representation of signal metrics.
     """
+    global rssi_history
+    
     if not event or not isinstance(event, dict) or "error" in event:
         return Text("No signal data available", style="dim")
     
@@ -405,6 +456,10 @@ def render_signal_metrics(event):
     frequency = event.get("frequency")
     mod_type = event.get("modulation_type", "Unknown")
     burst_count = event.get("burst_count", 0)
+    
+    # Update RSSI history for sparkline if we have a valid RSSI value
+    if isinstance(rssi, (int, float)):
+        rssi_history.append(rssi)
     
     # Create frequency text
     freq_text = ""  
@@ -452,6 +507,20 @@ def render_signal_metrics(event):
         burst_blocks = "#" * min(burst_count, 20)  # Limit to 20 blocks max, using ASCII hash instead of block
         burst_viz = Text(f"Burst Count: {burst_blocks} ({burst_count})", style="blue")
     
+    # Generate RSSI sparkline if we have history
+    rssi_sparkline = None
+    if len(rssi_history) > 1:
+        sparkline = generate_sparkline(list(rssi_history))
+        rssi_sparkline = Text()
+        rssi_sparkline.append("RSSI Trend: ", style="bold")
+        rssi_sparkline.append(sparkline, style="cyan")
+        
+        # Add min/max indicators
+        if rssi_history:
+            min_rssi = min(rssi_history)
+            max_rssi = max(rssi_history)
+            rssi_sparkline.append(f" [{min_rssi}..{max_rssi} dBm]", style="dim")
+    
     # Build the columns list with available metrics
     metric_elements = []
     
@@ -470,6 +539,8 @@ def render_signal_metrics(event):
     # Add the progress bars and other visualizations if available
     if rssi_progress:
         metric_elements.append(rssi_progress)
+    if rssi_sparkline:  # Add sparkline visualization after RSSI progress bar
+        metric_elements.append(Align.center(rssi_sparkline))
     if snr_progress:
         metric_elements.append(snr_progress)
     if burst_viz:
