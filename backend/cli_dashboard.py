@@ -35,6 +35,9 @@ from typing import Dict, Any, List, Optional, Tuple
 
 import aiohttp
 import pyfiglet
+
+# Import timestamp format constants
+from utils.signal_constants import TIMESTAMP_FORMAT, TIMESTAMP_FORMAT_SHORT
 from rich import box
 from rich.live import Live
 from rich.align import Align
@@ -236,7 +239,7 @@ def log_event(event: Dict[str, Any]):
         log_event_detection(dashboard_logger, event, "CLI Dashboard")
 
 # --- Dashboard Rendering ---
-def render_dashboard(events, selected_event, status_text="Dashboard Ready", console=Console(), selected_event_idx=-1, status_only=False, show_help=False):
+def render_dashboard(events, selected_event, status_text, console, selected_event_idx=-1, status_only=False, show_help=False, current_page=0, force_refresh=False):
     """
     Render the enhanced CLI dashboard with signal analysis and technical evidence panels.
     
@@ -331,9 +334,20 @@ def render_dashboard(events, selected_event, status_text="Dashboard Ready", cons
     signal_viz = render_signal_metrics(selected_event) if selected_event else Text("No signal data available")
     evidence_panel = render_evidence_panel(selected_event) if selected_event else Text("No evidence data available")
     
-    # Show most recent events first
-    recent_events = events[-15:] if len(events) > 15 else events
-    for i, event in enumerate(recent_events):
+    # Pagination: Show 10 events per page
+    EVENTS_PER_PAGE = 10
+    total_pages = max(1, (len(events) + EVENTS_PER_PAGE - 1) // EVENTS_PER_PAGE)
+    
+    # Ensure current_page is valid
+    current_page = max(0, min(current_page, total_pages - 1))
+    
+    # Calculate the start and end indices for the current page
+    start_idx = max(0, len(events) - (current_page + 1) * EVENTS_PER_PAGE)
+    end_idx = max(0, len(events) - current_page * EVENTS_PER_PAGE)
+    
+    # Get events for the current page (most recent events first)
+    page_events = events[start_idx:end_idx]
+    for i, event in enumerate(page_events):
         # If event is an error dict (e.g., {"error": ...}), render as a single-row error
         if isinstance(event, dict) and "error" in event:
             table.add_row("-", "ERROR", "[red]Error[/]", "-", str(event["error"]), "-")
@@ -364,32 +378,44 @@ def render_dashboard(events, selected_event, status_text="Dashboard Ready", cons
         
         # Check if this is the selected event for highlighting
         # Calculate the actual index in the events list
-        actual_event_index = len(events) - len(recent_events) + i
-        is_selected = (selected_event_idx != -1 and 
-                      actual_event_index == len(events) + selected_event_idx) or \
-                     (selected_event_idx == -1 and i == len(recent_events) - 1)
+        actual_event_index = start_idx + i
+        
+        # Fix highlighting logic to work consistently with both mock and synthetic events
+        is_selected = False
+        if selected_event_idx == -1:
+            # For latest event (-1), highlight the last row on the first page
+            is_selected = (current_page == 0 and i == len(page_events) - 1)
+        else:
+            # For specific event index, calculate position accurately
+            target_index = len(events) + selected_event_idx if selected_event_idx < 0 else selected_event_idx
+            is_selected = (actual_event_index == target_index)
         
         # Apply highlighting to selected row
         if is_selected:
             # Add background highlighting to all columns for selected row
-            time_str = f"[reverse]{time_str}[/reverse]"
-            event_type = f"[reverse]{event_type}[/reverse]"
-            threat_colored = f"[reverse]{threat_colored}[/reverse]"
-            source = f"[reverse]{source}[/reverse]"
-            formatted_details = f"[reverse]{formatted_details}[/reverse]"
-            signal_str = f"[reverse]{signal_str}[/reverse]"
-            nfc_indicator = f"[reverse]{nfc_indicator}[/reverse]"
+            # Use a more visible highlighting style with bright background
+            time_str = f"[bold white on blue]{time_str}[/]"
+            event_type = f"[bold white on blue]{event_type}[/]"
+            # Keep threat color visible but make background blue
+            threat_colored = f"[bold white on blue]{threat}[/]"
+            source = f"[bold white on blue]{source}[/]"
+            formatted_details = f"[bold white on blue]{formatted_details}[/]"
+            signal_str = f"[bold white on blue]{signal_str}[/]"
+            nfc_indicator = f"[bold white on blue]{nfc_indicator}[/]"
         
         table.add_row(time_str, event_type, threat_colored, source, formatted_details, signal_str, nfc_indicator)
 
     # Assemble the layout
     # Enhanced panel styling with consistent borders and padding
+    # Add page counter to the subtitle - always show page info, even with only one page
+    page_info = f"Page {current_page + 1}/{total_pages}"
+    
     layout["events_table"].update(Panel(
         table, 
         title="Detection Events", 
         border_style="bright_cyan",
         padding=(0, 1),
-        subtitle="↑/↓: Navigate | End: Latest"
+        subtitle=f"↑/↓: Navigate | ←/→: Pages | End: Latest | {page_info}"
     ))
     
     layout["signal_metrics"].update(Panel(
@@ -423,6 +449,7 @@ def render_dashboard(events, selected_event, status_text="Dashboard Ready", cons
         help_text.append("📋 HELP - Keyboard Controls:\n", style="bold yellow")
         help_text.append("  ↑/↓: Navigate events  ", style="cyan")
         help_text.append("Home/End: First/Last  ", style="cyan")
+        help_text.append("←/→: Page navigation  ", style="cyan")
         help_text.append("?: Toggle help  ", style="cyan")
         help_text.append("q: Quit", style="cyan")
         
@@ -756,6 +783,7 @@ async def main():
     parser.add_argument("--tcp-host", type=str, default="localhost", help="TCP event stream host (default: localhost)")
     parser.add_argument("--tcp-port", type=int, default=8888, help="TCP event stream port (default: 8888)")
     parser.add_argument("--mock", action="store_true", help="Enable mock mode to simulate detection events for testing and demo purposes.")
+    parser.add_argument("--synthetic", action="store_true", help="Enable synthetic signal generation for advanced testing (requires --mock)")
     parser.add_argument("--detailed", action="store_true", default=True, help="Enable detailed signal analysis (default: True)")
     parser.add_argument("--nfc", action="store_true", default=True, help="Enable NFC correlation detection (default: True)")
     parser.add_argument("--event", type=int, default=-1, help="Select a specific event to view (negative index counts from latest, default: -1 shows latest)")
@@ -764,6 +792,11 @@ async def main():
     # If --mock is set, ignore --source
     if args.mock:
         args.source = None
+        
+    # Validate that --synthetic is only used with --mock
+    if args.synthetic and not args.mock:
+        console.print("[bold red]Error:[/] --synthetic flag requires --mock flag. Exiting.", style="bold red")
+        return
 
     # Setup enhanced logging system
     global dashboard_logger
@@ -790,11 +823,22 @@ async def main():
     follow_latest = False
     # Flag to track help display state
     show_help = False
+    # Current page for pagination
+    current_page = 0
+    # Timestamp of the last full refresh
+    last_full_refresh = time.time()
+    # Flag to track if a full refresh is needed
+    needs_full_refresh = False
 
     if args.mock:
-        event_gen = generate_mock_events()
-        status_text = "Source: MOCK DATA (demo/testing mode)"
-        dashboard_logger.info("Using mock event generator for demo/testing")
+        # Pass synthetic flag to generate_mock_events
+        event_gen = generate_mock_events(synthetic=args.synthetic)
+        if args.synthetic:
+            status_text = "Source: SYNTHETIC SIGNALS (advanced testing mode)"
+            dashboard_logger.info("Using synthetic signal generator with advanced testing features")
+        else:
+            status_text = "Source: MOCK DATA (demo/testing mode)"
+            dashboard_logger.info("Using mock event generator for demo/testing")
     elif args.source == "api":
         event_gen = fetch_events_api(args.api_url)
         status_text = f"Source: API ({args.api_url})"
@@ -844,7 +888,10 @@ async def main():
     
     @bindings.add('home')
     def handle_home(event):
-        nonlocal selected_event_idx, follow_latest, first_absolute_event_requested
+        nonlocal selected_event_idx, follow_latest, first_absolute_event_requested, current_page
+        # Calculate which page contains the first event
+        if events:
+            current_page = (len(events) - 1) // 10
         if events:
             # Store that we want to view the first event (event 0)
             # We'll use a special flag to indicate we want the first absolute event
@@ -860,7 +907,9 @@ async def main():
     
     @bindings.add('end')
     def handle_end(event):
-        nonlocal selected_event_idx, follow_latest, first_absolute_event_requested
+        nonlocal selected_event_idx, follow_latest, first_absolute_event_requested, current_page
+        # Reset to first page when jumping to latest event
+        current_page = 0
         # Go to latest event and enable following the latest event
         selected_event_idx = -1
         follow_latest = True
@@ -884,6 +933,44 @@ async def main():
             log_dashboard_action(dashboard_logger, "quit", "User initiated dashboard shutdown")
         event.app.exit()
     
+    @bindings.add('left')
+    def handle_previous_page(event):
+        nonlocal current_page, selected_event_idx, follow_latest, needs_full_refresh
+        if not events:
+            return
+        # Move to previous page
+        current_page = min((len(events) - 1) // 10, current_page + 1)
+        # Adjust selected event index to be on the new page
+        page_start_idx = max(0, len(events) - (current_page + 1) * 10)
+        selected_event_idx = -len(events) + page_start_idx
+        # Disable follow latest when manually navigating
+        follow_latest = False
+        # Set flag to force a full refresh on next update cycle
+        needs_full_refresh = True
+        # Log navigation action
+        if dashboard_logger:
+            log_dashboard_action(dashboard_logger, "navigation", f"Left arrow - moved to page {current_page + 1}")
+
+    @bindings.add('right')
+    def handle_next_page(event):
+        nonlocal current_page, selected_event_idx, follow_latest, needs_full_refresh
+        if not events:
+            return
+        # Move to next page
+        current_page = max(0, current_page - 1)
+        # Adjust selected event index to be on the new page
+        page_start_idx = max(0, len(events) - (current_page + 1) * 10)
+        selected_event_idx = -len(events) + page_start_idx
+        # Enable follow latest if we're on the first page
+        if current_page == 0:
+            follow_latest = True
+            selected_event_idx = -1
+        # Set flag to force a full refresh on next update cycle
+        needs_full_refresh = True
+        # Log navigation action
+        if dashboard_logger:
+            log_dashboard_action(dashboard_logger, "navigation", f"Right arrow - moved to page {current_page + 1}")
+
     @bindings.add('?')
     def handle_help(event):
         nonlocal show_help, first_absolute_event_requested
@@ -926,12 +1013,19 @@ async def main():
         # Use the command-line argument for initial selected event
         selected_event_idx = args.event
         
+        # Ensure auto-follow is enabled by default for a better UX
+        follow_latest = (selected_event_idx == -1)
+        
+        # Flag to force a full refresh when page navigation occurs
+        needs_full_refresh = False
+        
         try:
             
             # Create a single Live display outside the event loop
-            with Live(render_dashboard(events, None, status_text, console, selected_event_idx, show_help=show_help), 
-                      refresh_per_second=4, console=console, screen=True, 
-                      vertical_overflow="visible") as live:
+            # Lower refresh rate and disable auto-refresh to prevent shaking
+            with Live(render_dashboard(events, None, status_text, console, selected_event_idx, show_help=show_help, current_page=current_page), 
+                      refresh_per_second=2, console=console, screen=True, 
+                      vertical_overflow="visible", auto_refresh=False) as live:
                 
                 # Create async tasks for event fetching and rendering
                 # Flag to track if we should follow the latest event
@@ -965,14 +1059,14 @@ async def main():
                             for detection in event['detections']:
                                 # Add timestamp if not present
                                 if 'timestamp' not in detection:
-                                    detection['timestamp'] = event.get('timestamp', datetime.now().strftime("%H:%M:%S"))
+                                    detection['timestamp'] = event.get('timestamp', datetime.now().strftime(TIMESTAMP_FORMAT))
                                 events.append(detection)
                                 if len(events) > 100:
                                     events.pop(0)
                         else:
                             # Add timestamp if not present
                             if "timestamp" not in event:
-                                event["timestamp"] = datetime.now().strftime("%H:%M:%S")
+                                event["timestamp"] = datetime.now().strftime(TIMESTAMP_FORMAT)
                             
                             # Enhance with additional signal processing details if missing
                             event = enhance_event_with_signal_details(event)
@@ -989,6 +1083,9 @@ async def main():
                         elif abs_selected_idx is not None:
                             # Keep the absolute position the same
                             selected_event_idx = abs_selected_idx - len(events)
+                            # Ensure index is within valid range for highlighting
+                            if selected_event_idx < -len(events):
+                                selected_event_idx = -len(events)
                             # Don't restrict to buffer bounds for navigation purposes
                             # This allows viewing events by absolute index even if they're outside the buffer
                         # Detect repeated API connection errors
@@ -1001,7 +1098,7 @@ async def main():
                             api_error_count = 0
                 
                 async def renderer():
-                    nonlocal total_events_processed, first_absolute_event_requested
+                    nonlocal total_events_processed, first_absolute_event_requested, needs_full_refresh
                     # Variables to control refresh rates
                     last_full_refresh = time.time()
                     last_status_refresh = time.time()
@@ -1062,7 +1159,7 @@ async def main():
                                 nav_status += " (Latest)"
                             
                             # Get current time for footer
-                            display_time = datetime.now().strftime("%H:%M:%S")
+                            display_time = datetime.now().strftime(TIMESTAMP_FORMAT)
                             
                             # Format event counter with light blue color
                             # Calculate the true event position based on total events processed
@@ -1082,8 +1179,9 @@ async def main():
                             threats_status = f"[bold red]{threats_summary}[/bold red]" if threats_summary else ""
                             
                             # Comprehensive status with all elements and colors
+                            source_text = "Source: SYNTHETIC SIGNALS (advanced testing)" if args.synthetic else "Source: MOCK DATA (demo/testing mode)"
                             status_parts = [
-                                "Source: MOCK DATA (demo/testing mode)",
+                                source_text,
                                 event_status,
                                 threats_status,
                                 time_status,
@@ -1094,15 +1192,19 @@ async def main():
                             full_status = " | ".join(status_parts)
                         
                         # Determine if we should do a full refresh or just update the status bar
-                        if current_time - last_full_refresh >= FULL_REFRESH_RATE:
-                            # Full refresh including evidence trees
-                            live.update(render_dashboard(events, selected_event, full_status, console, selected_event_idx, show_help=show_help))
+                        if needs_full_refresh or current_time - last_full_refresh >= FULL_REFRESH_RATE:
+                            # Full refresh including evidence trees and page navigation
+                            live.update(render_dashboard(events, selected_event, full_status, console, selected_event_idx, show_help=show_help, current_page=current_page, force_refresh=needs_full_refresh))
                             last_full_refresh = current_time
                             last_status_refresh = current_time
+                            # Reset the flag after refresh
+                            needs_full_refresh = False
                         elif current_time - last_status_refresh >= STATUS_REFRESH_RATE:
                             # Only update status bar (more frequent)
-                            status_only = render_dashboard(events, None if selected_event else None, full_status, console, selected_event_idx, status_only=True, show_help=show_help)
+                            status_only = render_dashboard(events, None if selected_event else None, full_status, console, selected_event_idx, status_only=True, show_help=show_help, current_page=current_page)
                             live.update(status_only)
+                            # Force refresh to ensure UI updates properly
+                            live.refresh()
                             last_status_refresh = current_time
                         
                         # Log performance metrics periodically
@@ -1164,12 +1266,18 @@ async def main():
 
 # --- Mock Event Generator ---
 # --- Detection Adapter Integration ---
-from cli_dashboard_detection_adapter import generate_detection_event
+from cli_dashboard_detection_adapter import generate_detection_event, generate_synthetic_event
 
-async def generate_mock_events():
+async def generate_mock_events(synthetic=False):
     """
     Async generator that yields simulated detection events for dashboard demo/testing.
     Uses legacy detection logic and hardware mocks for realistic event types and threat levels.
+    
+    When synthetic flag is True, delegates to the synthetic event generator for advanced
+    testing scenarios with realistic signal characteristics.
+
+    Args:
+        synthetic (bool): When True, use synthetic event generator with advanced scenarios
 
     Yields:
         dict: Simulated detection event using detection logic.
@@ -1178,11 +1286,19 @@ async def generate_mock_events():
         async for event in generate_mock_events():
             print(event)
     """
-    import asyncio
-    while True:
-        await asyncio.sleep(1.5)
-        event = generate_detection_event()
-        yield event
+    if synthetic:
+        # Delegate to synthetic event generator for advanced testing
+        async for event in generate_synthetic_event():
+            yield event
+    else:
+        # Use standard mock event generation
+        while True:
+            await asyncio.sleep(1.5)
+            event = generate_detection_event()
+            yield event
+
+# Synthetic event generation has been moved to cli_dashboard_detection_adapter.py
+# and is now accessed through the generate_mock_events function with synthetic=True
 
 def enhance_event_with_signal_details(event):
     """

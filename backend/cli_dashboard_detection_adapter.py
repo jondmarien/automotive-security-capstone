@@ -11,8 +11,24 @@ import random
 import time
 import logging
 import json
+import copy
+import asyncio
 from datetime import datetime
 from itertools import count
+
+# Import signal constants
+from utils.signal_constants import (
+    KEY_FOB_FREQUENCIES,
+    ModulationType,
+    ScenarioType,
+    AttackType,
+    NFCTagType,
+    NFCAuthStatus,
+    MANUFACTURER_PARAMETERS,
+    DEFAULT_MANUFACTURERS,
+    TIMESTAMP_FORMAT,
+    TIMESTAMP_FORMAT_SHORT
+)
 
 from detection.event_logic import analyze_event
 
@@ -50,23 +66,23 @@ def generate_detection_event():
     forced_event_type = event_types[event_idx]
     
     # Signal characteristics - enhanced for more detailed visualization
-    frequency = random.choice([433.92e6, 315.0e6, 868.0e6, 915.0e6, 2.4e9])
+    frequency = random.choice(list(KEY_FOB_FREQUENCIES.values()))
     rssi = random.randint(-80, -30)
     snr = random.randint(8, 25)
     burst_count = random.randint(3, 12)
     
     # More varied modulation types for better visualization testing
     if forced_event_type in ["Jamming Attack", "Signal Interference"]:
-        modulation_type = "Noise"
+        modulation_type = ModulationType.NOISE.value
     elif forced_event_type in ["Rolling Code", "Fixed Code"]:
-        modulation_type = random.choice(["OOK", "ASK"]) 
+        modulation_type = random.choice([ModulationType.OOK.value, ModulationType.ASK.value])
     elif "Brute Force" in forced_event_type:
-        modulation_type = random.choice(["FSK", "GFSK", "ASK"])
+        modulation_type = random.choice([ModulationType.FSK.value, ModulationType.GFSK.value, ModulationType.ASK.value])
     else:
-        modulation_type = random.choice(["FSK", "GFSK", "ASK", "OOK", "PSK", "QPSK"])
+        modulation_type = random.choice([mod.value for mod in ModulationType if mod != ModulationType.WIDEBAND])
     
     # Technical signal parameters
-    frequency_deviation = random.randint(25000, 85000) if modulation_type in ["FSK", "GFSK"] else 0
+    frequency_deviation = random.randint(25000, 85000) if modulation_type in [ModulationType.FSK.value, ModulationType.GFSK.value] else 0
     bandwidth = random.randint(10000, 50000)
     symbol_rate = random.randint(1000, 20000)
     
@@ -77,17 +93,17 @@ def generate_detection_event():
     nfc_correlated = random.random() < correlation_chance and not is_nfc_event
     nfc_tag_id = f"TAG_{random.randint(10000, 99999)}" if (nfc_correlated or is_nfc_event) else None
     nfc_proximity = round(random.uniform(0.5, 10.0), 1) if (nfc_correlated or is_nfc_event) else None
-    nfc_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] if (nfc_correlated or is_nfc_event) else None
+    nfc_timestamp = datetime.now().strftime(TIMESTAMP_FORMAT) if (nfc_correlated or is_nfc_event) else None
     
     # TECHNICAL EVIDENCE DATA
     evidence = {}
     
     # Common evidence fields for all security events
-    if forced_event_type not in ["Fixed Code", "Rolling Code", "Normal Operation"]:
+    if forced_event_type not in ["Fixed Code", "Rolling Code", ScenarioType.NORMAL_OPERATION.value]:
         evidence["detection_confidence"] = random.uniform(0.70, 0.98)
     
     # Event-specific evidence fields
-    if "Replay Attack" in forced_event_type:
+    if ScenarioType.REPLAY_ATTACK.value in forced_event_type or AttackType.REPLAY.value in forced_event_type:
         evidence.update({
             "signal_match_score": random.uniform(0.75, 0.98),
             "burst_pattern": "".join(random.choice(["#", "-"]) for _ in range(8)),
@@ -100,7 +116,7 @@ def generate_detection_event():
             "demodulated_data_similarity": random.uniform(0.85, 0.99)
         })
     
-    elif "Brute Force" in forced_event_type:
+    elif ScenarioType.BRUTE_FORCE_ATTACK.value in forced_event_type or AttackType.BRUTE_FORCE.value in forced_event_type:
         evidence.update({
             "temporal_analysis": {
                 "detection_count": burst_count,
@@ -119,7 +135,7 @@ def generate_detection_event():
             }
         })
     
-    elif "Jamming Attack" in forced_event_type:
+    elif ScenarioType.JAMMING_ATTACK.value in forced_event_type or AttackType.JAMMING.value in forced_event_type:
         evidence.update({
             "affected_bands": random.randint(1, 3),
             "noise_floor_elevation_db": random.randint(10, 25),
@@ -135,15 +151,15 @@ def generate_detection_event():
     
     elif is_nfc_event:
         evidence.update({
-            "tag_type": random.choice(["ISO14443A", "ISO14443B", "FeliCa", "ISO15693"]),
+            "tag_type": random.choice([tag_type.value for tag_type in NFCTagType]),
             "scan_duration_ms": random.randint(100, 2000),
-            "authentication_status": random.choice(["Success", "Failed", "Partial"]),
+            "nfc_auth_status": random.choice([status.value for status in NFCAuthStatus]),
             "read_sectors": [random.randint(0, 15) for _ in range(random.randint(1, 8))]
         })
     
     # Mock a detection packet for unified analysis
     mock_packet = {
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
         "frequency": frequency,
         "rssi": rssi,
         "snr": snr,
@@ -167,8 +183,8 @@ def generate_detection_event():
     result = {
         "type": event.get("event_type", forced_event_type),
         "threat": event.get("threat_level", "Suspicious"),
-        "time": event.get("timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-        "source": SOURCES[event_idx % len(SOURCES)],
+        "time": event.get("timestamp", datetime.now().strftime(TIMESTAMP_FORMAT)),
+        "source": random.choice(DEFAULT_MANUFACTURERS),
         "details": DETAILS_MAP.get(event.get("event_type", forced_event_type), "Automotive event detected."),
         # Signal characteristics
         "modulation_type": modulation_type,
@@ -213,3 +229,540 @@ def generate_detection_event():
     logging.debug(f"Generated event: {json.dumps(result, default=str)}")
     
     return result
+
+
+def generate_synthetic_key_fob_event(event_type="benign"):
+    """
+    Generate a synthetic key fob signal event with realistic characteristics.
+    
+    Args:
+        event_type (str): Type of event to generate ("benign", "malicious", "suspicious")
+        
+    Returns:
+        dict: A synthetic key fob event with realistic signal characteristics
+    """
+    # Select a manufacturer
+    manufacturer = random.choice(DEFAULT_MANUFACTURERS)
+    
+    # Generate a realistic key fob ID (typically 24-40 bits)
+    key_fob_id = f"{random.randint(0, 0xFFFFFF):06x}".upper()
+    
+    # Get manufacturer-specific parameters
+    if manufacturer in MANUFACTURER_PARAMETERS:
+        params = MANUFACTURER_PARAMETERS[manufacturer]
+        frequency = params["frequency"]
+        modulation = params["modulation"]
+        rolling_code_bits = params["rolling_code_bits"]
+    else:
+        # Fallback for unknown manufacturers
+        frequency = random.choice(list(KEY_FOB_FREQUENCIES.values()))
+        modulation = random.choice([m.value for m in ModulationType if m != ModulationType.NOISE and m != ModulationType.WIDEBAND])
+        rolling_code_bits = 32
+    
+    # Generate a rolling code value
+    rolling_code = random.randint(0, 2**rolling_code_bits - 1)
+    
+    # Calculate realistic signal parameters
+    signal_strength = random.uniform(0.65, 0.95)  # Strong signal for legitimate key fob
+    signal_quality = random.uniform(0.70, 0.98)  # Good quality for legitimate key fob
+    snr = random.uniform(15, 30)  # Good SNR for legitimate key fob (dB)
+    power_db = random.uniform(-60, -40)  # Typical power level for key fob (dBm)
+    
+    # Generate burst pattern based on modulation
+    if modulation in [ModulationType.FSK.value, ModulationType.GFSK.value]:
+        burst_pattern = f"2-FSK {int(frequency/1e6)} MHz"
+    elif modulation == ModulationType.ASK.value:
+        burst_pattern = f"ASK/OOK {int(frequency/1e6)} MHz"
+    else:
+        burst_pattern = f"{modulation} {int(frequency/1e6)} MHz"
+    
+    # Determine threat level based on event type
+    if event_type == "benign":
+        threat_level = "Normal"
+        details = f"{manufacturer} Key Fob ({key_fob_id})"
+    elif event_type == "suspicious":
+        threat_level = "Suspicious"
+        details = f"Unusual {manufacturer} Key Fob Activity ({key_fob_id})"
+    elif event_type == "malicious":
+        threat_level = "Malicious"
+        details = f"Potential {manufacturer} Key Fob Clone ({key_fob_id})"
+    else:
+        threat_level = "Unknown"
+        details = f"Unidentified Key Fob Signal ({key_fob_id})"
+    
+    # Create the synthetic event
+    event = {
+        "timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
+        "type": "RF Key Fob",
+        "threat": threat_level,
+        "details": details,
+        "source": "Synthetic",
+        "frequency": frequency,
+        "modulation_type": modulation,
+        "signal_strength": signal_strength,
+        "signal_quality": signal_quality,
+        "snr_db": snr,
+        "power_db": power_db,
+        "burst_pattern": burst_pattern,
+        "peak_count": random.randint(3, 8),
+        "key_fob_id": key_fob_id,
+        "manufacturer": manufacturer,
+        "rolling_code": f"{rolling_code:x}",
+        "rolling_code_bits": rolling_code_bits,
+        "technical_evidence": [
+            {
+                "type": "Signal Analysis",
+                "details": {
+                    "frequency_mhz": f"{frequency/1e6:.2f}",
+                    "modulation": modulation,
+                    "signal_strength": f"{signal_strength:.2f}",
+                    "signal_quality": f"{signal_quality:.2f}",
+                    "snr_db": f"{snr:.1f}",
+                    "power_dbm": f"{power_db:.1f}"
+                }
+            },
+            {
+                "type": "Key Fob Details",
+                "details": {
+                    "key_fob_id": key_fob_id,
+                    "manufacturer": manufacturer,
+                    "rolling_code": f"0x{rolling_code:x}",
+                    "code_bits": str(rolling_code_bits)
+                }
+            }
+        ]
+    }
+    
+    return event
+
+
+def generate_synthetic_replay_attack(original_event):
+    """
+    Generate a synthetic replay attack event based on a previously recorded event.
+    
+    Args:
+        original_event (dict): The original event to replay
+        
+    Returns:
+        dict: A synthetic replay attack event
+    """
+    # Create a deep copy of the original event
+    replay_event = copy.deepcopy(original_event)
+    
+    # Update timestamp
+    replay_event["timestamp"] = datetime.now().strftime(TIMESTAMP_FORMAT)
+    
+    # Mark as replay attack
+    replay_event["type"] = "Replay Attack"
+    replay_event["threat"] = "Malicious"
+    replay_event["details"] = f"Replay Attack: {original_event.get('manufacturer', 'Unknown')} Key Fob ({original_event.get('key_fob_id', 'Unknown')})"
+    
+    # Slightly modify signal characteristics to simulate replay device
+    replay_event["signal_strength"] = min(1.0, original_event.get("signal_strength", 0.8) * random.uniform(0.9, 1.1))
+    replay_event["signal_quality"] = min(1.0, original_event.get("signal_quality", 0.7) * random.uniform(0.8, 1.0))
+    replay_event["snr_db"] = original_event.get("snr_db", 20) * random.uniform(0.85, 1.05)
+    replay_event["power_db"] = original_event.get("power_db", -50) * random.uniform(0.95, 1.05)
+    
+    # Add replay attack specific evidence
+    replay_event["technical_evidence"] = [
+        {
+            "type": "Signal Analysis",
+            "details": {
+                "frequency_mhz": f"{original_event.get('frequency', 433.92e6)/1e6:.2f}",
+                "modulation": original_event.get('modulation_type', 'Unknown'),
+                "signal_strength": f"{replay_event['signal_strength']:.2f}",
+                "signal_quality": f"{replay_event['signal_quality']:.2f}",
+                "snr_db": f"{replay_event['snr_db']:.1f}",
+                "power_dbm": f"{replay_event['power_db']:.1f}"
+            }
+        },
+        {
+            "type": "Replay Attack Evidence",
+            "details": {
+                "key_fob_id": original_event.get('key_fob_id', 'Unknown'),
+                "manufacturer": original_event.get('manufacturer', 'Unknown'),
+                "rolling_code": f"{original_event.get('rolling_code', 'Unknown')} (Duplicated)",
+                "time_since_original": f"{random.randint(30, 300)} seconds"
+            }
+        },
+        {
+            "type": "Attack Indicators",
+            "details": {
+                "duplicate_code": "Detected",
+                "timing_anomaly": "Detected",
+                "envelope_inconsistency": "Detected"
+            }
+        }
+    ]
+    
+    # Add attack metadata
+    replay_event["attack_metadata"] = {
+        "attack_type": AttackType.REPLAY.value,
+        "original_timestamp": original_event.get("timestamp", "Unknown"),
+        "time_delta": random.randint(5, 60),  # seconds since original transmission
+        "confidence": random.uniform(0.85, 0.98)
+    }
+    
+    return replay_event
+
+
+def generate_synthetic_jamming_attack(step):
+    """
+    Generate a synthetic jamming attack event.
+    
+    Args:
+        step (int): The step in the jamming attack sequence
+        
+    Returns:
+        dict: A synthetic jamming attack event
+    """
+    # Jamming characteristics based on step
+    if step == 0:
+        # Initial detection of potential jamming
+        threat_level = "Suspicious"
+        details = "Unusual RF noise detected"
+        signal_strength = random.uniform(0.6, 0.8)
+        signal_quality = random.uniform(0.3, 0.5)  # Poor quality due to noise
+        confidence = random.uniform(0.5, 0.7)
+        evidence = [
+            {
+                "type": "Signal Analysis",
+                "details": {
+                    "frequency_range": "433-435 MHz",
+                    "signal_strength": f"{signal_strength:.2f}",
+                    "signal_quality": f"{signal_quality:.2f}",
+                    "noise_floor": "Elevated"
+                }
+            },
+            {
+                "type": "Jamming Indicators",
+                "details": {
+                    "confidence": f"{confidence:.2f}",
+                    "pattern": "Continuous",
+                    "bandwidth": "2 MHz"
+                }
+            }
+        ]
+    elif step < 3:
+        # Increasing jamming signal
+        threat_level = "Suspicious"
+        details = "Persistent RF interference detected"
+        signal_strength = random.uniform(0.7, 0.9)
+        signal_quality = random.uniform(0.2, 0.4)  # Decreasing quality
+        confidence = random.uniform(0.6, 0.8)
+        evidence = [
+            {
+                "type": "Signal Analysis",
+                "details": {
+                    "frequency_range": "430-440 MHz",
+                    "signal_strength": f"{signal_strength:.2f}",
+                    "signal_quality": f"{signal_quality:.2f}",
+                    "noise_floor": "Highly Elevated"
+                }
+            },
+            {
+                "type": "Jamming Indicators",
+                "details": {
+                    "confidence": f"{confidence:.2f}",
+                    "pattern": "Wideband Interference",
+                    "duration": f"{step * 5} seconds",
+                    "bandwidth": "10 MHz"
+                }
+            }
+        ]
+    else:
+        # Confirmed jamming attack
+        threat_level = "Malicious"
+        details = "RF Jamming Attack Detected"
+        signal_strength = random.uniform(0.8, 1.0)
+        signal_quality = random.uniform(0.1, 0.3)  # Very poor quality
+        confidence = random.uniform(0.85, 0.98)
+        evidence = [
+            {
+                "type": "Signal Analysis",
+                "details": {
+                    "frequency_range": "425-445 MHz",
+                    "signal_strength": f"{signal_strength:.2f}",
+                    "signal_quality": f"{signal_quality:.2f}",
+                    "noise_floor": "Critical"
+                }
+            },
+            {
+                "type": "Jamming Indicators",
+                "details": {
+                    "confidence": f"{confidence:.2f}",
+                    "pattern": "Sustained Wideband Interference",
+                    "duration": f"{step * 5} seconds",
+                    "bandwidth": "20 MHz"
+                }
+            },
+            {
+                "type": "Attack Evidence",
+                "details": {
+                    "key_fob_blocked": "Yes",
+                    "known_pattern_match": "Yes",
+                    "attack_confidence": "High"
+                }
+            }
+        ]
+    
+    # Create the jamming event
+    event = {
+        "timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
+        "type": "Jamming",
+        "threat": threat_level,
+        "details": details,
+        "source": "Synthetic",
+        "frequency": KEY_FOB_FREQUENCIES["EU_STANDARD"],  # Center frequency being jammed
+        "modulation_type": ModulationType.WIDEBAND.value,
+        "signal_strength": signal_strength,
+        "signal_quality": signal_quality,
+        "snr_db": random.uniform(5, 15),  # Low SNR due to jamming
+        "power_db": random.uniform(-40, -20),  # High power for jamming
+        "burst_pattern": "Wideband Interference",
+        "peak_count": random.randint(10, 20),  # Many peaks in jamming
+        "technical_evidence": evidence,
+        "attack_metadata": {
+            "attack_type": AttackType.JAMMING.value,
+            "duration": step * 5,  # seconds
+            "bandwidth": random.uniform(5, 20),  # MHz
+            "confidence": confidence
+        }
+    }
+    
+    return event
+
+
+def generate_synthetic_brute_force_attack(step):
+    """
+    Generate a synthetic brute force attack event.
+    
+    Args:
+        step (int): The step in the brute force attack sequence
+        
+    Returns:
+        dict: A synthetic brute force attack event
+    """
+    # Select a manufacturer to target
+    manufacturer = random.choice(DEFAULT_MANUFACTURERS)
+    
+    # Get manufacturer-specific parameters
+    if manufacturer in MANUFACTURER_PARAMETERS:
+        params = MANUFACTURER_PARAMETERS[manufacturer]
+        frequency = params["frequency"]
+        modulation = params["modulation"]
+    else:
+        # Fallback for unknown manufacturers
+        frequency = KEY_FOB_FREQUENCIES["EU_STANDARD"]
+        modulation = random.choice([ModulationType.FSK.value, ModulationType.ASK.value, ModulationType.OOK.value])
+    
+    # Generate a key fob ID for this attempt
+    key_fob_id = f"{random.randint(0, 0xFFFFFF):06x}".upper()
+    
+    # Generate a rolling code value
+    rolling_code = random.randint(0, 2**32 - 1)
+    
+    # Calculate realistic signal parameters for brute force device
+    signal_strength = random.uniform(0.5, 0.8)  # Moderate signal for attack device
+    signal_quality = random.uniform(0.4, 0.7)  # Moderate quality for attack device
+    snr = random.uniform(10, 20)  # Moderate SNR for attack device
+    power_db = random.uniform(-65, -45)  # Typical power level
+    
+    # Determine threat level based on step
+    if step < 3:
+        threat_level = "Suspicious"
+        details = f"Unusual Key Fob Activity ({step+1} attempts)"
+        confidence = random.uniform(0.6, 0.8)
+    else:
+        threat_level = "Malicious"
+        details = f"Brute Force Attack Detected ({step+1} attempts)"
+        confidence = random.uniform(0.8, 0.95)
+    
+    # Create the brute force event
+    event = {
+        "timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
+        "type": "Brute Force",
+        "threat": threat_level,
+        "details": details,
+        "source": "Synthetic",
+        "frequency": frequency,
+        "modulation_type": modulation,
+        "signal_strength": signal_strength,
+        "signal_quality": signal_quality,
+        "snr_db": snr,
+        "power_db": power_db,
+        "burst_pattern": f"{modulation} {int(frequency/1e6)} MHz",
+        "peak_count": random.randint(3, 6),
+        "key_fob_id": key_fob_id,
+        "manufacturer": manufacturer,
+        "rolling_code": f"{rolling_code:x}",
+        "technical_evidence": [
+            {
+                "type": "Signal Analysis",
+                "details": {
+                    "frequency_mhz": f"{frequency/1e6:.2f}",
+                    "modulation": modulation,
+                    "signal_strength": f"{signal_strength:.2f}",
+                    "signal_quality": f"{signal_quality:.2f}",
+                    "snr_db": f"{snr:.1f}",
+                    "power_dbm": f"{power_db:.1f}"
+                }
+            },
+            {
+                "type": "Brute Force Indicators",
+                "details": {
+                    "attempt_number": f"{step+1}",
+                    "key_fob_id": key_fob_id,
+                    "target_manufacturer": manufacturer,
+                    "rolling_code": f"0x{rolling_code:x}",
+                    "code_sequence": "Rapid" if step > 2 else "Unusual",
+                    "timing_pattern": "Abnormal" if step > 3 else "Irregular",
+                    "confidence": f"{confidence:.2f}"
+                }
+            }
+        ],
+        "attack_metadata": {
+            "attack_type": AttackType.BRUTE_FORCE.value,
+            "attempt": step + 1,
+            "target_manufacturer": manufacturer,
+            "confidence": confidence
+        }
+    }
+    
+    return event
+
+
+async def generate_synthetic_event():
+    """
+    Async generator that yields advanced synthetic signal events for testing and demonstration.
+    This generator creates realistic key fob signals, replay attacks, jamming scenarios, and
+    brute force attacks with detailed technical evidence for validation.
+    
+    Only used when both --mock and --synthetic flags are enabled.
+    
+    Yields:
+        dict: Synthetic event with realistic signal characteristics and evidence.
+        
+    Example:
+        async for event in generate_synthetic_event():
+            print(event)
+    """
+    # Track previously generated events for replay attack simulation
+    event_history = []
+    attack_history = {}
+    
+    # Define demonstration scenarios using the enum
+    scenarios = [
+        ScenarioType.NORMAL_OPERATION.value,
+        ScenarioType.REPLAY_ATTACK.value,
+        ScenarioType.JAMMING_ATTACK.value,
+        ScenarioType.BRUTE_FORCE_ATTACK.value
+    ]
+    
+    # Scenario state tracking
+    scenario_states = {
+        ScenarioType.NORMAL_OPERATION.value: {"step": 0, "last_time": datetime.now()},
+        ScenarioType.REPLAY_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False},
+        ScenarioType.JAMMING_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False},
+        ScenarioType.BRUTE_FORCE_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False}
+    }
+    
+    # Probability weights for different scenarios
+    # Normal operation should be most common, followed by occasional attacks
+    scenario_weights = {
+        ScenarioType.NORMAL_OPERATION.value: 0.6,  # 60% chance for normal events
+        ScenarioType.REPLAY_ATTACK.value: 0.15,    # 15% chance for replay attacks
+        ScenarioType.JAMMING_ATTACK.value: 0.15,   # 15% chance for jamming attacks
+        ScenarioType.BRUTE_FORCE_ATTACK.value: 0.1 # 10% chance for brute force attacks
+    }
+    
+    while True:
+        # Determine which scenario to generate next based on weights and state
+        # If an attack sequence is in progress, continue it
+        active_attack = None
+        for scenario, state in scenario_states.items():
+            if scenario != ScenarioType.NORMAL_OPERATION.value and state.get("in_progress", False):
+                active_attack = scenario
+                break
+        
+        if active_attack:
+            # Continue the active attack sequence
+            current_scenario = active_attack
+        else:
+            # Choose a new scenario based on weighted probabilities
+            scenarios_list = list(scenario_weights.keys())
+            weights_list = list(scenario_weights.values())
+            current_scenario = random.choices(scenarios_list, weights=weights_list, k=1)[0]
+            
+            # Mark the chosen attack as in progress if it's an attack
+            if current_scenario != ScenarioType.NORMAL_OPERATION.value:
+                scenario_states[current_scenario]["in_progress"] = True
+                scenario_states[current_scenario]["step"] = 0
+                logging.info(f"Starting new scenario: {current_scenario}")
+        
+        # Get the current step for this scenario
+        scenario_step = scenario_states[current_scenario]["step"]
+        
+        # Generate appropriate event based on current scenario
+        if current_scenario == ScenarioType.NORMAL_OPERATION.value:
+            # Normal key fob operation (benign events)
+            # Occasionally generate suspicious but benign events
+            event_type = random.choices(["benign", "suspicious"], weights=[0.9, 0.1], k=1)[0]
+            event = generate_synthetic_key_fob_event(event_type)
+            await asyncio.sleep(random.uniform(2.0, 4.0))  # Normal key fob timing
+            
+            # Store event for later replay
+            if len(event_history) < 5:  # Keep last 5 events for replay
+                event_history.append(event)
+            else:
+                event_history.pop(0)
+                event_history.append(event)
+                
+        elif current_scenario == ScenarioType.REPLAY_ATTACK.value:
+            if scenario_step == 0:
+                # First show a normal key fob event
+                event = generate_synthetic_key_fob_event("benign")
+                scenario_states[current_scenario]["step"] += 1
+                await asyncio.sleep(2.0)
+            else:
+                # Then show the replay attack using a previously recorded event
+                if event_history:
+                    original_event = random.choice(event_history)
+                    event = generate_synthetic_replay_attack(original_event)
+                    scenario_states[current_scenario]["step"] += 1
+                    await asyncio.sleep(1.0)  # Faster replay timing
+                    
+                    # End the replay attack sequence after a few attempts
+                    if scenario_step >= random.randint(2, 4):
+                        scenario_states[current_scenario]["in_progress"] = False
+                        logging.info("Replay attack sequence completed")
+                else:
+                    # Fallback if no history available
+                    event = generate_synthetic_key_fob_event("suspicious")
+                    scenario_states[current_scenario]["in_progress"] = False
+                    await asyncio.sleep(2.0)
+                    
+        elif current_scenario == ScenarioType.JAMMING_ATTACK.value:
+            event = generate_synthetic_jamming_attack(scenario_step)
+            scenario_states[current_scenario]["step"] += 1
+            await asyncio.sleep(0.8)  # Jamming happens more frequently
+            
+            # End the jamming attack sequence after several steps
+            if scenario_step >= random.randint(3, 6):
+                scenario_states[current_scenario]["in_progress"] = False
+                logging.info("Jamming attack sequence completed")
+            
+        elif current_scenario == ScenarioType.BRUTE_FORCE_ATTACK.value:
+            event = generate_synthetic_brute_force_attack(scenario_step)
+            scenario_states[current_scenario]["step"] += 1
+            await asyncio.sleep(0.5)  # Brute force attempts happen rapidly
+            
+            # End the brute force attack sequence after several attempts
+            if scenario_step >= random.randint(4, 8):
+                scenario_states[current_scenario]["in_progress"] = False
+                logging.info("Brute force attack sequence completed")
+        
+        # Update the last time this scenario was used
+        scenario_states[current_scenario]["last_time"] = datetime.now()
+        
+        yield event

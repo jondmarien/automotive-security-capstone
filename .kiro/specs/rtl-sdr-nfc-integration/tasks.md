@@ -145,15 +145,19 @@
     - Build seamless fallback to mock mode for demonstrations
     - _Requirements: 5.3, 5.4_
 
-- [ ] 6. Create Demonstration and Testing Framework
+- [ ] 6. Create Demonstration and Testing Framework with `--synthetic` Flag
 
+  - Implement `--synthetic` flag alongside existing `--mock` flag for advanced testing
   - Build comprehensive test signal generation for key fob simulation
   - Implement replay attack demonstration scenarios
   - Create automated testing for detection accuracy validation
   - Add performance benchmarking for real-time requirements
   - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-    - [ ] 6.1 Build test signal generation framework
+    - [x] 6.1 Build test signal generation framework with `--synthetic` flag
+    
+    - Implement `--synthetic` CLI flag that works alongside `--mock` flag
+    - Ensure backward compatibility with existing mock event generation
     - Create synthetic key fob signal generation with realistic characteristics
     - Implement replay attack simulation using recorded signals
     - Add jamming signal generation for interference testing
@@ -161,6 +165,7 @@
     - _Requirements: 6.1, 6.2, 6.3_
 
     - [ ] 6.2 Implement detection accuracy validation
+    
     - Create automated testing for >90% classification accuracy
     - Build confusion matrix generation for detection performance
     - Add statistical analysis for detection confidence validation
@@ -169,10 +174,12 @@
     - _Requirements: 2.4_
 
     - [ ] 6.3 Create demonstration scenario framework
+    
     - Build scripted demonstration sequences for capstone presentation
-    - Implement realistic attack progression scenarios
+    - Implement realistic attack progression scenarios using `--synthetic` mode
     - Add technical evidence display for professor evaluation
     - Create compelling visual demonstrations of detection capabilities
+    - Ensure seamless integration with existing CLI dashboard
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
 - [ ] 7. Integration Testing and System Validation
