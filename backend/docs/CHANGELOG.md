@@ -1,5 +1,37 @@
 # Backend Changelog
 
+## [2025-08-15] CLI Dashboard Enhancements
+
+### Added
+- **Enhanced CLI Dashboard** (`cli_dashboard.py`)
+  - Signal analysis visualization with RSSI, SNR, modulation type, burst count
+  - Technical evidence presentation panel showing attack-specific evidence
+  - Event navigation system for scrolling through event history
+  - NFC correlation indicators for multi-modal attacks
+  - Optimized dashboard layout with maximized event table space (75%)
+  - Professional UI improvements with minimalistic styling and consistent formatting
+
+- **Command-Line Parameters**
+  - `--mock` parameter for demo mode with synthetic events
+  - `--event <number>` parameter for selecting specific events
+
+- **Detection Adapter Enhancements** (`cli_dashboard_detection_adapter.py`)
+  - Enhanced mock detection events with detailed signal features
+  - Realistic technical evidence generation
+  - Multi-modal attack simulation
+
+### UI Improvements
+- Fixed dashboard layout with proper naming conventions
+- Fixed Rich text styling in evidence panel
+- Fixed row wrapping issues in event table
+- Added proper console height detection
+- Enhanced technical evidence panel formatting
+
+### Testing
+- Added CLI dashboard tests with event navigation
+- Added technical evidence presentation tests
+- Added mock event generation tests
+
 ## [2025-07-28] Enhanced Signal Processing & Threat Detection
 
 ### Added

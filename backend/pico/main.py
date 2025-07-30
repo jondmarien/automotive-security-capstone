@@ -20,9 +20,9 @@ from machine import Pin, SPI, Timer
 import NFC_PN532 as nfc
 
 # ==== CONFIGURATION ====
-SSID = "Jon's Pixel 8 Pro"   # WiFi SSID
-PASSWORD = "password"        # WiFi password
-SERVER_IP = "10.237.74.99"   # <-- your computer's IP
+SSID = "Office 2"   # WiFi SSID
+PASSWORD = "CJutHW3vt@"        # WiFi password
+SERVER_IP = "192.168.2.250"   # <-- your computer's IP
 SERVER_PORT = 8888           # TCP port for event server
 
 class AutomotiveSecurityPico:

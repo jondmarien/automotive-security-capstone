@@ -16,7 +16,7 @@ This guide covers the comprehensive testing suite for the Automotive Security Ca
 | `test_enhanced_signal_bridge.py` | Enhanced processing pipeline | 21 tests | Full system integration |
 | `test_pico_nfc_correlation.py` | NFC correlation system | 12 tests | Multi-modal attack detection |
 | `test_signal_bridge.py` | Legacy signal processing | 8 tests | Basic signal detection |
-| `test_cli_dashboard.py` | CLI dashboard functionality | 6 tests | UI and event handling |
+| `test_cli_dashboard.py` | CLI dashboard functionality | 12 tests | UI, event handling, signal visualization, technical evidence, event navigation |
 
 **Total Tests**: 89 comprehensive tests with 100% pass rate
 
@@ -83,6 +83,24 @@ python -m pytest tests/test_enhanced_signal_bridge.py -v
 
 # Test full pipeline integration
 python -m pytest tests/test_enhanced_signal_bridge.py::TestEnhancedSignalProcessingBridge::test_full_pipeline -v
+```
+
+#### CLI Dashboard Tests
+```bash
+# Run all CLI dashboard tests
+python -m pytest tests/test_cli_dashboard.py -v
+
+# Test signal visualization components
+python -m pytest tests/test_cli_dashboard.py::TestCLIDashboard::test_signal_metrics_panel -v
+
+# Test technical evidence presentation
+python -m pytest tests/test_cli_dashboard.py::TestCLIDashboard::test_technical_evidence_panel -v
+
+# Test event navigation system
+python -m pytest tests/test_cli_dashboard.py::TestCLIDashboard::test_event_navigation -v
+
+# Test mock event generation
+python -m pytest tests/test_cli_dashboard.py::TestCLIDashboard::test_mock_event_generation -v
 ```
 
 ### Test Categories and Markers

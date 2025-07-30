@@ -1,6 +1,6 @@
 # Automotive Security Capstone Project (2025)
 
-This repository contains the full proof-of-concept (POC) codebase for an automotive RF/NFC security monitoring system. The system uses an RTL-SDR V4 dongle, Python signal processing, and a Raspberry Pi Pico W to detect, classify, and alert on suspicious automotive wireless activity. Enhanced with multi-modal attack detection through NFC correlation, the system can identify coordinated physical and wireless attacks. A CLI dashboard provides real-time visualization for demos and development.
+This repository contains the full proof-of-concept (POC) codebase for an automotive RF/NFC security monitoring system. The system uses an RTL-SDR V4 dongle, Python signal processing, and a Raspberry Pi Pico W to detect, classify, and alert on suspicious automotive wireless activity. Enhanced with multi-modal attack detection through NFC correlation, the system can identify coordinated physical and wireless attacks. An enhanced CLI dashboard provides real-time visualization with technical evidence presentation, signal analysis details, and event navigation for demos and development.
 
 ---
 
@@ -8,7 +8,7 @@ This repository contains the full proof-of-concept (POC) codebase for an automot
 
 ```sh
 ├── backend/                  # Python backend: signal processing, event streaming, dashboard, Pico client
-│   ├── cli_dashboard.py      # Rich-based CLI dashboard (supports --mock mode)
+│   ├── cli_dashboard.py      # Rich-based CLI dashboard with signal analysis and technical evidence (supports --mock and --event modes)
 │   ├── rtl_sdr/              # RTL-SDR server and signal processing modules
 │   ├── pico/                 # MicroPython code for Pico W TCP client
 │   ├── docs/                 # Documentation, migration plan, setup
@@ -24,7 +24,7 @@ This repository contains the full proof-of-concept (POC) codebase for an automot
 
 - **RF Detection**: RTL-SDR V4 captures raw IQ data; Python scripts process signals and detect automotive events.
 - **Event Streaming**: Detection events are broadcast over TCP to both the Pico W and the CLI dashboard.
-- **CLI Dashboard**: Terminal UI (Rich) for live event display and demo/testing (`--mock` mode supported).
+- **CLI Dashboard**: Terminal UI (Rich) for live event display with signal analysis visualization, technical evidence presentation, event navigation, and demo/testing (`--mock` and `--event` modes supported).
 - **Pico W Client**: Receives events, triggers alerts (LEDs, NFC), connects via WiFi to the backend TCP server.
 - **NFC Correlation System**: Enhanced security through multi-modal attack detection, correlating RF signals with physical NFC proximity events.
 - **Enhanced Threat Detection**: Temporal analysis and pattern recognition for brute force attacks with escalating threat levels and detailed evidence collection.

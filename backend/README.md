@@ -1,6 +1,6 @@
 # Automotive Security Capstone Backend (2025)
 
-This backend powers the Automotive Security Capstone POC, enabling real-time automotive RF and NFC event detection, logging, and demo visualization via a CLI dashboard.
+This backend powers the Automotive Security Capstone POC, enabling real-time automotive RF and NFC event detection, logging, and demo visualization via an enhanced CLI dashboard with technical evidence presentation and signal analysis visualization.
 
 ## 🚘 Project Overview
 
@@ -33,7 +33,7 @@ Raspberry Pi Pico W (TCP client, receives events, handles alerting/NFC)
 ### Core System Components
 - `rtl_tcp_server.py`: Manages RTL-SDR, launches `rtl_tcp`, listens for Pico clients and dashboard on TCP (default: 8888)
 - `signal_bridge.py`: Reads IQ samples from RTL-SDR, detects events, sends to TCP server (supports enhanced mode)
-- `cli_dashboard.py`: Rich-powered CLI dashboard for real-time event display; supports `--mock` for demo/testing
+- `cli_dashboard.py`: Rich-powered CLI dashboard for real-time event display with signal analysis details, technical evidence presentation, and event navigation; supports `--mock` for demo/testing and `--event` for specific event selection
 - `pico/main.py`: MicroPython client for Pico W; connects to computer, receives events, triggers LEDs/NFC, and provides advanced RF-NFC correlation for multi-modal attack detection
 
 ### Enhanced Signal Processing & Threat Detection (NEW)
@@ -91,6 +91,8 @@ Raspberry Pi Pico W (TCP client, receives events, handles alerting/NFC)
    python cli_dashboard.py --source tcp --tcp-host localhost --tcp-port 8888
    # For demo/testing (no hardware required):
    python cli_dashboard.py --mock
+   # To view a specific event by index:
+   python cli_dashboard.py --mock --event 3
 ```
 
 ### 2. Pico-Side (Raspberry Pi Pico W)
@@ -100,7 +102,15 @@ Raspberry Pi Pico W (TCP client, receives events, handles alerting/NFC)
 - Configure WiFi and server IP/port (default: 8888)
 - Pico will connect to computer, receive detection events, and trigger alerts/NFC
 
-## 🔍 Detection Capabilities
+## 🔍 Detection Capabilities & Dashboard Features
+
+### Enhanced CLI Dashboard
+- **Event Navigation**: Navigate through event history using arrow keys to view technical evidence for previous events
+- **Signal Analysis Visualization**: Real-time visualization of signal metrics including RSSI, SNR, modulation type, and burst count
+- **Technical Evidence Panel**: Detailed presentation of attack-specific technical evidence with proper formatting
+- **NFC Correlation Indicators**: Visual indicators showing RF-NFC correlation status
+- **Optimized Layout**: Maximized event table space (75%) with analysis panels at bottom
+- **Professional UI**: Minimalistic event table with proper styling and no wrapping issues
 
 ### Enhanced Threat Detection Engine
 The system now includes sophisticated multi-layer threat detection with temporal analysis and escalating threat levels.

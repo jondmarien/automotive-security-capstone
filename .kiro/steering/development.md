@@ -301,6 +301,7 @@ pytest --cov=backend --cov-report=html
 # Run specific test files
 pytest tests/test_detection/
 pytest tests/test_rtl_sdr/test_signal_bridge.py
+pytest tests/test_cli_dashboard.py  # CLI dashboard tests with event navigation and technical evidence
 
 # Run with verbose output
 pytest -v -s                     # Show test names and print statements

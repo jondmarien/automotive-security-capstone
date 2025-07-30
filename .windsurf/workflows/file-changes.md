@@ -20,3 +20,5 @@ Focus on:
 - Security implications of the changes
 
 Ensure all documentation remains consistent with the actual implementation and follows the established documentation standards.
+
+Use git history to see previous commits, with detailed information to what was committed, then review those files.

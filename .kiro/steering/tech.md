@@ -65,10 +65,19 @@
 
 #### Rich Terminal UI Framework
 - **Rich**: Modern terminal UI with colors, tables, progress bars
-- **Features**: Live updating displays, syntax highlighting, emoji support
+- **Features**: Live updating displays, syntax highlighting, emoji support, signal visualization
 - **Advantages**: Professional appearance, cross-platform, no GUI dependencies
 - **Performance**: Minimal overhead, suitable for real-time updates
 - **Demo-friendly**: Excellent for presentations and screenshots
+- **Enhanced Dashboard**: Signal analysis visualization, technical evidence presentation, event navigation
+
+#### CLI Dashboard Components (NEW)
+- **Event Table**: Minimalistic styling with box.SIMPLE, fixed row wrapping, consistent formatting
+- **Signal Metrics Panel**: RSSI, SNR, modulation type, burst count visualization with progress bars
+- **Technical Evidence Panel**: Attack-specific evidence presentation with proper formatting
+- **Navigation System**: Event history navigation with keyboard controls
+- **NFC Correlation**: Visual indicators for multi-modal attacks involving RF and NFC
+- **Layout Optimization**: Maximized event table space (75%) with analysis/evidence panels at bottom
 
 #### Logging & Monitoring
 - **Python logging**: Structured logging with configurable levels
@@ -226,7 +235,10 @@ pip install -e .                          # Install project in development mode
 # Start CLI dashboard with simulated data
 python cli_dashboard.py --mock
 
-# Benefits: No hardware required, predictable test data, demo-ready
+# Start CLI dashboard with specific event selection
+python cli_dashboard.py --mock --event 3  # Show event #3 with technical evidence
+
+# Benefits: No hardware required, predictable test data, demo-ready, event navigation
 ```
 
 #### Hardware Mode (Live RF)
