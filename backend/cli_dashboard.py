@@ -53,6 +53,15 @@ from rich.tree import Tree
 from utils.simple_performance_monitor import get_performance_monitor
 from rich.theme import Theme
 
+# Import logging configuration
+from utils.logging_config import (
+    setup_dashboard_logging,
+    log_event_detection,
+    log_dashboard_action,
+    log_performance_metrics,
+    log_system_health
+)
+
 # prompt_toolkit imports for keyboard navigation
 from prompt_toolkit.application import Application
 from prompt_toolkit.input import create_input
@@ -108,7 +117,8 @@ def generate_sparkline(values, min_value=-90, max_value=-20, width=20):
     
     return sparkline
 
-LOG_FILE = "detection_events.log"
+# Initialize dashboard logger (will be set up in main())
+dashboard_logger = None
 
 # Define a global theme for consistent styling
 custom_theme = Theme({
@@ -210,10 +220,10 @@ async def stream_events_tcp(host: str, port: int):
             yield {"error": f"TCP connection error: {e}"}
             await asyncio.sleep(2)  # Retry interval
 
-# --- File Logging ---
+# --- Enhanced Logging ---
 def log_event(event: Dict[str, Any]):
     """
-    Appends a detection event to the log file with a timestamp.
+    Log detection events using the enhanced logging system.
 
     Args:
         event (dict): The detection event to log.
@@ -221,9 +231,9 @@ def log_event(event: Dict[str, Any]):
     Example:
         log_event({"type": "RF Unlock", "threat": "Low"})
     """
-    with open(LOG_FILE, "a") as f:
-        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        f.write(f"[{ts}] {event}\n")
+    global dashboard_logger
+    if dashboard_logger:
+        log_event_detection(dashboard_logger, event, "CLI Dashboard")
 
 # --- Dashboard Rendering ---
 def render_dashboard(events, selected_event, status_text="Dashboard Ready", console=Console(), selected_event_idx=-1, status_only=False, show_help=False):
@@ -752,6 +762,19 @@ async def main():
     if args.mock:
         args.source = None
 
+    # Setup enhanced logging system
+    global dashboard_logger
+    log_level = "DEBUG" if args.detailed else "INFO"
+    dashboard_logger = setup_dashboard_logging(
+        log_level=log_level,
+        log_name="dashboard",
+        console_output=False  # Keep console clean for dashboard UI
+    )
+    
+    # Log startup information
+    dashboard_logger.info("CLI Dashboard starting up")
+    dashboard_logger.info(f"Arguments: {vars(args)}")
+    
     display_logo()  # Display ASCII art logo at startup
     console.print("Initializing real-time event streaming...", style="dim white")
     console.print("=" * console.width, style="dim white")
@@ -768,12 +791,15 @@ async def main():
     if args.mock:
         event_gen = generate_mock_events()
         status_text = "Source: MOCK DATA (demo/testing mode)"
+        dashboard_logger.info("Using mock event generator for demo/testing")
     elif args.source == "api":
         event_gen = fetch_events_api(args.api_url)
         status_text = f"Source: API ({args.api_url})"
+        dashboard_logger.info(f"Using API event source: {args.api_url}")
     else:
         event_gen = stream_events_tcp(args.tcp_host, args.tcp_port)
         status_text = f"Source: TCP ({args.tcp_host}:{args.tcp_port})"
+        dashboard_logger.info(f"Using TCP event source: {args.tcp_host}:{args.tcp_port}")
     
     # Set up prompt_toolkit key bindings for keyboard navigation
     bindings = KeyBindings()
@@ -789,6 +815,9 @@ async def main():
         selected_event_idx = max(-len(events), min(-1, selected_event_idx))
         # Disable follow latest when manually navigating
         follow_latest = False
+        # Log navigation action
+        if dashboard_logger:
+            log_dashboard_action(dashboard_logger, "navigation", f"Up arrow - selected event index: {selected_event_idx}")
     
     @bindings.add('down')
     def handle_down(event):
@@ -802,6 +831,9 @@ async def main():
         selected_event_idx = max(-len(events), min(-1, selected_event_idx))
         # Disable follow latest when manually navigating
         follow_latest = False
+        # Log navigation action
+        if dashboard_logger:
+            log_dashboard_action(dashboard_logger, "navigation", f"Down arrow - selected event index: {selected_event_idx}")
     
     @bindings.add('home')
     def handle_home(event):
@@ -811,6 +843,9 @@ async def main():
             selected_event_idx = -len(events)
             # Disable follow latest when manually navigating
             follow_latest = False
+            # Log navigation action
+            if dashboard_logger:
+                log_dashboard_action(dashboard_logger, "navigation", f"Home key - jumped to first event (index: {selected_event_idx})")
     
     @bindings.add('end')
     def handle_end(event):
@@ -818,6 +853,9 @@ async def main():
         # Go to latest event and enable following the latest event
         selected_event_idx = -1
         follow_latest = True
+        # Log navigation action
+        if dashboard_logger:
+            log_dashboard_action(dashboard_logger, "navigation", "End key - jumped to latest event (auto-follow enabled)")
     
     @bindings.add('q')
     @bindings.add('Q')
@@ -826,6 +864,9 @@ async def main():
         # Set a flag to exit the application
         nonlocal running
         running = False
+        # Log quit action
+        if dashboard_logger:
+            log_dashboard_action(dashboard_logger, "quit", "User initiated dashboard shutdown")
         event.app.exit()
     
     @bindings.add('?')
@@ -833,6 +874,9 @@ async def main():
         nonlocal show_help
         # Toggle help display
         show_help = not show_help
+        # Log help action
+        if dashboard_logger:
+            log_dashboard_action(dashboard_logger, "help_toggle", f"Help display {'enabled' if show_help else 'disabled'}")
 
     # Create a prompt_toolkit application with a proper layout for keyboard input
     # This ensures key bindings are properly processed
@@ -944,10 +988,12 @@ async def main():
                     # Variables to control refresh rates
                     last_full_refresh = time.time()
                     last_status_refresh = time.time()
+                    last_performance_log = time.time()
                     
                     # Define different refresh rates (in seconds)
                     FULL_REFRESH_RATE = 1.0  # Slower refresh for evidence trees (1 second)
                     STATUS_REFRESH_RATE = 0.2  # Faster refresh for status updates (200ms)
+                    PERFORMANCE_LOG_RATE = 30.0  # Log performance metrics every 30 seconds
                     
                     while running:
                         current_time = time.time()
@@ -1016,6 +1062,21 @@ async def main():
                             status_only = render_dashboard(events, None if selected_event else None, full_status, console, selected_event_idx, status_only=True, show_help=show_help)
                             live.update(status_only)
                             last_status_refresh = current_time
+                        
+                        # Log performance metrics periodically
+                        if current_time - last_performance_log >= PERFORMANCE_LOG_RATE:
+                            performance_monitor = get_performance_monitor()
+                            metrics = performance_monitor.get_current_metrics()
+                            if dashboard_logger:
+                                log_performance_metrics(dashboard_logger, metrics)
+                                log_system_health(dashboard_logger, {
+                                    'total_events': len(events),
+                                    'events_processed': total_events_processed,
+                                    'selected_event_idx': selected_event_idx,
+                                    'follow_latest': follow_latest,
+                                    'show_help': show_help
+                                })
+                            last_performance_log = current_time
                                 
                         # Sleep a small amount to prevent CPU hogging
                         await asyncio.sleep(0.05)
@@ -1046,8 +1107,16 @@ async def main():
                 
         except KeyboardInterrupt:
             console.print("\n[bold yellow]Dashboard interrupted by user (Ctrl+C). Exiting gracefully.[/bold yellow]")
+            if dashboard_logger:
+                dashboard_logger.warning("Dashboard interrupted by user (Ctrl+C)")
         except Exception as e:
             console.print(f"\n[bold red]Unexpected error: {e}[/bold red]")
+            if dashboard_logger:
+                dashboard_logger.error(f"Unexpected error in dashboard: {e}", exc_info=True)
+        finally:
+            if dashboard_logger:
+                dashboard_logger.info("CLI Dashboard shutting down")
+                dashboard_logger.info("=" * 60)
 
     await dashboard_loop()
 
