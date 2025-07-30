@@ -9,6 +9,7 @@ The backend folder has been modified. Please analyze the changes and update the 
 3. Update any relevant development documentation in backend/docs/plans/ or backend/docs/research/
 4. Update the main project README.md if the changes affect overall system functionality
 5. Update any steering documents in .kiro/ if the changes affect project direction or architecture
+6. Update backend/docs/CHANGELOG.md with any new changes, following the same structure as the file.
 
 Focus on:
 - New modules, classes, or functions added
