@@ -23,12 +23,13 @@ See backend/README.md for full project context.
 """
 import argparse
 import asyncio
-import json
-import logging
 import os
 import sys
+import json
+import random
 import time
-from datetime import datetime
+import logging
+from datetime import datetime, timedelta
 from collections import deque
 from typing import Dict, Any, List, Optional, Tuple
 
@@ -222,7 +223,7 @@ def log_event(event: Dict[str, Any]):
         f.write(f"[{ts}] {event}\n")
 
 # --- Dashboard Rendering ---
-def render_dashboard(events, selected_event, status_text="Dashboard Ready", console=Console(), selected_event_idx=-1):
+def render_dashboard(events, selected_event, status_text="Dashboard Ready", console=Console(), selected_event_idx=-1, status_only=False):
     """
     Render the enhanced CLI dashboard with signal analysis and technical evidence panels.
     
@@ -232,15 +233,17 @@ def render_dashboard(events, selected_event, status_text="Dashboard Ready", cons
                                          If None, uses the most recent event
         status_text (str): Status text to display at the bottom
         console (Console): Rich Console object to use for rendering
-
+        selected_event_idx (int): Index of the currently selected event
+        status_only (bool): If True, only update the status bar for better performance
+    
     Returns:
         rich.panel.Panel: The dashboard panel
     """
     # Get console dimensions
     width = console.width
     height = console.height
-
-    # Create layout
+    
+    # Create full layout for normal refresh
     layout = Layout()
     layout.split_column(
         Layout(name="header", size=3),
@@ -260,30 +263,35 @@ def render_dashboard(events, selected_event, status_text="Dashboard Ready", cons
         Layout(name="evidence_panel", ratio=1)
     )
     
-    # Header with gradient title
+    # Header with gradient title and improved styling
     header_panel = Panel(
         create_gradient_header(),
-        border_style="dim white",
+        border_style="bright_cyan",
         expand=True,
         height=3,
-        padding=(0, 1)
+        padding=(0, 2),  # Increased horizontal padding
+        title="Automotive Security",
+        subtitle="Real-time Monitoring"
     )
     layout["header"].update(header_panel)
 
-    # Create events table with minimal styling
+    # Create events table with enhanced styling
     table = Table(
         title="Automotive Security CLI Dashboard", 
         expand=True, 
         box=box.SIMPLE,  # More minimal box style
         padding=(0, 1),  # Reduced padding
-        collapse_padding=True  # Help with multi-line content
+        collapse_padding=True,  # Help with multi-line content
+        highlight=True,  # Highlight rows on hover
+        header_style="bold bright_white on dark_blue",  # Enhanced header styling
+        border_style="bright_blue"
     )
-    table.add_column("Time", style="cyan", no_wrap=True)
-    table.add_column("Type", style="magenta", no_wrap=True)
-    table.add_column("Threat", style="threat.low", no_wrap=True)
-    table.add_column("Source", style="blue", no_wrap=True)
-    table.add_column("Details", style="white", width=30)  # Fixed width for details to prevent affecting other columns
-    table.add_column("Signal", style="green", no_wrap=True)
+    table.add_column("Time", style="cyan", no_wrap=True, justify="center")
+    table.add_column("Type", style="magenta", no_wrap=True, justify="center")
+    table.add_column("Threat", style="threat.low", no_wrap=True, justify="center")
+    table.add_column("Source", style="blue", no_wrap=True, justify="center")
+    table.add_column("Details", style="bright_white", width=30)  # Fixed width for details to prevent affecting other columns
+    table.add_column("Signal", style="green", no_wrap=True, justify="center")
     # Add NFC correlation indicator column
     table.add_column("NFC", style="bold red", justify="center", width=3, no_wrap=True)
 
@@ -337,9 +345,30 @@ def render_dashboard(events, selected_event, status_text="Dashboard Ready", cons
         table.add_row(time_str, event_type, threat_colored, source, formatted_details, signal_str, nfc_indicator)
 
     # Assemble the layout
-    layout["events_table"].update(Panel(table, title="Detection Events", border_style="bright_cyan"))
-    layout["signal_metrics"].update(Panel(signal_viz, title="Signal Analysis", border_style="green"))
-    layout["evidence_panel"].update(Panel(evidence_panel, title="Technical Evidence", border_style="yellow"))
+    # Enhanced panel styling with consistent borders and padding
+    layout["events_table"].update(Panel(
+        table, 
+        title="Detection Events", 
+        border_style="bright_cyan",
+        padding=(0, 1),
+        subtitle="↑/↓: Navigate | End: Latest"
+    ))
+    
+    layout["signal_metrics"].update(Panel(
+        signal_viz, 
+        title="Signal Analysis", 
+        border_style="green",
+        padding=(1, 1),
+        subtitle="RSSI Trend ↔"
+    ))
+    
+    layout["evidence_panel"].update(Panel(
+        evidence_panel, 
+        title="Technical Evidence", 
+        border_style="yellow",
+        padding=(1, 1),
+        subtitle="Attack Details"
+    ))
     # Create footer with spinner
     spinner = Spinner('dots', text=status_text, style="cyan")
     footer_content = Columns([
@@ -364,7 +393,7 @@ def render_dashboard(events, selected_event, status_text="Dashboard Ready", cons
 
 def render_evidence_panel(event):
     """
-    Renders a technical evidence panel as a collapsible tree for better organization.
+    Renders a technical evidence panel as a collapsible tree with enhanced styling and icons.
     
     Args:
         event (dict): The event with evidence data.
@@ -373,7 +402,7 @@ def render_evidence_panel(event):
         rich.tree.Tree or rich.text.Text: Formatted evidence tree or status text.
     """
     if not event or not isinstance(event, dict) or "error" in event:
-        return Text("No evidence available", style="dim")
+        return Text("No evidence available", style="dim italic")
 
     security_types = ["Replay Attack", "Brute Force", "Jamming Attack", "NFC Scan", "NFC Tag Present"]
     is_security_event = (event.get("type", "") in security_types or 
@@ -382,7 +411,7 @@ def render_evidence_panel(event):
                          "NFC" in event.get("type", ""))
 
     if not is_security_event:
-        return Text("No security evidence for this event", style="dim")
+        return Text("No security evidence for this event", style="dim italic")
 
     # Extract evidence data
     evidence = event.get("evidence", {})
@@ -390,10 +419,10 @@ def render_evidence_panel(event):
     
     # Always show panel for NFC events even without evidence
     if not evidence and not technical_evidence and not event.get("nfc_correlated", False) and "NFC" not in event.get("type", ""):
-        return Text("Event lacks detailed evidence", style="dim")
+        return Text("Event lacks detailed evidence", style="dim italic")
 
-    # Create a more detailed tree with better visual structure
-    tree = Tree(f":shield: [bold yellow]{event.get('type', 'Security Event')} Analysis[/]", guide_style="bright_blue")
+    # Create a more detailed tree with better visual structure and icons
+    tree = Tree(f"🛡️  [bold yellow]{event.get('type', 'Security Event')} Analysis[/]", guide_style="bright_blue")
 
     if evidence.get("detection_confidence"):
         confidence = evidence["detection_confidence"] * 100
@@ -415,21 +444,53 @@ def render_evidence_panel(event):
         tree.add(f":chart_increasing: [bold]Pattern:[/] [blue]{evidence['burst_pattern']}[/]")
 
     if "NFC" in event.get("type", "") or event.get("nfc_correlated", False) or event.get("nfc_tag_id"):
-        nfc_branch = tree.add(":signal_strength: [bold blue]NFC Activity[/]")
+        nfc_branch = tree.add("📶  [bold blue]NFC Activity[/]")
         if event.get("nfc_correlated", False):
-            nfc_branch.label = ":warning: [bold red on white]MULTI-MODAL ATTACK[/]"
-            nfc_branch.add("RF signal correlated with NFC proximity")
+            nfc_branch.label = "⚠️  [bold red on white]MULTI-MODAL ATTACK[/]"
+            nfc_branch.add("🚨  RF signal correlated with NFC proximity")
         if event.get("nfc_tag_id"):
-            nfc_branch.add(f"Tag ID: [cyan]{event['nfc_tag_id']}[/]")
+            nfc_branch.add(f"💳  Tag ID: [cyan]{event['nfc_tag_id']}[/]")
         if event.get("nfc_timestamp"):
-            nfc_branch.add(f"Timestamp: {event['nfc_timestamp']}")
+            nfc_branch.add(f"🕒  Timestamp: {event['nfc_timestamp']}")
         if event.get("nfc_proximity"):
-            nfc_branch.add(f"Proximity: {event['nfc_proximity']} cm")
+            nfc_branch.add(f"📯  Proximity: {event['nfc_proximity']} cm")
 
     if evidence.get("peak_frequencies"):
         peaks = evidence["peak_frequencies"]
         peak_str = ", ".join([f"{p/1e6:.3f}MHz" if p > 1e6 else f"{p/1e3:.1f}kHz" for p in peaks])
-        tree.add(f":radio: [bold]Peak Frequencies:[/] [cyan]{peak_str}[/]")
+        tree.add(f"📡  [bold]Peak Frequencies:[/] [cyan]{peak_str}[/]")
+        
+    # Add technical evidence details if available
+    if technical_evidence:
+        tech_branch = tree.add("🔍  [bold yellow]Technical Details[/]")
+        
+        # Evidence type icons
+        evidence_icons = {
+            "signal_analysis": "📡",  # antenna
+            "packet_capture": "📥",  # inbox
+            "frequency_scan": "🎛",  # control knobs
+            "cryptographic": "🔑",   # key
+            "nfc_correlation": "📶",  # signal
+            "timing_analysis": "🕰",  # clock
+            "default": "📊"         # chart
+        }
+        
+        # Add technical evidence items with icons and better formatting
+        for item in technical_evidence:
+            # Get item type and details
+            item_type = item.get("type", "Unknown")
+            details = item.get("details", {})
+            
+            # Select appropriate icon
+            icon = evidence_icons.get(item_type.lower().replace(" ", "_"), evidence_icons["default"])
+            
+            # Create branch for this evidence item with icon
+            branch = tech_branch.add(f"[bold cyan]{icon} {item_type}")
+            
+            # Add details as sub-branches with better formatting
+            for key, value in details.items():
+                formatted_key = key.replace("_", " ").title()
+                branch.add(f"[green]{formatted_key}:[/green] [bright_white]{value}[/bright_white]")
 
     return Align.left(tree)
 
@@ -746,6 +807,9 @@ async def main():
         api_error_count = 0
         MAX_API_ERRORS = 5
         
+        # Track total events processed, not just buffer size
+        total_events_processed = 0
+        
         # Use the command-line argument for initial selected event
         selected_event_idx = args.event
         
@@ -761,7 +825,7 @@ async def main():
                 follow_latest = False
                 
                 async def event_fetcher():
-                    nonlocal selected_event_idx, follow_latest
+                    nonlocal selected_event_idx, follow_latest, total_events_processed
                     
                     # Track absolute position of selected event
                     abs_selected_idx = None
@@ -801,6 +865,7 @@ async def main():
                             event = enhance_event_with_signal_details(event)
                                 
                             events.append(event)
+                            total_events_processed += 1
                             if len(events) > 100:
                                 events.pop(0)
                         
@@ -823,7 +888,17 @@ async def main():
                             api_error_count = 0
                 
                 async def renderer():
+                    nonlocal total_events_processed
+                    # Variables to control refresh rates
+                    last_full_refresh = time.time()
+                    last_status_refresh = time.time()
+                    
+                    # Define different refresh rates (in seconds)
+                    FULL_REFRESH_RATE = 1.0  # Slower refresh for evidence trees (1 second)
+                    STATUS_REFRESH_RATE = 0.2  # Faster refresh for status updates (200ms)
+                    
                     while running:
+                        current_time = time.time()
                         # Determine which event to display in detail panels
                         selected_event = None
                         full_status = status_text
@@ -847,24 +922,37 @@ async def main():
                                 nav_status += " (Latest)"
                             
                             # Get current time for footer
-                            current_time = datetime.now().strftime("%H:%M:%S")
+                            display_time = datetime.now().strftime("%H:%M:%S")
                             
                             # Format event counter with light blue color
-                            event_status = f"[cyan1]Events: {abs_idx + 1}/{len(events)}"
+                            # Calculate the true event position based on total events processed
+                            current_position = total_events_processed - (len(events) - (abs_idx + 1))
+                            event_status = f"[cyan1]Events: {current_position}/{total_events_processed}"
                             if selected_event_idx == -1:
                                 event_status += " (Latest)[/cyan1]"
                             else:
                                 event_status += "[/cyan1]"
                             
                             # Format timestamp with light green color
-                            time_status = f"[spring_green3]Time: {current_time}[/spring_green3]"
+                            time_status = f"[spring_green3]Time: {display_time}[/spring_green3]"
                             
                             # Comprehensive status with all elements and colors
                             full_status = f"Source: MOCK DATA (demo/testing mode) | {event_status} | {time_status} | Press ? for help"
                         
-                        # Update the live display with navigation
-                        live.update(render_dashboard(events, selected_event, full_status, console, selected_event_idx))
-                        await asyncio.sleep(0.1)
+                        # Determine if we should do a full refresh or just update the status bar
+                        if current_time - last_full_refresh >= FULL_REFRESH_RATE:
+                            # Full refresh including evidence trees
+                            live.update(render_dashboard(events, selected_event, full_status, console, selected_event_idx))
+                            last_full_refresh = current_time
+                            last_status_refresh = current_time
+                        elif current_time - last_status_refresh >= STATUS_REFRESH_RATE:
+                            # Only update status bar (more frequent)
+                            status_only = render_dashboard(events, None if selected_event else None, full_status, console, selected_event_idx, status_only=True)
+                            live.update(status_only)
+                            last_status_refresh = current_time
+                                
+                        # Sleep a small amount to prevent CPU hogging
+                        await asyncio.sleep(0.05)
                 
                 # Create a background task for input handling
                 async def input_handler():
