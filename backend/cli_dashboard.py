@@ -48,6 +48,9 @@ from rich.status import Status
 from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
+
+# Import performance monitoring
+from utils.simple_performance_monitor import get_performance_monitor
 from rich.theme import Theme
 
 # prompt_toolkit imports for keyboard navigation
@@ -304,16 +307,21 @@ def render_dashboard(events, selected_event, status_text="Dashboard Ready", cons
     }
     
     # Prepare signal metrics and evidence from the selected event for visualization
-    # If no event is explicitly selected, use the most recent one
+    # Use selected_event_idx to determine which event to show in details
     if selected_event is None and events:
-        selected_event = events[-1]
+        if selected_event_idx != -1 and abs(selected_event_idx) <= len(events):
+            # Use the event at the selected index
+            selected_event = events[selected_event_idx]
+        else:
+            # Default to most recent event
+            selected_event = events[-1]
     
     signal_viz = render_signal_metrics(selected_event) if selected_event else Text("No signal data available")
     evidence_panel = render_evidence_panel(selected_event) if selected_event else Text("No evidence data available")
     
     # Show most recent events first
     recent_events = events[-15:] if len(events) > 15 else events
-    for event in recent_events:
+    for i, event in enumerate(recent_events):
         # If event is an error dict (e.g., {"error": ...}), render as a single-row error
         if isinstance(event, dict) and "error" in event:
             table.add_row("-", "ERROR", "[red]Error[/]", "-", str(event["error"]), "-")
@@ -342,6 +350,24 @@ def render_dashboard(events, selected_event, status_text="Dashboard Ready", cons
         # This prevents a single column from forcing all others to expand vertically
         formatted_details = details.replace("\n", " ") if isinstance(details, str) else str(details)
         
+        # Check if this is the selected event for highlighting
+        # Calculate the actual index in the events list
+        actual_event_index = len(events) - len(recent_events) + i
+        is_selected = (selected_event_idx != -1 and 
+                      actual_event_index == len(events) + selected_event_idx) or \
+                     (selected_event_idx == -1 and i == len(recent_events) - 1)
+        
+        # Apply highlighting to selected row
+        if is_selected:
+            # Add background highlighting to all columns for selected row
+            time_str = f"[reverse]{time_str}[/reverse]"
+            event_type = f"[reverse]{event_type}[/reverse]"
+            threat_colored = f"[reverse]{threat_colored}[/reverse]"
+            source = f"[reverse]{source}[/reverse]"
+            formatted_details = f"[reverse]{formatted_details}[/reverse]"
+            signal_str = f"[reverse]{signal_str}[/reverse]"
+            nfc_indicator = f"[reverse]{nfc_indicator}[/reverse]"
+        
         table.add_row(time_str, event_type, threat_colored, source, formatted_details, signal_str, nfc_indicator)
 
     # Assemble the layout
@@ -369,8 +395,17 @@ def render_dashboard(events, selected_event, status_text="Dashboard Ready", cons
         padding=(1, 1),
         subtitle="Attack Details"
     ))
-    # Create footer with spinner
-    spinner = Spinner('dots', text=status_text, style="cyan")
+    # Create footer with spinner and performance metrics
+    performance_monitor = get_performance_monitor()
+    performance_summary = performance_monitor.get_dashboard_summary()
+    
+    # Combine status text with performance metrics
+    if performance_summary and performance_summary != 'Monitoring...':
+        enhanced_status_text = f"{status_text} | {performance_summary}"
+    else:
+        enhanced_status_text = status_text
+    
+    spinner = Spinner('dots', text=enhanced_status_text, style="cyan")
     footer_content = Columns([
         spinner
     ])
@@ -936,8 +971,22 @@ async def main():
                             # Format timestamp with light green color
                             time_status = f"[spring_green3]Time: {display_time}[/spring_green3]"
                             
+                            # Get threats counter with red/bold styling
+                            performance_monitor = get_performance_monitor()
+                            threats_summary = performance_monitor.get_threats_summary()
+                            threats_status = f"[bold red]{threats_summary}[/bold red]" if threats_summary else ""
+                            
                             # Comprehensive status with all elements and colors
-                            full_status = f"Source: MOCK DATA (demo/testing mode) | {event_status} | {time_status} | Press ? for help"
+                            status_parts = [
+                                "Source: MOCK DATA (demo/testing mode)",
+                                event_status,
+                                threats_status,
+                                time_status,
+                                "Press ? for help"
+                            ]
+                            # Filter out empty parts
+                            status_parts = [part for part in status_parts if part]
+                            full_status = " | ".join(status_parts)
                         
                         # Determine if we should do a full refresh or just update the status bar
                         if current_time - last_full_refresh >= FULL_REFRESH_RATE:

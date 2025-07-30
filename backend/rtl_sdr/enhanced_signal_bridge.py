@@ -31,6 +31,12 @@ from .brute_force_detector import BruteForceDetector
 from detection.event_logic import analyze_event
 from detection.threat_levels import ThreatLevel
 
+# Import performance monitoring
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from utils.simple_performance_monitor import get_performance_monitor
+
 logger = logging.getLogger(__name__)
 
 def log(msg):
@@ -386,6 +392,9 @@ class EnhancedSignalProcessingBridge:
         self.events_generated = 0
         self.last_status_time = time.time()
         
+        # Initialize performance monitor
+        self.performance_monitor = get_performance_monitor()
+        
         logger.info(f"EnhancedSignalProcessingBridge initialized: host={rtl_tcp_host}, port={rtl_tcp_port}")
     
     async def start_signal_processing(self):
@@ -403,6 +412,12 @@ class EnhancedSignalProcessingBridge:
                     self.rtl_tcp_host, self.rtl_tcp_port
                 )
                 log("Connected to RTL-SDR V4 via TCP (Enhanced Bridge)")
+                
+                # Update system health - RTL-SDR connected
+                self.performance_monitor.update_system_health(
+                    rtl_sdr_connected=True,
+                    pico_w_connected=len(self.rtl_server.connected_picos) > 0
+                )
                 
                 await self._configure_rtl_sdr(writer)
                 
@@ -434,6 +449,13 @@ class EnhancedSignalProcessingBridge:
                 
             except Exception as e:
                 log(f"Enhanced signal processing error: {e}")
+                
+                # Update system health - RTL-SDR disconnected
+                self.performance_monitor.update_system_health(
+                    rtl_sdr_connected=False,
+                    pico_w_connected=len(self.rtl_server.connected_picos) > 0
+                )
+                
                 await asyncio.sleep(2)
     
     async def _configure_rtl_sdr(self, writer):
@@ -461,6 +483,8 @@ class EnhancedSignalProcessingBridge:
         Returns:
             List of detection events
         """
+        processing_start_time = time.time()
+        
         try:
             # Convert raw IQ data to complex samples
             complex_samples = self._convert_iq_samples(raw_data)
@@ -487,11 +511,18 @@ class EnhancedSignalProcessingBridge:
                 event = self._create_event_from_analysis(threat_analysis, sample_count)
                 events.append(event)
                 
+                # Record event generation for performance monitoring
+                self.performance_monitor.record_event_generated(threat_analysis.get('event_type', 'unknown'))
+                
                 # Log significant detections
                 if threat_analysis['threat_level'] > 0.5:
                     log(f"[THREAT] {threat_analysis['event_type']} detected: "
                         f"confidence={threat_analysis['confidence']:.2f}, "
                         f"threat_level={threat_analysis['threat_level']:.2f}")
+            
+            # Record processing performance
+            processing_time_ms = (time.time() - processing_start_time) * 1000
+            self.performance_monitor.record_signal_processed(processing_time_ms)
             
             return events
             
@@ -565,7 +596,10 @@ class EnhancedSignalProcessingBridge:
         log("Enhanced signal processing stopped")
     
     def get_processing_stats(self) -> Dict[str, Any]:
-        """Get processing statistics."""
+        """Get processing statistics with performance monitoring."""
+        # Get performance metrics
+        performance_metrics = self.performance_monitor.get_current_metrics()
+        
         return {
             'samples_processed': self.samples_processed,
             'events_generated': self.events_generated,
@@ -575,5 +609,6 @@ class EnhancedSignalProcessingBridge:
                 'sample_rate': self.signal_analyzer.sample_rate,
                 'frequency_bands': self.signal_analyzer.frequency_bands,
                 'detection_thresholds': self.signal_analyzer.detection_thresholds
-            }
+            },
+            'performance_metrics': performance_metrics
         }

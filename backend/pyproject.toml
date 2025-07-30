@@ -21,6 +21,7 @@ dependencies = [
     "motor>=3.7.1",
     "numpy>=1.26.4",
     "asyncio>=3.4.3",
+    "aiohttp>=3.12.15",
 ]
 
 [tool.hatch.build.targets.wheel]

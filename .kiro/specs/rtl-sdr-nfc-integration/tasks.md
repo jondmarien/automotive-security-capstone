@@ -65,6 +65,7 @@
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
     - [x] 3.1 Implement NFC correlation activation system
+    
     - Modify Pico W client to activate NFC scanning on high-threat RF events
     - Add correlation timeout and state management
     - Create LED indicators for active NFC correlation mode
@@ -72,13 +73,14 @@
     - _Requirements: 3.1, 3.5_
 
     - [x] 3.2 Build correlated security event generation
+
     - Create combined RF-NFC threat event structures
     - Implement threat escalation for correlated events
     - Add technical evidence collection for multi-modal attacks
     - Build recommended action generation for correlated threats
     - _Requirements: 3.4, 6.6_
 
-- [-] 4. Implement Real-Time Event Streaming Enhancements
+- [x] 4. Implement Real-Time Event Streaming Enhancements
 
   - Enhance CLI dashboard with detailed signal analysis display
   - Add real-time technical evidence presentation
@@ -87,18 +89,29 @@
   - _Requirements: 4.1, 4.2, 4.3, 6.5_
 
     - [x] 4.1 Enhance CLI dashboard with signal analysis details
+
     - Add signal feature display (power, frequency, modulation type)
     - Implement threat evidence presentation in dashboard
     - Create real-time signal strength and quality indicators
     - Add technical proof display for detection accuracy
     - _Requirements: 4.2, 6.5_
 
-    - [ ] 4.2 Implement concurrent event processing system
+    - [x] 4.2 Implement concurrent event processing system
+
     - Add event queue management for high-throughput scenarios
     - Implement non-blocking event processing pipeline
     - Create performance monitoring for real-time requirements
     - Add memory management for continuous operation
     - _Requirements: 4.3, 4.4, 5.5_
+
+    - [x] 4.3 Add lightweight performance monitoring for demonstrations
+    
+    - Create simple metrics collection for signal processing latency
+    - Add detection accuracy counters (signals detected, threats found)
+    - Implement basic system health monitoring (hardware status)
+    - Display performance stats in CLI dashboard footer
+    - _Requirements: 4.4, 6.5_
+
 
 - [ ] 5. Build Hardware Integration and Reliability System
 

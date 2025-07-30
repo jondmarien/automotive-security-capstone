@@ -16,6 +16,9 @@ from itertools import count
 
 from detection.event_logic import analyze_event
 
+# Import performance monitoring
+from utils.simple_performance_monitor import get_performance_monitor
+
 # Counter for event numbering
 _counter = count(1)
 
@@ -190,6 +193,22 @@ def generate_detection_event():
         result["threat"] = "Critical"
         result["details"] = f"Multi-modal attack detected: {result['details']}"
 
+    # Record event generation for performance monitoring
+    performance_monitor = get_performance_monitor()
+    
+    # Simulate processing time (realistic for mock events)
+    processing_time = random.uniform(35.0, 85.0)  # 35-85ms processing time
+    performance_monitor.record_signal_processed(processing_time)
+    performance_monitor.record_event_generated(result["type"])
+    
+    # Update system health occasionally
+    if random.random() < 0.1:  # 10% chance
+        performance_monitor.update_system_health(
+            rtl_sdr_connected=True,  # Mock mode assumes connected
+            pico_w_connected=random.random() > 0.1,  # 90% uptime
+            memory_usage_mb=random.uniform(80.0, 150.0)
+        )
+    
     # Log the generated event for debugging and evidence collection
     logging.debug(f"Generated event: {json.dumps(result, default=str)}")
     
