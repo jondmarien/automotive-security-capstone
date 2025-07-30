@@ -226,7 +226,7 @@ def log_event(event: Dict[str, Any]):
         f.write(f"[{ts}] {event}\n")
 
 # --- Dashboard Rendering ---
-def render_dashboard(events, selected_event, status_text="Dashboard Ready", console=Console(), selected_event_idx=-1, status_only=False):
+def render_dashboard(events, selected_event, status_text="Dashboard Ready", console=Console(), selected_event_idx=-1, status_only=False, show_help=False):
     """
     Render the enhanced CLI dashboard with signal analysis and technical evidence panels.
     
@@ -248,10 +248,12 @@ def render_dashboard(events, selected_event, status_text="Dashboard Ready", cons
     
     # Create full layout for normal refresh
     layout = Layout()
+    # Make footer expandable based on help display
+    footer_size = 3 if show_help else 1
     layout.split_column(
         Layout(name="header", size=3),
         Layout(name="body"),
-        Layout(name="footer", size=1)
+        Layout(name="footer", size=footer_size)
     )
 
     # Split body into main event table (70%) and bottom section (30%)
@@ -405,10 +407,26 @@ def render_dashboard(events, selected_event, status_text="Dashboard Ready", cons
     else:
         enhanced_status_text = status_text
     
-    spinner = Spinner('dots', text=enhanced_status_text, style="cyan")
-    footer_content = Columns([
-        spinner
-    ])
+    if show_help:
+        # Multi-line footer with help information
+        help_text = Text()
+        help_text.append("📋 HELP - Keyboard Controls:\n", style="bold yellow")
+        help_text.append("  ↑/↓: Navigate events  ", style="cyan")
+        help_text.append("Home/End: First/Last  ", style="cyan")
+        help_text.append("?: Toggle help  ", style="cyan")
+        help_text.append("q: Quit", style="cyan")
+        
+        footer_content = Columns([
+            Spinner('dots', text=enhanced_status_text, style="cyan"),
+            help_text
+        ])
+    else:
+        # Single line footer
+        spinner = Spinner('dots', text=enhanced_status_text, style="cyan")
+        footer_content = Columns([
+            spinner
+        ])
+    
     layout["footer"].update(footer_content)
     
     # Final dashboard panel with minimal padding
@@ -744,6 +762,8 @@ async def main():
     selected_event_idx = -1  # -1 means latest event
     # Flag to track if we should follow the latest event
     follow_latest = False
+    # Flag to track help display state
+    show_help = False
 
     if args.mock:
         event_gen = generate_mock_events()
@@ -810,12 +830,9 @@ async def main():
     
     @bindings.add('?')
     def handle_help(event):
-        nonlocal status_text
-        # Toggle help text in status bar
-        if "HELP" in status_text:
-            status_text = status_text.replace(" | HELP: Up/Down=Navigate, Home/End=First/Last, ?=Help, q=Quit", "")
-        else:
-            status_text += " | HELP: Up/Down=Navigate, Home/End=First/Last, ?=Help, q=Quit"
+        nonlocal show_help
+        # Toggle help display
+        show_help = not show_help
 
     # Create a prompt_toolkit application with a proper layout for keyboard input
     # This ensures key bindings are properly processed
@@ -851,7 +868,7 @@ async def main():
         try:
             
             # Create a single Live display outside the event loop
-            with Live(render_dashboard(events, None, status_text, console, selected_event_idx), 
+            with Live(render_dashboard(events, None, status_text, console, selected_event_idx, show_help=show_help), 
                       refresh_per_second=4, console=console, screen=True, 
                       vertical_overflow="visible") as live:
                 
@@ -991,12 +1008,12 @@ async def main():
                         # Determine if we should do a full refresh or just update the status bar
                         if current_time - last_full_refresh >= FULL_REFRESH_RATE:
                             # Full refresh including evidence trees
-                            live.update(render_dashboard(events, selected_event, full_status, console, selected_event_idx))
+                            live.update(render_dashboard(events, selected_event, full_status, console, selected_event_idx, show_help=show_help))
                             last_full_refresh = current_time
                             last_status_refresh = current_time
                         elif current_time - last_status_refresh >= STATUS_REFRESH_RATE:
                             # Only update status bar (more frequent)
-                            status_only = render_dashboard(events, None if selected_event else None, full_status, console, selected_event_idx, status_only=True)
+                            status_only = render_dashboard(events, None if selected_event else None, full_status, console, selected_event_idx, status_only=True, show_help=show_help)
                             live.update(status_only)
                             last_status_refresh = current_time
                                 
