@@ -747,6 +747,9 @@ async def main():
     # Flag to control auto-follow behavior (automatically show latest event)
     auto_follow = True
     
+    # Flag to track if first absolute event was requested (via Home key)
+    first_absolute_event_requested = False
+    
     parser = argparse.ArgumentParser(description="Automotive Security Enhanced CLI Dashboard")
     parser.add_argument("--source", choices=["api", "tcp"], help="Event source: api or tcp")
     parser.add_argument("--api-url", type=str, default="http://localhost:8000/events", help="API URL (for --source api)")
@@ -806,7 +809,7 @@ async def main():
     
     @bindings.add('up')
     def handle_up(event):
-        nonlocal selected_event_idx, follow_latest
+        nonlocal selected_event_idx, follow_latest, first_absolute_event_requested
         if not events:
             return
         # Move selection up (earlier in time)
@@ -815,13 +818,15 @@ async def main():
         selected_event_idx = max(-len(events), min(-1, selected_event_idx))
         # Disable follow latest when manually navigating
         follow_latest = False
+        # Reset the first absolute event flag when using regular navigation
+        first_absolute_event_requested = False
         # Log navigation action
         if dashboard_logger:
             log_dashboard_action(dashboard_logger, "navigation", f"Up arrow - selected event index: {selected_event_idx}")
     
     @bindings.add('down')
     def handle_down(event):
-        nonlocal selected_event_idx, follow_latest
+        nonlocal selected_event_idx, follow_latest, first_absolute_event_requested
         if not events:
             return
         # Move selection down (later in time)
@@ -831,28 +836,36 @@ async def main():
         selected_event_idx = max(-len(events), min(-1, selected_event_idx))
         # Disable follow latest when manually navigating
         follow_latest = False
+        # Reset the first absolute event flag when using regular navigation
+        first_absolute_event_requested = False
         # Log navigation action
         if dashboard_logger:
             log_dashboard_action(dashboard_logger, "navigation", f"Down arrow - selected event index: {selected_event_idx}")
     
     @bindings.add('home')
     def handle_home(event):
-        nonlocal selected_event_idx, follow_latest
+        nonlocal selected_event_idx, follow_latest, first_absolute_event_requested
         if events:
-            # Go to first event
-            selected_event_idx = -len(events)
+            # Store that we want to view the first event (event 0)
+            # We'll use a special flag to indicate we want the first absolute event
+            # Rather than setting to a potentially huge negative number
+            selected_event_idx = -len(events)  # Start with oldest in buffer
+            # Set a flag to indicate we want the first absolute event
+            first_absolute_event_requested = True
             # Disable follow latest when manually navigating
             follow_latest = False
             # Log navigation action
             if dashboard_logger:
-                log_dashboard_action(dashboard_logger, "navigation", f"Home key - jumped to first event (index: {selected_event_idx})")
+                log_dashboard_action(dashboard_logger, "navigation", "Home key - jumped to first absolute event")
     
     @bindings.add('end')
     def handle_end(event):
-        nonlocal selected_event_idx, follow_latest
+        nonlocal selected_event_idx, follow_latest, first_absolute_event_requested
         # Go to latest event and enable following the latest event
         selected_event_idx = -1
         follow_latest = True
+        # Reset the first absolute event flag
+        first_absolute_event_requested = False
         # Log navigation action
         if dashboard_logger:
             log_dashboard_action(dashboard_logger, "navigation", "End key - jumped to latest event (auto-follow enabled)")
@@ -862,8 +875,10 @@ async def main():
     @bindings.add('c-c')  # Ctrl+C
     def handle_quit(event):
         # Set a flag to exit the application
-        nonlocal running
+        nonlocal running, first_absolute_event_requested
         running = False
+        # Reset the first absolute event flag
+        first_absolute_event_requested = False
         # Log quit action
         if dashboard_logger:
             log_dashboard_action(dashboard_logger, "quit", "User initiated dashboard shutdown")
@@ -871,9 +886,11 @@ async def main():
     
     @bindings.add('?')
     def handle_help(event):
-        nonlocal show_help
+        nonlocal show_help, first_absolute_event_requested
         # Toggle help display
         show_help = not show_help
+        # Reset the first absolute event flag
+        first_absolute_event_requested = False
         # Log help action
         if dashboard_logger:
             log_dashboard_action(dashboard_logger, "help_toggle", f"Help display {'enabled' if show_help else 'disabled'}")
@@ -921,7 +938,7 @@ async def main():
                 follow_latest = False
                 
                 async def event_fetcher():
-                    nonlocal selected_event_idx, follow_latest, total_events_processed
+                    nonlocal selected_event_idx, follow_latest, total_events_processed, first_absolute_event_requested
                     
                     # Track absolute position of selected event
                     abs_selected_idx = None
@@ -972,8 +989,8 @@ async def main():
                         elif abs_selected_idx is not None:
                             # Keep the absolute position the same
                             selected_event_idx = abs_selected_idx - len(events)
-                            # Ensure we don't go out of bounds
-                            selected_event_idx = max(-len(events), min(-1, selected_event_idx))
+                            # Don't restrict to buffer bounds for navigation purposes
+                            # This allows viewing events by absolute index even if they're outside the buffer
                         # Detect repeated API connection errors
                         if event.get("error") and "API connection error" in event["error"]:
                             api_error_count += 1
@@ -984,7 +1001,7 @@ async def main():
                             api_error_count = 0
                 
                 async def renderer():
-                    nonlocal total_events_processed
+                    nonlocal total_events_processed, first_absolute_event_requested
                     # Variables to control refresh rates
                     last_full_refresh = time.time()
                     last_status_refresh = time.time()
@@ -1010,12 +1027,37 @@ async def main():
                             else:
                                 # Calculate absolute index from relative
                                 abs_idx = len(events) + selected_event_idx if selected_event_idx < 0 else selected_event_idx
-                                # Keep index in bounds
-                                abs_idx = max(0, min(abs_idx, len(events) - 1))
-                                selected_event = events[abs_idx]
+                                
+                                # Handle special case for home key (first absolute event)
+                                if first_absolute_event_requested:
+                                    # Show the oldest available event and indicate it's the first absolute event
+                                    selected_event = events[0]
+                                    # Add a note to the event that it's representing the first absolute event
+                                    selected_event = dict(selected_event)  # Make a copy to avoid modifying the original
+                                    selected_event['details'] = f"[First event (0/{total_events_processed})] {selected_event.get('details', '')}"
+                                    # Use the oldest event in buffer
+                                    abs_idx = 0
+                                # Check if the requested event is in the current buffer
+                                elif 0 <= abs_idx < len(events):
+                                    # Event is in buffer, show it
+                                    selected_event = events[abs_idx]
+                                else:
+                                    # Event is outside buffer (likely an older event that was pushed out)
+                                    # Show the oldest available event and indicate it's not the requested one
+                                    selected_event = events[0]
+                                    # Add a note to the event that it's not the originally requested one
+                                    selected_event = dict(selected_event)  # Make a copy to avoid modifying the original
+                                    event_num = total_events_processed - (len(events) - abs_idx) if abs_idx >= 0 else total_events_processed + selected_event_idx
+                                    if event_num < 0:
+                                        # Handle case where user tries to go before the first event
+                                        event_num = 0
+                                    selected_event['details'] = f"[Event #{event_num} not in buffer] {selected_event.get('details', '')}"
+                                    # Adjust abs_idx to point to the oldest event in buffer
+                                    abs_idx = 0
                             
-                            # Update navigation status
-                            nav_status = f"Event {abs_idx + 1}/{len(events)}"
+                            # Update navigation status with absolute event numbers
+                            event_num = total_events_processed - (len(events) - (abs_idx + 1))
+                            nav_status = f"Event {event_num}/{total_events_processed}"
                             if selected_event_idx == -1:
                                 nav_status += " (Latest)"
                             
@@ -1083,7 +1125,7 @@ async def main():
                 
                 # Create a background task for input handling
                 async def input_handler():
-                    nonlocal selected_event_idx, auto_follow, running
+                    nonlocal selected_event_idx, auto_follow, running, first_absolute_event_requested
                     while running:
                         # Process a single key press without blocking
                         await app.run_async(pre_run=lambda: asyncio.sleep(0.1))
