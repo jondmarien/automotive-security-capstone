@@ -34,7 +34,10 @@ backend/
 ├── rtl_sdr/                            # RTL-SDR hardware integration and signal processing
 │   ├── __init__.py                     # RTL-SDR package initialization
 │   ├── rtl_tcp_server.py               # RTL-SDR TCP server management and control
-│   ├── signal_bridge.py                # Signal processing and event bridge to detection
+│   ├── signal_bridge.py                # Signal processing and event bridge to detection (enhanced mode support)
+│   ├── automotive_signal_analyzer.py   # Advanced automotive signal analysis (NEW)
+│   ├── enhanced_signal_bridge.py       # Enhanced signal processing with threat detection (NEW)
+│   ├── signal_history_buffer.py        # Signal history for replay detection (NEW)
 │   ├── startup_server.py               # System startup orchestration and health checks
 │   └── recordings/                     # Pre-recorded RF signals for testing and demos
 │       ├── key_fob_315mhz.iq          # Sample key fob signals
@@ -63,6 +66,8 @@ backend/
 ├── tests/                              # Comprehensive test suite
 │   ├── __init__.py                     # Test package initialization
 │   ├── conftest.py                     # Pytest configuration and fixtures
+│   ├── test_automotive_signal_analyzer.py # Automotive signal analyzer tests (NEW)
+│   ├── test_enhanced_signal_bridge.py     # Enhanced signal bridge tests (NEW)
 │   ├── test_detection/                 # Detection system tests
 │   │   ├── test_event_logic.py        # Event detection algorithm tests
 │   │   ├── test_security_analyzer.py  # Security analysis tests

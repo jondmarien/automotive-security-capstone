@@ -8,13 +8,17 @@ graph TB
     subgraph HW ["🔧 Hardware Layer"]
         RTL[RTL-SDR V4<br/>RF Signal Capture]
         PICO[Raspberry Pi Pico W<br/>Alert Controller]
+        NFC[PN532 NFC Module<br/>Proximity Detection]
     end
     
     %% Processing Layer  
     subgraph PROC ["⚙️ Signal Processing Layer"]
         TCP_SRV[RTL-TCP Server<br/>Port 1234<br/>IQ Data Stream]
         SIG_PROC[RF Signal Processing<br/>Engine<br/>Event Detection]
-        DETECT[Security Analysis<br/>& Threat Detection<br/>Classification]
+        AUTO_ANALYZER[Automotive Signal<br/>Analyzer<br/>FSK/TPMS Detection<br/>Real-time IQ Analysis]
+        HIST_BUFFER[Signal History<br/>Buffer<br/>Temporal Analysis<br/>5-min Rolling Buffer]
+        DETECT[Enhanced Threat<br/>Detection Engine<br/>Replay/Jamming/Brute Force<br/>Advanced Pattern Recognition]
+        NFC_CORR[NFC Correlation<br/>System<br/>Multi-Modal Detection]
     end
     
     %% Communication Layer
@@ -28,20 +32,29 @@ graph TB
     %% Data Flow
     RTL -->|USB<br/>Raw RF Data| TCP_SRV
     TCP_SRV -->|TCP<br/>IQ Samples| SIG_PROC
-    SIG_PROC -->|Processed<br/>Signals| DETECT
+    SIG_PROC -->|Complex<br/>Samples| AUTO_ANALYZER
+    AUTO_ANALYZER -->|Signal<br/>Features| DETECT
+    DETECT -->|Event<br/>History| HIST_BUFFER
+    HIST_BUFFER -->|Temporal<br/>Analysis| DETECT
     DETECT -->|Security<br/>Events| EVENT_SRV
+    DETECT -->|High Threat<br/>Events| NFC_CORR
+    NFC -->|Proximity<br/>Data| NFC_CORR
+    NFC_CORR -->|Correlated<br/>Security Events| EVENT_SRV
     EVENT_SRV -->|TCP<br/>Events| DASH
     EVENT_SRV -->|WiFi TCP<br/>Events| WIFI
     WIFI -->|Alert<br/>Commands| ALERTS
     ALERTS -->|Physical<br/>Alerts| PICO
+    NFC -.->|Connected to| PICO
     
     %% Styling
     classDef hardware fill:#f8cecc,stroke:#b85450,stroke-width:2px,color:#000
     classDef processing fill:#d5e8d4,stroke:#82b366,stroke-width:2px,color:#000
     classDef communication fill:#fff2cc,stroke:#d6b656,stroke-width:2px,color:#000
+    classDef correlation fill:#e1d5e7,stroke:#9673a6,stroke-width:2px,color:#000
     
-    class RTL,PICO hardware
+    class RTL,PICO,NFC hardware
     class TCP_SRV,SIG_PROC,DETECT processing
+    class NFC_CORR correlation
     class EVENT_SRV,DASH,WIFI,ALERTS communication
 ```
 
@@ -54,8 +67,21 @@ graph LR
         direction TB
         A[RTL-SDR V4 Dongle] --> B[RTL-TCP Server<br/>Port 1234]
         B --> C[Signal Bridge<br/>IQ Processing]
-        C --> D[Event Detection<br/>Algorithm]
-        D --> E[Threat Classification<br/>Security Analysis]
+        C --> C1[Automotive Signal<br/>Analyzer<br/>FSK/TPMS Detection]
+        C1 --> D[Enhanced Event<br/>Detection<br/>Pattern Recognition]
+        D --> D1[Signal History<br/>Buffer<br/>Temporal Analysis]
+        D1 --> E[Threat Detection<br/>Engine<br/>Replay/Jamming/Brute Force]
+    end
+    
+    %% NFC Correlation Chain
+    subgraph NFC_CHAIN ["NFC Correlation System"]
+        direction TB
+        N1[PN532 NFC Module<br/>Proximity Detection]
+        N2[NFC Correlation<br/>Activation Logic]
+        N3[Multi-Modal<br/>Security Event<br/>Generator]
+        
+        N1 --> N2
+        N2 --> N3
     end
     
     %% Event Distribution
@@ -81,15 +107,20 @@ graph LR
     
     %% Connections
     E --> F
+    E --> N2
+    N3 --> F
     H --> I
     H --> J
+    J --> N1
     
     %% Styling
     classDef rfChain fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
     classDef eventDist fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
     classDef clients fill:#e8f5e8,stroke:#388e3c,stroke-width:2px,color:#000
+    classDef nfcChain fill:#e1d5e7,stroke:#9673a6,stroke-width:2px,color:#000
     
     class A,B,C,D,E rfChain
+    class N1,N2,N3 nfcChain
     class F,G,H eventDist
     class I,J,K clients
 ```
@@ -105,26 +136,50 @@ sequenceDiagram
     participant EVT as Event Server
     participant DASH as Dashboard
     participant PICO as Pico W Client
+    participant NFC as NFC Module
     
-    Note over RTL,PICO: System Initialization
+    Note over RTL,NFC: System Initialization
     RTL->>TCP_SRV: USB Connection (Raw RF Data)
     TCP_SRV->>SIG: TCP Stream (IQ Samples, Port 1234)
     EVT->>DASH: TCP Connection (Port 8888)
     EVT->>PICO: WiFi TCP Connection (Port 8888)
+    PICO->>NFC: Initialize NFC Module
     
-    Note over RTL,PICO: Real-time Operation Loop
+    Note over RTL,NFC: Real-time Operation Loop
     loop Continuous Monitoring
         RTL->>TCP_SRV: RF Signal Capture
         TCP_SRV->>SIG: IQ Data Stream
         SIG->>DET: Processed Signal Data
         
-        alt Threat Detected
-            DET->>EVT: Security Event
+        alt High Threat RF Event Detected
+            DET->>EVT: Security Event (High Threat)
             EVT->>DASH: Event Notification
-            EVT->>PICO: Alert Command
-            PICO->>PICO: Trigger LED/NFC Alert
-        else Normal Operation
-            DET->>EVT: Status Update
+            EVT->>PICO: High Threat RF Alert
+            PICO->>PICO: Activate NFC Correlation
+            PICO->>EVT: NFC Correlation Activated Event
+            
+            alt NFC Tag Detected During Correlation
+                NFC->>PICO: NFC Tag Detection
+                PICO->>PICO: Create Correlated Security Event
+                PICO->>EVT: Correlated Security Event
+                EVT->>DASH: Correlated Attack Notification
+                PICO->>PICO: Trigger Critical LED Alert
+            else Correlation Timeout
+                PICO->>PICO: Deactivate Correlation Mode
+                PICO->>EVT: NFC Correlation Timeout Event
+            end
+            
+        else Normal RF Event
+            DET->>EVT: Standard Security Event
+            EVT->>DASH: Event Notification
+            EVT->>PICO: Standard Alert Command
+            PICO->>PICO: Trigger Standard LED Alert
+        end
+        
+        alt Standard NFC Detection (No Correlation)
+            NFC->>PICO: NFC Tag Detection
+            PICO->>EVT: Standard NFC Detection Event
+            EVT->>DASH: NFC Detection Notification
         end
     end
 ```
@@ -162,9 +217,13 @@ graph TB
 |-------|-----------|------------|---------|
 | **Hardware** | RTL-SDR V4 | USB RF Dongle | RF signal capture and digitization |
 | **Hardware** | Raspberry Pi Pico W | MicroPython | WiFi-enabled alert controller |
+| **Hardware** | PN532 NFC Module | SPI Interface | Proximity detection for multi-modal attacks |
 | **Processing** | RTL-TCP Server | C/C++ Binary | Raw IQ data streaming |
 | **Processing** | Signal Bridge | Python + NumPy | Signal processing and analysis |
-| **Processing** | Threat Detection | Python + Pydantic | Security event classification |
+| **Processing** | Automotive Analyzer | Python + SciPy | Advanced automotive signal analysis with FSK/TPMS detection |
+| **Processing** | Signal History Buffer | Python + Threading | Thread-safe temporal analysis and replay detection (5-min buffer) |
+| **Processing** | Threat Detection Engine | Python + Pydantic | Enhanced security event classification with confidence scoring |
+| **Processing** | NFC Correlation System | MicroPython + asyncio | Multi-modal attack detection with RF-NFC correlation |
 | **Communication** | Event Server | Python + asyncio | TCP event distribution |
 | **Interface** | CLI Dashboard | Python + Rich | Real-time monitoring interface |
 | **Alerts** | NFC/LED System | MicroPython | Physical security notifications |
@@ -176,12 +235,13 @@ graph TB
 - Automotive protocol detection
 - Threat level classification
 - Event logging and reporting
+- Multi-modal attack detection with RF-NFC correlation
+- Escalating threat levels for correlated events
 
 ### 🚀 Performance
 - Low-latency event processing
 - Concurrent client support
 - Efficient TCP streaming
-- Hardware-accelerated alerts
 
 ### 🛠️ Development Features
 - Mock mode for testing

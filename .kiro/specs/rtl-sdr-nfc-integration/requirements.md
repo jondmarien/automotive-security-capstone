@@ -78,3 +78,5 @@ This feature integrates real RTL-SDR signal processing with Raspberry Pi Pico W 
 4. WHEN RF jamming is introduced THEN the system SHALL detect "MALICIOUS - Jamming Attack" with interference analysis
 5. WHEN each detection occurs THEN the CLI SHALL display technical proof (power levels, timing analysis, signal characteristics)
 6. WHEN NFC tags are scanned during RF events THEN the system SHALL correlate multi-modal attack indicators
+7. WHEN the `--synthetic` flag is used alongside `--mock` THEN the system SHALL generate realistic synthetic signals for testing and demonstration
+8. WHEN only the `--mock` flag is used THEN the system SHALL maintain existing mock event generation behavior

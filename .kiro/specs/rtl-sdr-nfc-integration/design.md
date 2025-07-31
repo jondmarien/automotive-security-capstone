@@ -32,6 +32,30 @@ graph TB
         D --> P[Brute Force Detection]
         D --> Q[Threat Scoring]
     end
+    
+    subgraph "Testing Framework"
+        R[Mock Event Generator] --> F
+        S[Synthetic Signal Generator] --> C
+        T[CLI Flags] --> R
+        T --> S
+    end
+```
+
+### CLI Dashboard Flags
+
+```
+python cli_dashboard.py [options]
+
+Options:
+  --mock                  Enable mock mode to simulate detection events
+  --synthetic             Enable synthetic signal generation (requires --mock)
+  --source {api,tcp}      Event source: api or tcp
+  --api-url URL           API URL for event source
+  --tcp-host HOST         TCP event stream host
+  --tcp-port PORT         TCP event stream port
+  --detailed              Enable detailed signal analysis
+  --nfc                   Enable NFC correlation detection
+  --event INDEX           Select a specific event to view
 ```
 
 ### Data Flow Architecture

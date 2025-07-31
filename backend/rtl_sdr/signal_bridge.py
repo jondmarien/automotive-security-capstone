@@ -5,8 +5,17 @@ Performs real-time signal processing on IQ data from RTL-SDR to detect automotiv
 Bridges the RTL-TCP server and Pico clients by analyzing IQ samples, detecting events, and broadcasting
 detection results. Designed for use in the Automotive Security Capstone POC project.
 
+This module now supports both legacy and enhanced signal processing modes:
+- Legacy mode: Original signal processing for backward compatibility
+- Enhanced mode: Advanced automotive signal analysis with AutomotiveSignalAnalyzer
+
 Example usage:
+    # Legacy mode
     bridge = SignalProcessingBridge(rtl_server_manager)
+    asyncio.run(bridge.start_signal_processing())
+    
+    # Enhanced mode
+    bridge = SignalProcessingBridge(rtl_server_manager, enhanced_mode=True)
     asyncio.run(bridge.start_signal_processing())
 """
 import numpy as np
@@ -15,6 +24,17 @@ from datetime import datetime
 import struct
 from detection.event_logic import analyze_event  # Unified detection/event logic
 import time
+import logging
+
+# Import enhanced components
+try:
+    from .enhanced_signal_bridge import EnhancedSignalProcessingBridge
+    ENHANCED_MODE_AVAILABLE = True
+except ImportError as e:
+    ENHANCED_MODE_AVAILABLE = False
+    logging.warning(f"Enhanced mode not available: {e}")
+
+logger = logging.getLogger(__name__)
 
 def log(msg):
     print("[{}] {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), msg))
@@ -46,12 +66,19 @@ class SignalProcessingBridge:
         rtl_tcp_host (str): Host for RTL-TCP server (default 'localhost').
         rtl_tcp_port (int): Port for RTL-TCP server (default 1234).
         fob_model (str): Key fob model for detection settings (default "BMW_X1_2023").
+        enhanced_mode (bool): Use enhanced signal processing with AutomotiveSignalAnalyzer (default False).
 
     Example:
+        # Legacy mode
         bridge = SignalProcessingBridge(rtl_server_manager)
         asyncio.run(bridge.start_signal_processing())
+        
+        # Enhanced mode
+        bridge = SignalProcessingBridge(rtl_server_manager, enhanced_mode=True)
+        asyncio.run(bridge.start_signal_processing())
     """
-    def __init__(self, rtl_server_manager, rtl_tcp_host='localhost', rtl_tcp_port=1234, fob_model="BMW_X1_2023"):
+    def __init__(self, rtl_server_manager, rtl_tcp_host='localhost', rtl_tcp_port=1234, 
+                 fob_model="BMW_X1_2023", enhanced_mode=False):
         self.rtl_server = rtl_server_manager
         self.rtl_tcp_host = rtl_tcp_host
         self.rtl_tcp_port = rtl_tcp_port
@@ -61,6 +88,19 @@ class SignalProcessingBridge:
         self._last_cooldown_log_time = 0
         self._last_burst_time = 0
         self.fob_settings = FOB_SETTINGS.get(fob_model, FOB_SETTINGS["BMW_X1_2023"])
+        self.enhanced_mode = enhanced_mode
+        
+        # Initialize enhanced bridge if requested and available
+        self.enhanced_bridge = None
+        if enhanced_mode:
+            if ENHANCED_MODE_AVAILABLE:
+                self.enhanced_bridge = EnhancedSignalProcessingBridge(
+                    rtl_server_manager, rtl_tcp_host, rtl_tcp_port
+                )
+                log("Enhanced signal processing mode enabled")
+            else:
+                log("Enhanced mode requested but not available, falling back to legacy mode")
+                self.enhanced_mode = False
 
     async def start_signal_processing(self):
         """
@@ -70,6 +110,13 @@ class SignalProcessingBridge:
         Example:
             await bridge.start_signal_processing()
         """
+        # Use enhanced bridge if available and enabled
+        if self.enhanced_mode and self.enhanced_bridge:
+            log("Starting enhanced signal processing")
+            return await self.enhanced_bridge.start_signal_processing()
+        
+        # Fall back to legacy processing
+        log("Starting legacy signal processing")
         self.processing_active = True
         while self.processing_active:
             try:

@@ -27,13 +27,22 @@
 - **Programming**: MicroPython for rapid development
 - **Power**: USB or external 5V supply
 - **Cost**: ~$6 USD (extremely cost-effective)
-- **Role**: Dedicated alert system, NFC interface, physical indicators
+- **Role**: Dedicated alert system, NFC correlation system, multi-modal attack detection
+
+#### PN532 NFC Module
+- **Interface**: SPI connection to Pico W
+- **Frequency**: 13.56 MHz NFC/RFID
+- **Range**: ~5-7cm for proximity detection
+- **Standards**: ISO/IEC 14443A/MIFARE, FeliCa, ISO/IEC 14443B
+- **Role**: Physical proximity detection for multi-modal attack correlation
+- **Cost**: ~$8 USD
+- **Power**: 3.3V from Pico W
 
 ### Signal Processing & Analysis Stack
 
 #### NumPy Ecosystem
 - **NumPy**: Core numerical computing, FFT operations, array processing
-- **SciPy**: Advanced signal processing functions (filters, spectrograms)
+- **SciPy**: Advanced signal processing functions (filters, spectrograms, peak detection)
 - **Matplotlib**: Signal visualization and debugging (development only)
 - **Performance**: Vectorized operations for real-time processing
 
@@ -42,14 +51,33 @@
 - **GNU Radio**: Optional advanced signal processing (future enhancement)
 - **Custom DSP**: Tailored algorithms for automotive signal patterns
 
+#### Enhanced Automotive Signal Analysis (NEW)
+- **AutomotiveSignalAnalyzer**: Advanced FSK detection and pattern recognition
+- **Signal History Buffer**: Temporal analysis for replay attack detection
+- **Threat Detection Engine**: Multi-algorithm threat classification
+- **Real-time Processing**: <100ms latency for threat detection
+- **Confidence Scoring**: Advanced multi-factor confidence calculation
+- **NFC Correlation System**: Multi-modal attack detection combining RF and NFC
+- **Brute Force Detector**: Enhanced temporal analysis with multiple time windows
+- **Multi-Modal Evidence Collection**: Comprehensive technical evidence gathering
+
 ### User Interface & Visualization
 
 #### Rich Terminal UI Framework
 - **Rich**: Modern terminal UI with colors, tables, progress bars
-- **Features**: Live updating displays, syntax highlighting, emoji support
+- **Features**: Live updating displays, syntax highlighting, emoji support, signal visualization
 - **Advantages**: Professional appearance, cross-platform, no GUI dependencies
 - **Performance**: Minimal overhead, suitable for real-time updates
 - **Demo-friendly**: Excellent for presentations and screenshots
+- **Enhanced Dashboard**: Signal analysis visualization, technical evidence presentation, event navigation
+
+#### CLI Dashboard Components (NEW)
+- **Event Table**: Minimalistic styling with box.SIMPLE, fixed row wrapping, consistent formatting
+- **Signal Metrics Panel**: RSSI, SNR, modulation type, burst count visualization with progress bars
+- **Technical Evidence Panel**: Attack-specific evidence presentation with proper formatting
+- **Navigation System**: Event history navigation with keyboard controls
+- **NFC Correlation**: Visual indicators for multi-modal attacks involving RF and NFC
+- **Layout Optimization**: Maximized event table space (75%) with analysis/evidence panels at bottom
 
 #### Logging & Monitoring
 - **Python logging**: Structured logging with configurable levels
@@ -77,6 +105,47 @@
 - **pytest.ini**: Test configuration and markers
 
 ## Key Libraries & Frameworks
+
+### Enhanced Signal Processing Libraries (NEW)
+- **SciPy**: Advanced signal processing functions
+  - **Use Cases**: Peak detection, signal filtering, correlation analysis
+  - **Features**: FFT operations, signal analysis tools, find_peaks function
+  - **Integration**: Core component of AutomotiveSignalAnalyzer
+  - **Performance**: Optimized numerical algorithms for real-time processing
+
+### Hardware Management Libraries (NEW)
+- **Serial**: Hardware communication for Pico W deployment
+  - **Use Cases**: Automated code deployment, device detection, file upload
+  - **Features**: Cross-platform serial communication, device enumeration
+  - **Integration**: Pico W deployment automation system
+  - **Performance**: Reliable hardware communication with timeout handling
+
+### Validation & Testing Libraries (NEW)
+- **scikit-learn**: Machine learning metrics for validation framework
+  - **Use Cases**: Confusion matrix generation, classification reports, accuracy metrics
+  - **Features**: Precision, recall, F1-score calculation, model evaluation
+  - **Integration**: Detection accuracy validation system
+  - **Performance**: Comprehensive validation metrics for >90% accuracy requirement
+
+- **matplotlib**: Visualization for validation results
+  - **Use Cases**: Confusion matrix visualization, performance charts
+  - **Features**: Publication-quality plots, heatmaps, statistical charts
+  - **Integration**: Validation framework result visualization
+  - **Performance**: High-quality graphics for technical documentation
+
+### Threading & Concurrency (NEW)
+- **Threading**: Signal history buffer thread safety
+  - **Use Cases**: Concurrent signal storage and retrieval
+  - **Features**: RLock for thread-safe operations, deque for efficient buffering
+  - **Integration**: SignalHistoryBuffer concurrent access
+  - **Performance**: Non-blocking signal analysis with thread-safe operations
+
+### Asynchronous Programming (NEW)
+- **asyncio**: MicroPython asynchronous I/O
+  - **Use Cases**: NFC detection, correlation timeout, event management
+  - **Features**: Concurrent task execution, event loop, async/await syntax
+  - **Integration**: NFC correlation system, server communication
+  - **Performance**: Non-blocking I/O for responsive correlation system
 
 ### Web Framework (Future Expansion)
 - **FastAPI**: Modern async web framework
@@ -181,69 +250,108 @@ pip install -e .                          # Install project in development mode
 
 ### System Operation Workflows
 
-#### Development Mode (Mock Data)
+#### Development Mode (Mock Data) - RECOMMENDED FOR DEMO
 ```bash
-# Start CLI dashboard with simulated data
-python cli_dashboard.py --mock
+# Start CLI dashboard with simulated data (RECOMMENDED)
+uv run python cli_dashboard.py --mock
 
-# Benefits: No hardware required, predictable test data, demo-ready
+# Advanced demo with synthetic signal generation
+uv run python cli_dashboard.py --mock --synthetic
+
+# Start CLI dashboard with specific event selection
+uv run python cli_dashboard.py --mock --event 3  # Show event #3 with technical evidence
+
+# Benefits: No hardware required, predictable test data, demo-ready, event navigation
+```
+
+### Automated System Launch (Real Hardware)
+```bash
+# Complete system with automatic hardware detection
+uv run python real_hardware_launcher.py
+
+# Force demo mode for presentations (system-wide)
+uv run python real_hardware_launcher.py --force-mock
+
+# Custom frequency configuration
+uv run python real_hardware_launcher.py --frequency 315000000
+
+# Benefits: Automatic hardware detection, graceful fallback, comprehensive monitoring
 ```
 
 #### Hardware Mode (Live RF)
 ```bash
 # Terminal 1: Start RTL-SDR server
-python rtl_sdr/rtl_tcp_server.py
+uv run python rtl_sdr/rtl_tcp_server.py
 
 # Terminal 2: Start signal processing bridge
-python rtl_sdr/signal_bridge.py
+uv run python rtl_sdr/signal_bridge.py
 
 # Terminal 3: Start CLI dashboard
-python cli_dashboard.py --source tcp --tcp-host localhost --tcp-port 8888
+uv run python cli_dashboard.py --source tcp --tcp-host localhost --tcp-port 8888
 
 # Alternative: Use startup orchestration script
-python rtl_sdr/startup_server.py
+uv run python rtl_sdr/startup_server.py
 ```
 
 #### API Mode (Future)
 ```bash
 # Start web API server
-uvicorn main:app --reload --port 8000
+uv run uvicorn main:app --reload --port 8000
 
 # Start dashboard with API polling
-python cli_dashboard.py --source api --api-url http://localhost:8000/events
+uv run python cli_dashboard.py --source api --api-url http://localhost:8000/events
 ```
 
 ### Testing & Quality Assurance
 ```bash
 # Run complete test suite
-pytest                                     # All tests
-pytest --cov                              # With coverage report
-pytest --cov-report=html                  # HTML coverage report
+uv run pytest                                     # All tests
+uv run pytest --cov                              # With coverage report
+uv run pytest --cov-report=html                  # HTML coverage report
 
 # Run specific test categories
-pytest -m "not slow"                      # Skip slow tests (hardware)
-pytest -m integration                     # Only integration tests
-pytest -m hardware                        # Only hardware tests (requires RTL-SDR)
-pytest -m unit                           # Only unit tests
+uv run pytest -m "not slow"                      # Skip slow tests (hardware)
+uv run pytest -m integration                     # Only integration tests
+uv run pytest -m hardware                        # Only hardware tests (requires RTL-SDR)
+uv run pytest -m unit                           # Only unit tests
 
 # Run tests with verbose output
-pytest -v                                 # Verbose test names
-pytest -s                                # Show print statements
-pytest --tb=short                        # Shorter traceback format
+uv run pytest -v                                 # Verbose test names
+uv run pytest -s                                # Show print statements
+uv run pytest --tb=short                        # Shorter traceback format
+```
+
+### Validation & Demo Testing (NEW)
+```bash
+# CLI Dashboard Demo (RECOMMENDED for presentations)
+uv run python cli_dashboard.py --mock                    # Basic demo mode
+uv run python cli_dashboard.py --mock --synthetic        # Advanced synthetic signals
+
+# Detection accuracy validation (>90% requirement)
+uv run python utils/validate_detection_accuracy.py
+uv run python utils/validate_detection_accuracy.py --samples 200 --output-dir results
+
+# Demo scenario testing
+uv run python demo_scenarios.py --scenario comprehensive
+uv run python demo_scenarios.py --scenario replay --output replay_events.json
+
+# Hardware system validation
+uv run python real_hardware_launcher.py --force-mock  # Test without hardware
+uv run python -c "from hardware import HardwareManager; import asyncio; asyncio.run(HardwareManager().initialize())"
 ```
 
 ### Code Quality Checks
 ```bash
 # Format code
-black .                                   # Format all Python files
-isort .                                   # Sort imports
+uv run black .                                   # Format all Python files
+uv run isort .                                   # Sort imports
 
 # Check code quality
-flake8                                    # Style and complexity checks
-mypy .                                    # Type checking
+uv run flake8                                    # Style and complexity checks
+uv run mypy .                                    # Type checking
 
 # Run all quality checks
-black . && isort . && flake8 && mypy .   # Complete quality pipeline
+uv run black . && uv run isort . && uv run flake8 && uv run mypy .   # Complete quality pipeline
 ```
 
 ### Hardware Testing & Diagnostics
@@ -268,7 +376,12 @@ rtl_fm -f 433.92M -M fm -s 200k          # Listen to specific frequency
 # 2. Copy micropython.uf2 to RPI-RP2 drive
 # 3. Device will reboot with MicroPython
 
-# Deploy code to Pico W
+# Automated deployment (NEW - RECOMMENDED)
+uv run python deploy_pico.py                    # Auto-detect port and deploy
+uv run python deploy_pico.py COM3               # Specify port (Windows)
+uv run python deploy_pico.py /dev/ttyACM0       # Specify port (Linux)
+
+# Manual deployment (LEGACY)
 # Use Thonny IDE or rshell for file transfer
 rshell -p COM3                           # Connect to Pico W (Windows)
 rshell -p /dev/ttyACM0                   # Connect to Pico W (Linux)

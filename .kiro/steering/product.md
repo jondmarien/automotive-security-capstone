@@ -52,11 +52,17 @@ Modern vehicles contain numerous wireless communication systems (key fobs, tire 
 - **Automotive-specific Heuristics**: Tailored detection rules for vehicle systems
 
 #### 4. Real-time Monitoring Interface
-- **Rich CLI Dashboard**: Professional terminal-based monitoring interface
+- **Enhanced Rich CLI Dashboard**: Professional terminal-based monitoring interface
   - Live event streaming with color-coded threat levels
+  - Signal analysis visualization with RSSI, SNR, modulation type metrics
+  - Technical evidence presentation with detailed attack-specific information
+  - Event navigation system for historical event analysis
+  - NFC correlation indicators for multi-modal attack detection
+  - Optimized layout with maximized event table space
   - Historical event logging and analysis
   - System health monitoring and diagnostics
   - Demo mode for presentations without hardware
+  - Event selection mode for specific event analysis
 
 #### 5. Physical Alert System
 - **Raspberry Pi Pico W**: Dedicated hardware for immediate threat response
