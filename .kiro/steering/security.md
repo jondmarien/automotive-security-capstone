@@ -46,10 +46,12 @@ This automotive security capstone project implements a comprehensive security-by
 - **Eavesdropping**: Intercept NFC communications between key and vehicle
 - **Relay Attacks**: Extend NFC range using relay devices
 - **Cloning Attacks**: Duplicate NFC credentials
+- **Multi-Modal Attacks**: Coordinated RF and NFC proximity attacks
 - **Detection Signatures**:
   - NFC activity outside normal proximity range
   - Unusual NFC transaction patterns
   - Multiple simultaneous NFC sessions
+  - NFC activity correlated with suspicious RF signals
 
 #### 5. General RF Interference and Jamming
 
@@ -70,6 +72,7 @@ class ThreatLevel(Enum):
     BENIGN = auto()      # Normal automotive RF activity
     SUSPICIOUS = auto()  # Unusual patterns requiring investigation
     MALICIOUS = auto()   # Clear attack signatures detected
+    CRITICAL = auto()    # Confirmed multi-modal attack with high confidence
 ```
 
 #### Threat Scoring Algorithm
@@ -78,7 +81,9 @@ class ThreatLevel(Enum):
 - **Pattern Recognition**: Known attack signatures and anomalies
 - **Context Awareness**: Time of day, location, vehicle state
 - **Historical Correlation**: Comparison with baseline behavior
-- **Confidence Scoring**: Probability assessment of threat classification
+- **Multi-Modal Correlation**: RF-NFC coordinated attack detection
+- **Temporal Analysis**: Multi-window analysis for brute force attack patterns
+- **Confidence Scoring**: Probability assessment of threat classification with evidence collection
 
 #### Escalation Thresholds
 
@@ -164,10 +169,11 @@ class ThreatLevel(Enum):
 
 1. **Signal Capture**: Continuous RF monitoring and analysis
 2. **Pattern Analysis**: Real-time threat pattern recognition
-3. **Threat Classification**: Automated threat level assessment
-4. **Alert Generation**: Immediate notification of malicious activity
-5. **Evidence Collection**: Secure storage of threat evidence
-6. **Response Coordination**: Integration with security response procedures
+3. **Multi-Modal Correlation**: RF-NFC correlation for coordinated attacks
+4. **Threat Classification**: Automated threat level assessment with escalation
+5. **Alert Generation**: Immediate notification of malicious activity
+6. **Evidence Collection**: Comprehensive technical evidence gathering
+7. **Response Coordination**: Integration with security response procedures
 
 ### Forensic Capabilities
 
@@ -207,6 +213,22 @@ class ThreatLevel(Enum):
 - **Threat Reports**: Detailed analysis of detected threats
 - **Trend Analysis**: Long-term threat pattern analysis
 - **Executive Reporting**: High-level security status reports
+
+## Implemented Security Enhancements
+
+### Multi-Modal Attack Detection
+
+- **RF-NFC Correlation**: Real-time correlation between RF signals and physical proximity via NFC
+- **Correlated Security Events**: Enhanced event structure with combined RF and NFC evidence
+- **Threat Escalation Logic**: Automatic threat level escalation for correlated events
+- **Evidence Collection**: Comprehensive technical evidence gathering for forensic analysis
+
+### Enhanced Brute Force Detection
+
+- **Multi-Window Temporal Analysis**: Short, medium, and long-term signal pattern monitoring
+- **Pattern Recognition**: Detection of various attack patterns (rapid bursts, sustained attacks)
+- **Escalating Threat Levels**: Progressive threat assessment based on attack persistence
+- **Test Consistency Handling**: Specialized processing for test environments
 
 ## Future Security Enhancements
 

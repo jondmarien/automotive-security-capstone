@@ -21,6 +21,10 @@ dependencies = [
     "motor>=3.7.1",
     "numpy>=1.26.4",
     "asyncio>=3.4.3",
+    "aiohttp>=3.12.15",
+    "matplotlib>=3.10.3",
+    "scikit-learn>=1.7.1",
+    "seaborn>=0.13.2",
 ]
 
 [tool.hatch.build.targets.wheel]
