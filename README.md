@@ -4,6 +4,8 @@ This repository contains the full proof-of-concept (POC) codebase for an automot
 
 **NEW**: The system now includes comprehensive hardware management with automatic detection, failure recovery, synthetic event generation for validation, and organized logging infrastructure for production-ready deployment.
 
+<img width="1634" height="754" alt="image" src="https://github.com/user-attachments/assets/b2d988be-8661-441e-9f8b-632c85889117" />
+
 ---
 
 ## Project Structure
