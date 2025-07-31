@@ -335,6 +335,9 @@ def render_dashboard(events, selected_event, status_text, console, selected_even
     evidence_panel = render_evidence_panel(selected_event) if selected_event else Text("No evidence data available")
     
     # Pagination: Show 10 events per page
+    # NOTE: Current custom pagination works well for our needs, but if future requirements demand more
+    # advanced features, we should consider migrating to Rich's Pager component for large-table navigation.
+    # See: https://rich.readthedocs.io/en/latest/console.html#paging
     EVENTS_PER_PAGE = 10
     total_pages = max(1, (len(events) + EVENTS_PER_PAGE - 1) // EVENTS_PER_PAGE)
     

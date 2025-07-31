@@ -546,7 +546,91 @@ def generate_synthetic_brute_force_attack(step):
     # Select a manufacturer to target
     manufacturer = random.choice(DEFAULT_MANUFACTURERS)
     
+    # Define the steps in a brute force attack
+    steps = {
+        0: {
+            "type": "RF Scan",
+            "details": "Suspicious RF scanning activity detected.",
+            "threat": "Suspicious",
+            "color": "yellow",
+            "evidence": [
+                "Multiple frequency scanning detected",
+                "Sequential code pattern observed",
+                "Rapid transmission bursts"
+            ]
+        },
+        1: {
+            "type": "Brute Force",
+            "details": "Possible brute force attempt detected.",
+            "threat": "Suspicious",
+            "color": "yellow",
+            "evidence": [
+                "Sequential code patterns",
+                "Rapid transmission rate",
+                "Multiple frequency attempts"
+            ]
+        },
+        2: {
+            "type": "Brute Force",
+            "details": "Brute force attack in progress!",
+            "threat": "Malicious",
+            "color": "red",
+            "evidence": [
+                "Systematic code sequence detected",
+                "High-speed transmission pattern",
+                "Multiple rolling code attempts",
+                "Authentication bypass attempts"
+            ]
+        },
+        3: {
+            "type": "Brute Force",
+            "details": "Brute force attack continuing!",
+            "threat": "Malicious",
+            "color": "red",
+            "evidence": [
+                "Continued systematic code attempts",
+                "Accelerated transmission rate",
+                "Pattern suggests automated tool",
+                "Multiple authentication failures"
+            ]
+        },
+        4: {
+            "type": "Brute Force",
+            "details": "Advanced brute force attack detected!",
+            "threat": "Malicious",
+            "color": "red",
+            "evidence": [
+                "Sophisticated brute force pattern",
+                "Optimized code sequence detected",
+                "Targeted manufacturer vulnerabilities",
+                "Possible pre-computation attack"
+            ]
+        }
+    }
+    
+    # Get the appropriate step data or default to the last step
+    step_data = steps.get(step, steps[4])
+    
+    # Base event structure
+    event = {
+        "timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
+        "id": random.randint(10000, 99999),
+        "frequency": KEY_FOB_FREQUENCIES[random.choice(list(KEY_FOB_FREQUENCIES.keys()))],
+        "modulation": ModulationType.FSK.value,  # Brute force often uses FSK for faster data rate
+        "rssi": random.uniform(-70, -50),  # Moderate signal strength
+        "snr": random.uniform(10, 20),     # Moderate SNR
+        "burst_count": random.randint(10, 30),  # Many bursts in brute force
+        "type": step_data["type"],
+        "details": step_data["details"],
+        "threat": step_data["threat"],
+        "color": step_data["color"],
+        "source": random.choice(list(MANUFACTURER_PARAMETERS.keys())),
+        "nfc_correlated": False,  # Brute force typically doesn't involve NFC
+        "evidence": step_data["evidence"]
+    }
+    
     # Get manufacturer-specific parameters
+    manufacturer = event["source"]
     if manufacturer in MANUFACTURER_PARAMETERS:
         params = MANUFACTURER_PARAMETERS[manufacturer]
         frequency = params["frequency"]
@@ -578,54 +662,270 @@ def generate_synthetic_brute_force_attack(step):
         details = f"Brute Force Attack Detected ({step+1} attempts)"
         confidence = random.uniform(0.8, 0.95)
     
-    # Create the brute force event
+    # Add technical evidence
+    event["technical_evidence"] = {
+        "signal_analysis": {
+            "frequency_stability": "Unstable",
+            "modulation_quality": "Poor",
+            "signal_strength_pattern": "Consistent (suspicious)",
+            "burst_timing": f"Rapid ({event['burst_count']} bursts)",
+            "code_sequence": "Sequential pattern detected"
+        },
+        "authentication_analysis": {
+            "rolling_code": "Multiple invalid attempts",
+            "checksum": "Valid but suspicious pattern",
+            "encryption": "Systematic attack pattern",
+            "attempt_frequency": f"{random.uniform(5.0, 15.0):.1f} attempts/second"
+        },
+        "attack_indicators": {
+            "attack_type": AttackType.BRUTE_FORCE.value,
+            "confidence": f"{random.uniform(85, 98):.1f}%",
+            "similar_attacks": f"Matches {random.randint(2, 5)} known patterns",
+            "first_observed": (datetime.now().timestamp() - random.randint(30, 120))
+        }
+    }
+    
+    return event
+
+
+def generate_synthetic_signal_cloning_attack(step):
+    """
+    Generate a synthetic signal cloning attack event.
+    
+    Signal cloning is an attack where the attacker captures a legitimate signal,
+    analyzes its characteristics, and then creates a clone with identical properties.
+    Unlike replay attacks that simply record and replay, cloning recreates the signal.
+    
+    Args:
+        step (int): The step in the signal cloning attack sequence
+        
+    Returns:
+        dict: A synthetic signal cloning attack event
+    """
+    # Define the steps in a signal cloning attack
+    steps = {
+        0: {
+            "type": "RF Scan",
+            "details": "Suspicious RF scanning activity detected.",
+            "threat": "Suspicious",
+            "color": "yellow",
+            "evidence": [
+                "Signal analyzer detected",
+                "Frequency hopping pattern observed",
+                "Multiple manufacturer frequencies scanned"
+            ]
+        },
+        1: {
+            "type": "RF Capture",
+            "details": "Key fob signal capture attempt detected.",
+            "threat": "Suspicious",
+            "color": "yellow",
+            "evidence": [
+                "Targeted frequency monitoring",
+                "Signal recording pattern detected",
+                "Unusual RF activity near vehicle"
+            ]
+        },
+        2: {
+            "type": "Signal Analysis",
+            "details": "Signal analysis activity detected.",
+            "threat": "Suspicious",
+            "color": "yellow",
+            "evidence": [
+                "Repeated signal pattern analysis",
+                "Demodulation attempt detected",
+                "Signal parameter extraction observed"
+            ]
+        },
+        3: {
+            "type": "Signal Cloning",
+            "details": "Signal cloning attack detected!",
+            "threat": "Malicious",
+            "color": "red",
+            "evidence": [
+                "Artificially generated signal detected",
+                "Signal matches authorized key fob pattern",
+                "Non-standard signal generation hardware detected",
+                "Signal lacks proper rolling code progression"
+            ]
+        },
+        4: {
+            "type": "Signal Cloning",
+            "details": "Signal cloning attack in progress!",
+            "threat": "Malicious",
+            "color": "red",
+            "evidence": [
+                "Multiple cloned signals detected",
+                "Cloned signal attempting authentication",
+                "Authentication bypass attempt detected",
+                "Signal characteristics match known cloning attack pattern"
+            ]
+        }
+    }
+    
+    # Get the appropriate step data or default to the last step
+    step_data = steps.get(step, steps[4])
+    
+    # Base event structure
     event = {
         "timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
-        "type": "Brute Force",
-        "threat": threat_level,
-        "details": details,
-        "source": "Synthetic",
-        "frequency": frequency,
-        "modulation_type": modulation,
-        "signal_strength": signal_strength,
-        "signal_quality": signal_quality,
-        "snr_db": snr,
-        "power_db": power_db,
-        "burst_pattern": f"{modulation} {int(frequency/1e6)} MHz",
-        "peak_count": random.randint(3, 6),
-        "key_fob_id": key_fob_id,
-        "manufacturer": manufacturer,
-        "rolling_code": f"{rolling_code:x}",
-        "technical_evidence": [
-            {
-                "type": "Signal Analysis",
-                "details": {
-                    "frequency_mhz": f"{frequency/1e6:.2f}",
-                    "modulation": modulation,
-                    "signal_strength": f"{signal_strength:.2f}",
-                    "signal_quality": f"{signal_quality:.2f}",
-                    "snr_db": f"{snr:.1f}",
-                    "power_dbm": f"{power_db:.1f}"
-                }
-            },
-            {
-                "type": "Brute Force Indicators",
-                "details": {
-                    "attempt_number": f"{step+1}",
-                    "key_fob_id": key_fob_id,
-                    "target_manufacturer": manufacturer,
-                    "rolling_code": f"0x{rolling_code:x}",
-                    "code_sequence": "Rapid" if step > 2 else "Unusual",
-                    "timing_pattern": "Abnormal" if step > 3 else "Irregular",
-                    "confidence": f"{confidence:.2f}"
-                }
-            }
-        ],
-        "attack_metadata": {
-            "attack_type": AttackType.BRUTE_FORCE.value,
-            "attempt": step + 1,
-            "target_manufacturer": manufacturer,
-            "confidence": confidence
+        "id": random.randint(10000, 99999),
+        "frequency": KEY_FOB_FREQUENCIES[random.choice(list(KEY_FOB_FREQUENCIES.keys()))],
+        "modulation": ModulationType.ASK.value,  # Signal cloning often uses ASK for simplicity
+        "rssi": random.uniform(-60, -40),  # Strong signal for cloning device
+        "snr": random.uniform(15, 25),     # Good SNR for a cloning device
+        "burst_count": random.randint(3, 8),
+        "type": step_data["type"],
+        "details": step_data["details"],
+        "threat": step_data["threat"],
+        "color": step_data["color"],
+        "source": random.choice(list(MANUFACTURER_PARAMETERS.keys())),
+        "nfc_correlated": False,  # Signal cloning typically doesn't involve NFC
+        "evidence": step_data["evidence"]
+    }
+    
+    # Add technical evidence
+    event["technical_evidence"] = {
+        "signal_analysis": {
+            "frequency_stability": "Abnormal",
+            "modulation_quality": "Suspicious",
+            "signal_strength_pattern": "Consistent (unusual)",
+            "burst_timing": f"Uniform ({event['burst_count']} bursts)",
+            "frequency_deviation": f"{random.uniform(1.5, 3.5):.2f} kHz (non-standard)"
+        },
+        "authentication_analysis": {
+            "rolling_code": "Invalid progression detected",
+            "checksum": "Valid but suspicious",
+            "encryption": "Attempted bypass detected",
+            "challenge_response": "Failed verification"
+        },
+        "attack_indicators": {
+            "attack_type": AttackType.SIGNAL_CLONING.value,
+            "confidence": f"{random.uniform(85, 98):.1f}%",
+            "similar_attacks": f"Matches {random.randint(2, 5)} known patterns",
+            "first_observed": (datetime.now().timestamp() - random.randint(30, 300))
+        }
+    }
+    
+    return event
+
+
+def generate_synthetic_relay_attack(step):
+    """
+    Generate a synthetic relay attack event.
+    
+    A relay attack is where attackers use signal amplifiers to extend the range of a legitimate key fob,
+    making the car think the key is nearby when it's actually far away.
+    
+    Args:
+        step (int): The step in the relay attack sequence
+        
+    Returns:
+        dict: A synthetic relay attack event
+    """
+    # Define the steps in a relay attack
+    steps = {
+        0: {
+            "type": "RF Anomaly",
+            "details": "Unusual RF signal pattern detected.",
+            "threat": "Suspicious",
+            "color": "yellow",
+            "evidence": [
+                "Signal amplification detected",
+                "Unusual signal propagation pattern",
+                "Non-standard signal strength fluctuation"
+            ]
+        },
+        1: {
+            "type": "Range Extension",
+            "details": "Possible signal range extension detected.",
+            "threat": "Suspicious",
+            "color": "yellow",
+            "evidence": [
+                "Signal strength inconsistent with distance",
+                "Multiple signal paths detected",
+                "Signal relay characteristics observed"
+            ]
+        },
+        2: {
+            "type": "Relay Attack",
+            "details": "Relay attack detected!",
+            "threat": "Malicious",
+            "color": "red",
+            "evidence": [
+                "Signal amplification confirmed",
+                "Key presence verification failed",
+                "Multiple signal relay points detected",
+                "Signal latency indicates relay"
+            ]
+        },
+        3: {
+            "type": "Relay Attack",
+            "details": "Relay attack in progress!",
+            "threat": "Malicious",
+            "color": "red",
+            "evidence": [
+                "Active signal relay detected",
+                "Authentication bypass attempt",
+                "Signal characteristics match relay attack",
+                "Proximity verification failed"
+            ]
+        },
+        4: {
+            "type": "Relay Attack",
+            "details": "Advanced relay attack detected!",
+            "threat": "Malicious",
+            "color": "red",
+            "evidence": [
+                "Sophisticated relay equipment detected",
+                "Multiple relay stages identified",
+                "Signal amplification with minimal latency",
+                "Attempting to bypass distance-bounding protocols"
+            ]
+        }
+    }
+    
+    # Get the appropriate step data or default to the last step
+    step_data = steps.get(step, steps[4])
+    
+    # Base event structure
+    event = {
+        "timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
+        "id": random.randint(10000, 99999),
+        "frequency": KEY_FOB_FREQUENCIES[random.choice(list(KEY_FOB_FREQUENCIES.keys()))],
+        "modulation": random.choice([m.value for m in ModulationType]),
+        "rssi": random.uniform(-50, -30),  # Very strong signal due to amplification
+        "snr": random.uniform(10, 20),     # Moderate SNR due to relay noise
+        "burst_count": random.randint(2, 5),
+        "type": step_data["type"],
+        "details": step_data["details"],
+        "threat": step_data["threat"],
+        "color": step_data["color"],
+        "source": random.choice(list(MANUFACTURER_PARAMETERS.keys())),
+        "nfc_correlated": False,  # Relay attacks typically don't involve NFC
+        "evidence": step_data["evidence"]
+    }
+    
+    # Add technical evidence
+    event["technical_evidence"] = {
+        "signal_analysis": {
+            "frequency_stability": "Normal (suspicious)",
+            "modulation_quality": "Good (suspicious)",
+            "signal_strength": f"{event['rssi']:.1f} dBm (abnormally high)",
+            "signal_path": "Multiple paths detected",
+            "propagation_delay": f"{random.uniform(1.5, 4.5):.2f} ms (abnormal)"
+        },
+        "authentication_analysis": {
+            "rolling_code": "Valid but suspicious timing",
+            "proximity_check": "Failed",
+            "signal_origin": "Inconsistent",
+            "time_of_flight": "Extended (suspicious)"
+        },
+        "attack_indicators": {
+            "attack_type": AttackType.RELAY.value,
+            "confidence": f"{random.uniform(80, 95):.1f}%",
+            "similar_attacks": f"Matches {random.randint(1, 4)} known patterns",
+            "first_observed": (datetime.now().timestamp() - random.randint(30, 180))
         }
     }
     
@@ -656,7 +956,9 @@ async def generate_synthetic_event():
         ScenarioType.NORMAL_OPERATION.value,
         ScenarioType.REPLAY_ATTACK.value,
         ScenarioType.JAMMING_ATTACK.value,
-        ScenarioType.BRUTE_FORCE_ATTACK.value
+        ScenarioType.BRUTE_FORCE_ATTACK.value,
+        ScenarioType.SIGNAL_CLONING_ATTACK.value,
+        ScenarioType.RELAY_ATTACK.value
     ]
     
     # Scenario state tracking
@@ -664,16 +966,20 @@ async def generate_synthetic_event():
         ScenarioType.NORMAL_OPERATION.value: {"step": 0, "last_time": datetime.now()},
         ScenarioType.REPLAY_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False},
         ScenarioType.JAMMING_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False},
-        ScenarioType.BRUTE_FORCE_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False}
+        ScenarioType.BRUTE_FORCE_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False},
+        ScenarioType.SIGNAL_CLONING_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False},
+        ScenarioType.RELAY_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False}
     }
     
     # Probability weights for different scenarios
     # Normal operation should be most common, followed by occasional attacks
     scenario_weights = {
-        ScenarioType.NORMAL_OPERATION.value: 0.6,  # 60% chance for normal events
-        ScenarioType.REPLAY_ATTACK.value: 0.15,    # 15% chance for replay attacks
-        ScenarioType.JAMMING_ATTACK.value: 0.15,   # 15% chance for jamming attacks
-        ScenarioType.BRUTE_FORCE_ATTACK.value: 0.1 # 10% chance for brute force attacks
+        ScenarioType.NORMAL_OPERATION.value: 0.5,  # 50% chance for normal events
+        ScenarioType.REPLAY_ATTACK.value: 0.1,     # 10% chance for replay attacks
+        ScenarioType.JAMMING_ATTACK.value: 0.1,    # 10% chance for jamming attacks
+        ScenarioType.BRUTE_FORCE_ATTACK.value: 0.1,# 10% chance for brute force attacks
+        ScenarioType.SIGNAL_CLONING_ATTACK.value: 0.1, # 10% chance for signal cloning attacks
+        ScenarioType.RELAY_ATTACK.value: 0.1       # 10% chance for relay attacks
     }
     
     while True:
@@ -761,6 +1067,26 @@ async def generate_synthetic_event():
             if scenario_step >= random.randint(4, 8):
                 scenario_states[current_scenario]["in_progress"] = False
                 logging.info("Brute force attack sequence completed")
+                
+        elif current_scenario == ScenarioType.SIGNAL_CLONING_ATTACK.value:
+            event = generate_synthetic_signal_cloning_attack(scenario_step)
+            scenario_states[current_scenario]["step"] += 1
+            await asyncio.sleep(0.7)  # Signal cloning happens at moderate pace
+            
+            # End the signal cloning attack sequence after several steps
+            if scenario_step >= random.randint(3, 5):
+                scenario_states[current_scenario]["in_progress"] = False
+                logging.info("Signal cloning attack sequence completed")
+                
+        elif current_scenario == ScenarioType.RELAY_ATTACK.value:
+            event = generate_synthetic_relay_attack(scenario_step)
+            scenario_states[current_scenario]["step"] += 1
+            await asyncio.sleep(0.6)  # Relay attacks happen relatively quickly
+            
+            # End the relay attack sequence after several steps
+            if scenario_step >= random.randint(3, 6):
+                scenario_states[current_scenario]["in_progress"] = False
+                logging.info("Relay attack sequence completed")
         
         # Update the last time this scenario was used
         scenario_states[current_scenario]["last_time"] = datetime.now()
