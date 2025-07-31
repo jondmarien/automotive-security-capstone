@@ -350,26 +350,26 @@ brute_detector.rate_thresholds = {
 ### Unit Tests
 ```bash
 # Test automotive signal analyzer
-pytest tests/test_automotive_signal_analyzer.py -v
+uv run pytest tests/test_automotive_signal_analyzer.py -v
 
 # Test brute force detector
-pytest tests/test_brute_force_detector.py -v
+uv run pytest tests/test_brute_force_detector.py -v
 
 # Test NFC correlation system
-pytest tests/test_pico_nfc_correlation.py -v
+uv run pytest tests/test_pico_nfc_correlation.py -v
 
 # Test jamming detector
-pytest tests/test_jamming_detector.py -v
+uv run pytest tests/test_jamming_detector.py -v
 
 # Test enhanced signal bridge
-pytest tests/test_enhanced_signal_bridge.py -v
+uv run pytest tests/test_enhanced_signal_bridge.py -v
 ```
 
 ### Integration Tests
 ```bash
 # Test full enhanced processing pipeline
-pytest tests/test_enhanced_signal_bridge.py::TestEnhancedSignalProcessingBridge::test_full_pipeline -v
+uv run pytest tests/test_enhanced_signal_bridge.py::TestEnhancedSignalProcessingBridge::test_full_pipeline -v
 
 # Test threat detection integration
-pytest tests/test_enhanced_signal_bridge.py::TestEnhancedSignalProcessingBridge::test_threat_detection -v
+uv run pytest tests/test_enhanced_signal_bridge.py::TestEnhancedSignalProcessingBridge::test_threat_detection -v
 ```

@@ -113,6 +113,26 @@
   - **Integration**: Core component of AutomotiveSignalAnalyzer
   - **Performance**: Optimized numerical algorithms for real-time processing
 
+### Hardware Management Libraries (NEW)
+- **Serial**: Hardware communication for Pico W deployment
+  - **Use Cases**: Automated code deployment, device detection, file upload
+  - **Features**: Cross-platform serial communication, device enumeration
+  - **Integration**: Pico W deployment automation system
+  - **Performance**: Reliable hardware communication with timeout handling
+
+### Validation & Testing Libraries (NEW)
+- **scikit-learn**: Machine learning metrics for validation framework
+  - **Use Cases**: Confusion matrix generation, classification reports, accuracy metrics
+  - **Features**: Precision, recall, F1-score calculation, model evaluation
+  - **Integration**: Detection accuracy validation system
+  - **Performance**: Comprehensive validation metrics for >90% accuracy requirement
+
+- **matplotlib**: Visualization for validation results
+  - **Use Cases**: Confusion matrix visualization, performance charts
+  - **Features**: Publication-quality plots, heatmaps, statistical charts
+  - **Integration**: Validation framework result visualization
+  - **Performance**: High-quality graphics for technical documentation
+
 ### Threading & Concurrency (NEW)
 - **Threading**: Signal history buffer thread safety
   - **Use Cases**: Concurrent signal storage and retrieval
@@ -230,72 +250,108 @@ pip install -e .                          # Install project in development mode
 
 ### System Operation Workflows
 
-#### Development Mode (Mock Data)
+#### Development Mode (Mock Data) - RECOMMENDED FOR DEMO
 ```bash
-# Start CLI dashboard with simulated data
-python cli_dashboard.py --mock
+# Start CLI dashboard with simulated data (RECOMMENDED)
+uv run python cli_dashboard.py --mock
+
+# Advanced demo with synthetic signal generation
+uv run python cli_dashboard.py --mock --synthetic
 
 # Start CLI dashboard with specific event selection
-python cli_dashboard.py --mock --event 3  # Show event #3 with technical evidence
+uv run python cli_dashboard.py --mock --event 3  # Show event #3 with technical evidence
 
 # Benefits: No hardware required, predictable test data, demo-ready, event navigation
+```
+
+### Automated System Launch (Real Hardware)
+```bash
+# Complete system with automatic hardware detection
+uv run python real_hardware_launcher.py
+
+# Force demo mode for presentations (system-wide)
+uv run python real_hardware_launcher.py --force-mock
+
+# Custom frequency configuration
+uv run python real_hardware_launcher.py --frequency 315000000
+
+# Benefits: Automatic hardware detection, graceful fallback, comprehensive monitoring
 ```
 
 #### Hardware Mode (Live RF)
 ```bash
 # Terminal 1: Start RTL-SDR server
-python rtl_sdr/rtl_tcp_server.py
+uv run python rtl_sdr/rtl_tcp_server.py
 
 # Terminal 2: Start signal processing bridge
-python rtl_sdr/signal_bridge.py
+uv run python rtl_sdr/signal_bridge.py
 
 # Terminal 3: Start CLI dashboard
-python cli_dashboard.py --source tcp --tcp-host localhost --tcp-port 8888
+uv run python cli_dashboard.py --source tcp --tcp-host localhost --tcp-port 8888
 
 # Alternative: Use startup orchestration script
-python rtl_sdr/startup_server.py
+uv run python rtl_sdr/startup_server.py
 ```
 
 #### API Mode (Future)
 ```bash
 # Start web API server
-uvicorn main:app --reload --port 8000
+uv run uvicorn main:app --reload --port 8000
 
 # Start dashboard with API polling
-python cli_dashboard.py --source api --api-url http://localhost:8000/events
+uv run python cli_dashboard.py --source api --api-url http://localhost:8000/events
 ```
 
 ### Testing & Quality Assurance
 ```bash
 # Run complete test suite
-pytest                                     # All tests
-pytest --cov                              # With coverage report
-pytest --cov-report=html                  # HTML coverage report
+uv run pytest                                     # All tests
+uv run pytest --cov                              # With coverage report
+uv run pytest --cov-report=html                  # HTML coverage report
 
 # Run specific test categories
-pytest -m "not slow"                      # Skip slow tests (hardware)
-pytest -m integration                     # Only integration tests
-pytest -m hardware                        # Only hardware tests (requires RTL-SDR)
-pytest -m unit                           # Only unit tests
+uv run pytest -m "not slow"                      # Skip slow tests (hardware)
+uv run pytest -m integration                     # Only integration tests
+uv run pytest -m hardware                        # Only hardware tests (requires RTL-SDR)
+uv run pytest -m unit                           # Only unit tests
 
 # Run tests with verbose output
-pytest -v                                 # Verbose test names
-pytest -s                                # Show print statements
-pytest --tb=short                        # Shorter traceback format
+uv run pytest -v                                 # Verbose test names
+uv run pytest -s                                # Show print statements
+uv run pytest --tb=short                        # Shorter traceback format
+```
+
+### Validation & Demo Testing (NEW)
+```bash
+# CLI Dashboard Demo (RECOMMENDED for presentations)
+uv run python cli_dashboard.py --mock                    # Basic demo mode
+uv run python cli_dashboard.py --mock --synthetic        # Advanced synthetic signals
+
+# Detection accuracy validation (>90% requirement)
+uv run python utils/validate_detection_accuracy.py
+uv run python utils/validate_detection_accuracy.py --samples 200 --output-dir results
+
+# Demo scenario testing
+uv run python demo_scenarios.py --scenario comprehensive
+uv run python demo_scenarios.py --scenario replay --output replay_events.json
+
+# Hardware system validation
+uv run python real_hardware_launcher.py --force-mock  # Test without hardware
+uv run python -c "from hardware import HardwareManager; import asyncio; asyncio.run(HardwareManager().initialize())"
 ```
 
 ### Code Quality Checks
 ```bash
 # Format code
-black .                                   # Format all Python files
-isort .                                   # Sort imports
+uv run black .                                   # Format all Python files
+uv run isort .                                   # Sort imports
 
 # Check code quality
-flake8                                    # Style and complexity checks
-mypy .                                    # Type checking
+uv run flake8                                    # Style and complexity checks
+uv run mypy .                                    # Type checking
 
 # Run all quality checks
-black . && isort . && flake8 && mypy .   # Complete quality pipeline
+uv run black . && uv run isort . && uv run flake8 && uv run mypy .   # Complete quality pipeline
 ```
 
 ### Hardware Testing & Diagnostics
@@ -320,7 +376,12 @@ rtl_fm -f 433.92M -M fm -s 200k          # Listen to specific frequency
 # 2. Copy micropython.uf2 to RPI-RP2 drive
 # 3. Device will reboot with MicroPython
 
-# Deploy code to Pico W
+# Automated deployment (NEW - RECOMMENDED)
+uv run python deploy_pico.py                    # Auto-detect port and deploy
+uv run python deploy_pico.py COM3               # Specify port (Windows)
+uv run python deploy_pico.py /dev/ttyACM0       # Specify port (Linux)
+
+# Manual deployment (LEGACY)
 # Use Thonny IDE or rshell for file transfer
 rshell -p COM3                           # Connect to Pico W (Windows)
 rshell -p /dev/ttyACM0                   # Connect to Pico W (Linux)

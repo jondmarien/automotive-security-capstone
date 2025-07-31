@@ -211,7 +211,7 @@ Tests for the NFC correlation system are provided in:
 
 ```bash
 # Test NFC correlation functionality
-python -m pytest tests/test_pico_nfc_correlation.py -v
+uv run pytest tests/test_pico_nfc_correlation.py -v
 ```
 
 Test cases validate:

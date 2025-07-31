@@ -25,7 +25,6 @@
 
 - [x] 2. Implement Advanced Threat Detection Engine
 
-
   - Create ThreatDetectionEngine with multiple detection algorithms
   - Implement replay attack detection using signal similarity analysis
   - Add jamming detection for RF interference patterns
@@ -56,7 +55,7 @@
     - Build evidence collection for brute force proof
     - _Requirements: 2.2, 2.5_
 
-- [X] 3. Enhance Pico W NFC Correlation System
+- [x] 3. Enhance Pico W NFC Correlation System
 
   - Upgrade Pico W client with NFC correlation capabilities
   - Implement RF threat triggered NFC scanning
@@ -105,13 +104,12 @@
     - _Requirements: 4.3, 4.4, 5.5_
 
     - [x] 4.3 Add lightweight performance monitoring for demonstrations
-    
+
     - Create simple metrics collection for signal processing latency
     - Add detection accuracy counters (signals detected, threats found)
     - Implement basic system health monitoring (hardware status)
     - Display performance stats in CLI dashboard footer
     - _Requirements: 4.4, 6.5_
-
 
 - [x] 5. Build Hardware Integration and Reliability System
 
@@ -155,7 +153,7 @@
   - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
     - [x] 6.1 Build test signal generation framework with `--synthetic` flag
-    
+
     - Implement `--synthetic` CLI flag that works alongside `--mock` flag
     - Ensure backward compatibility with existing mock event generation
     - Create synthetic key fob signal generation with realistic characteristics
@@ -164,8 +162,8 @@
     - Build brute force attack simulation scenarios
     - _Requirements: 6.1, 6.2, 6.3_
 
-    - [ ] 6.2 Implement detection accuracy validation
-    
+    - [x] 6.2 Implement detection accuracy validation
+
     - Create automated testing for >90% classification accuracy
     - Build confusion matrix generation for detection performance
     - Add statistical analysis for detection confidence validation
@@ -173,8 +171,8 @@
     - Optimize performance testing for real-time processing validation (100ms signal chunks, <500ms processing time)
     - _Requirements: 2.4_
 
-    - [ ] 6.3 Create demonstration scenario framework
-    
+    - [x] 6.3 Create demonstration scenario framework
+
     - Build scripted demonstration sequences for capstone presentation
     - Implement realistic attack progression scenarios using `--synthetic` mode
     - Add technical evidence display for professor evaluation

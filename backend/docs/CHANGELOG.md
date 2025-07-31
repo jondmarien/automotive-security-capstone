@@ -1,5 +1,138 @@
 # Backend Changelog
 
+## [2025-07-31] Hardware Integration & Validation Framework
+
+### Added
+- **Hardware Management System** - Complete hardware abstraction and management layer
+  - `hardware/hardware_manager.py`: Centralized hardware coordination with health monitoring
+  - `hardware/rtl_sdr_interface.py`: RTL-SDR auto-detection with automotive-specific configuration
+  - `hardware/pico_connection_manager.py`: Comprehensive Pico W connection management with heartbeat monitoring
+  - `hardware/recovery_system.py`: Hardware failure detection and recovery with exponential backoff
+
+- **Real Hardware Launcher** (`real_hardware_launcher.py`)
+  - Complete system orchestration with automatic hardware detection
+  - Graceful fallback to mock mode for demonstrations
+  - Comprehensive system health monitoring and diagnostics
+  - Signal handler support for graceful shutdown
+
+- **Synthetic Event Generation & Validation Framework**
+  - `demo_scenarios.py`: Structured demonstration scenarios for capstone presentations
+  - `utils/detection_accuracy.py`: Detection accuracy validation with confusion matrix generation
+  - `utils/validate_detection_accuracy.py`: Automated validation script for >90% accuracy requirement
+  - `utils/signal_constants.py`: Centralized constants for automotive RF parameters
+
+- **Logging Infrastructure** (`utils/logging_config.py`)
+  - Organized date-based log directory structure (`logs/dashboard-YYYY-MM-DD/`)
+  - Timestamped log files with enhanced formatting
+  - Event detection logging with threat level indicators
+  - Performance metrics and system health logging
+
+- **Pico W Deployment Tools** (`deploy_pico.py`)
+  - Automated serial connection detection and management
+  - File upload with progress monitoring
+  - Configuration validation and warnings
+  - Automatic device reboot after deployment
+
+### Enhanced Features
+- **CLI Dashboard Improvements**
+  - Custom Rich pagination system for event navigation
+  - Enhanced mock event generation with realistic signal data
+  - Technical evidence presentation with proper formatting
+  - Event selection mode for specific event analysis
+
+- **Hardware Reliability**
+  - Automatic RTL-SDR detection using rtl_test integration
+  - Hardware capability assessment and validation
+  - Connection health monitoring with automatic recovery
+  - Mock mode fallback for hardware-free demonstrations
+
+- **System Integration**
+  - Unified hardware status reporting across all components
+  - Comprehensive diagnostic information collection
+  - Recovery attempt tracking and limiting
+  - Graceful degradation for partial hardware failures
+
+### Testing & Validation
+- **Detection Accuracy Validation**
+  - Synthetic event generation with known ground truth labels
+  - Confusion matrix generation with sklearn integration
+  - Performance benchmarking with real-time requirements validation
+  - Comprehensive accuracy metrics (precision, recall, F1-score)
+
+- **Demo Scenarios**
+  - Normal operation demonstration with realistic key fob sequences
+  - Replay attack scenarios with legitimate signal capture and replay
+  - Jamming attack demonstrations with progressive interference patterns
+  - Brute force attack sequences with rapid code attempts
+  - Comprehensive demo combining all attack types
+
+### Configuration Management
+- **Centralized Constants** (`utils/signal_constants.py`)
+  - Automotive frequency definitions for global markets
+  - Manufacturer-specific parameters (Toyota, Honda, Ford, BMW, etc.)
+  - Modulation type enumerations (FSK, GFSK, ASK, OOK)
+  - NFC tag types and authentication status definitions
+
+- **Hardware Configuration**
+  - Automotive-specific RTL-SDR configuration profiles
+  - Optimal sample rates for key fob monitoring (2.048 MS/s)
+  - Frequency band selection (315MHz NA, 433.92MHz EU)
+  - Gain optimization for automotive signal reception
+
+### Performance Improvements
+- **Hardware Detection Speed**: <5 seconds for complete system initialization
+- **Recovery Time**: <30 seconds for hardware failure recovery with exponential backoff
+- **Logging Performance**: Minimal overhead with organized file structure
+- **Deployment Speed**: <60 seconds for complete Pico W code deployment
+
+### Usage Examples
+```python
+# Hardware management
+from hardware import HardwareManager
+manager = HardwareManager()
+await manager.initialize()
+await manager.start_monitoring()
+
+# Validation framework
+from utils.detection_accuracy import run_accuracy_validation
+results = await run_accuracy_validation(num_samples=100)
+
+# Demo scenarios
+from demo_scenarios import ComprehensiveDemoScenario
+scenario = ComprehensiveDemoScenario()
+events = await scenario.run()
+```
+
+### Command Line Tools
+```bash
+# Quick demo (RECOMMENDED for presentations)
+uv run python cli_dashboard.py --mock
+uv run python cli_dashboard.py --mock --synthetic
+
+# Complete system launch
+uv run python real_hardware_launcher.py --force-mock --frequency 315000000
+
+# Validation
+uv run python utils/validate_detection_accuracy.py --samples 200
+
+# Demo scenarios
+uv run python demo_scenarios.py --scenario comprehensive --output events.json
+
+# Pico deployment
+uv run python deploy_pico.py COM3
+```
+
+### Breaking Changes
+- None - all changes are backward compatible
+- Legacy manual startup methods still supported
+- Enhanced features available via new APIs
+
+### Migration Guide
+- Existing scripts continue to work unchanged
+- New hardware management system provides enhanced reliability
+- Gradual migration to new launcher recommended for production use
+- Logging integration optional but recommended for debugging
+
 ## [2025-08-15] CLI Dashboard Enhancements
 
 ### Added
@@ -124,15 +257,15 @@ result = detector.check_brute_force(detected_signal)
 ### Running Tests
 ```bash
 # Run all tests
-python -m pytest tests/ -v
+uv run pytest tests/ -v
 
 # Run specific test suites
-python -m pytest tests/test_automotive_signal_analyzer.py -v
-python -m pytest tests/test_brute_force_detector.py -v
-python -m pytest tests/test_jamming_detector.py -v
+uv run pytest tests/test_automotive_signal_analyzer.py -v
+uv run pytest tests/test_brute_force_detector.py -v
+uv run pytest tests/test_jamming_detector.py -v
 
 # Run with coverage
-python -m pytest tests/ --cov=rtl_sdr --cov=detection --cov-report=html
+uv run pytest tests/ --cov=rtl_sdr --cov=detection --cov-report=html
 ```
 
 ### Breaking Changes
