@@ -101,6 +101,8 @@ class ScenarioType(Enum):
     REPLAY_ATTACK = "replay_attack"
     JAMMING_ATTACK = "jamming_attack"
     BRUTE_FORCE_ATTACK = "brute_force_attack"
+    SIGNAL_CLONING_ATTACK = "signal_cloning_attack"
+    RELAY_ATTACK = "relay_attack"
 
 # Attack types
 class AttackType(Enum):

@@ -309,28 +309,23 @@ def generate_synthetic_key_fob_event(event_type="benign"):
         "manufacturer": manufacturer,
         "rolling_code": f"{rolling_code:x}",
         "rolling_code_bits": rolling_code_bits,
-        "technical_evidence": [
-            {
-                "type": "Signal Analysis",
-                "details": {
-                    "frequency_mhz": f"{frequency/1e6:.2f}",
-                    "modulation": modulation,
-                    "signal_strength": f"{signal_strength:.2f}",
-                    "signal_quality": f"{signal_quality:.2f}",
-                    "snr_db": f"{snr:.1f}",
-                    "power_dbm": f"{power_db:.1f}"
-                }
+        "evidence": {
+            "detection_confidence": signal_quality,
+            "signal_analysis": {
+                "frequency_mhz": f"{frequency/1e6:.2f}",
+                "modulation": modulation,
+                "signal_strength": f"{signal_strength:.2f}",
+                "signal_quality": f"{signal_quality:.2f}",
+                "snr_db": f"{snr:.1f}",
+                "power_dbm": f"{power_db:.1f}"
             },
-            {
-                "type": "Key Fob Details",
-                "details": {
-                    "key_fob_id": key_fob_id,
-                    "manufacturer": manufacturer,
-                    "rolling_code": f"0x{rolling_code:x}",
-                    "code_bits": str(rolling_code_bits)
-                }
+            "key_fob_details": {
+                "key_fob_id": key_fob_id,
+                "manufacturer": manufacturer,
+                "rolling_code": f"0x{rolling_code:x}",
+                "code_bits": str(rolling_code_bits)
             }
-        ]
+        }
     }
     
     return event
@@ -364,36 +359,32 @@ def generate_synthetic_replay_attack(original_event):
     replay_event["power_db"] = original_event.get("power_db", -50) * random.uniform(0.95, 1.05)
     
     # Add replay attack specific evidence
-    replay_event["technical_evidence"] = [
-        {
-            "type": "Signal Analysis",
-            "details": {
-                "frequency_mhz": f"{original_event.get('frequency', 433.92e6)/1e6:.2f}",
-                "modulation": original_event.get('modulation_type', 'Unknown'),
-                "signal_strength": f"{replay_event['signal_strength']:.2f}",
-                "signal_quality": f"{replay_event['signal_quality']:.2f}",
-                "snr_db": f"{replay_event['snr_db']:.1f}",
-                "power_dbm": f"{replay_event['power_db']:.1f}"
-            }
+    replay_event["evidence"] = {
+        "detection_confidence": random.uniform(0.85, 0.98),
+        "signal_match_score": random.uniform(0.75, 0.98),
+        "burst_pattern": "".join(random.choice(["#", "-"]) for _ in range(8)),
+        "timing_analysis": {
+            "replay_delay_ms": random.randint(50, 2000),
+            "original_detection_time": (datetime.now().timestamp() - random.uniform(1, 60)),
         },
-        {
-            "type": "Replay Attack Evidence",
-            "details": {
-                "key_fob_id": original_event.get('key_fob_id', 'Unknown'),
-                "manufacturer": original_event.get('manufacturer', 'Unknown'),
-                "rolling_code": f"{original_event.get('rolling_code', 'Unknown')} (Duplicated)",
-                "time_since_original": f"{random.randint(30, 300)} seconds"
-            }
+        "signal_analysis": {
+            "frequency_mhz": f"{original_event.get('frequency', 433.92e6)/1e6:.2f}",
+            "modulation": original_event.get('modulation_type', 'Unknown'),
+            "signal_strength": f"{replay_event['signal_strength']:.2f}",
+            "signal_quality": f"{replay_event['signal_quality']:.2f}",
+            "snr_db": f"{replay_event['snr_db']:.1f}",
+            "power_dbm": f"{replay_event['power_db']:.1f}"
         },
-        {
-            "type": "Attack Indicators",
-            "details": {
-                "duplicate_code": "Detected",
-                "timing_anomaly": "Detected",
-                "envelope_inconsistency": "Detected"
-            }
+        "attack_indicators": {
+            "duplicate_code": "Detected",
+            "timing_anomaly": "Detected",
+            "envelope_inconsistency": "Detected",
+            "key_fob_id": original_event.get('key_fob_id', 'Unknown'),
+            "manufacturer": original_event.get('manufacturer', 'Unknown'),
+            "rolling_code": f"{original_event.get('rolling_code', 'Unknown')} (Duplicated)",
+            "time_since_original": f"{random.randint(30, 300)} seconds"
         }
-    ]
+    }
     
     # Add attack metadata
     replay_event["attack_metadata"] = {
@@ -521,7 +512,18 @@ def generate_synthetic_jamming_attack(step):
         "power_db": random.uniform(-40, -20),  # High power for jamming
         "burst_pattern": "Wideband Interference",
         "peak_count": random.randint(10, 20),  # Many peaks in jamming
-        "technical_evidence": evidence,
+        "evidence": {
+            "detection_confidence": confidence,
+            "noise_floor_elevation_db": random.randint(10, 25),
+            "spectral_characteristics": {
+                "bandwidth_affected_khz": random.randint(200, 2000),
+                "center_frequency_mhz": round(KEY_FOB_FREQUENCIES["EU_STANDARD"] / 1e6, 3),
+                "spectral_mask": random.choice(["Flat", "Gaussian", "Pulsed", "Swept"])
+            },
+            "legitimate_signal_loss": random.uniform(0.5, 1.0),
+            "directionality": random.choice(["Omni", "Directional"]),
+            "estimated_power_mw": random.randint(50, 500)
+        },
         "attack_metadata": {
             "attack_type": AttackType.JAMMING.value,
             "duration": step * 5,  # seconds
@@ -663,25 +665,22 @@ def generate_synthetic_brute_force_attack(step):
         confidence = random.uniform(0.8, 0.95)
     
     # Add technical evidence
-    event["technical_evidence"] = {
-        "signal_analysis": {
-            "frequency_stability": "Unstable",
-            "modulation_quality": "Poor",
-            "signal_strength_pattern": "Consistent (suspicious)",
-            "burst_timing": f"Rapid ({event['burst_count']} bursts)",
-            "code_sequence": "Sequential pattern detected"
+    event["evidence"] = {
+        "detection_confidence": confidence,
+        "temporal_analysis": {
+            "detection_count": event['burst_count'],
+            "time_window_seconds": random.randint(10, 60),
+            "burst_interval_ms": random.randint(200, 500),
+            "pattern_regularity": random.uniform(0.7, 0.95)
         },
-        "authentication_analysis": {
-            "rolling_code": "Multiple invalid attempts",
-            "checksum": "Valid but suspicious pattern",
-            "encryption": "Systematic attack pattern",
-            "attempt_frequency": f"{random.uniform(5.0, 15.0):.1f} attempts/second"
+        "burst_pattern": "".join(random.choice(["#", "-"]) for _ in range(8)),
+        "key_space_coverage": {
+            "estimated_percent": random.uniform(1, 15),
+            "key_entropy_bits": random.randint(24, 32)
         },
-        "attack_indicators": {
-            "attack_type": AttackType.BRUTE_FORCE.value,
-            "confidence": f"{random.uniform(85, 98):.1f}%",
-            "similar_attacks": f"Matches {random.randint(2, 5)} known patterns",
-            "first_observed": (datetime.now().timestamp() - random.randint(30, 120))
+        "escalation": {
+            "consecutive_attempts": random.randint(1, 20),
+            "threat_escalation_level": random.randint(1, 5)
         }
     }
     
@@ -785,26 +784,17 @@ def generate_synthetic_signal_cloning_attack(step):
     }
     
     # Add technical evidence
-    event["technical_evidence"] = {
-        "signal_analysis": {
-            "frequency_stability": "Abnormal",
-            "modulation_quality": "Suspicious",
-            "signal_strength_pattern": "Consistent (unusual)",
-            "burst_timing": f"Uniform ({event['burst_count']} bursts)",
-            "frequency_deviation": f"{random.uniform(1.5, 3.5):.2f} kHz (non-standard)"
+    event["evidence"] = {
+        "detection_confidence": random.uniform(0.85, 0.98),
+        "signal_match_score": random.uniform(0.75, 0.98),
+        "burst_pattern": "".join(random.choice(["#", "-"]) for _ in range(8)),
+        "peak_frequencies": [event['frequency'] + random.uniform(-0.05e6, 0.05e6) for _ in range(2)],
+        "spectral_similarity": random.uniform(0.80, 0.95),
+        "timing_analysis": {
+            "clone_delay_ms": random.randint(50, 2000),
+            "original_detection_time": (datetime.now().timestamp() - random.uniform(1, 60)),
         },
-        "authentication_analysis": {
-            "rolling_code": "Invalid progression detected",
-            "checksum": "Valid but suspicious",
-            "encryption": "Attempted bypass detected",
-            "challenge_response": "Failed verification"
-        },
-        "attack_indicators": {
-            "attack_type": AttackType.SIGNAL_CLONING.value,
-            "confidence": f"{random.uniform(85, 98):.1f}%",
-            "similar_attacks": f"Matches {random.randint(2, 5)} known patterns",
-            "first_observed": (datetime.now().timestamp() - random.randint(30, 300))
-        }
+        "demodulated_data_similarity": random.uniform(0.85, 0.99)
     }
     
     return event
@@ -907,25 +897,20 @@ def generate_synthetic_relay_attack(step):
     }
     
     # Add technical evidence
-    event["technical_evidence"] = {
-        "signal_analysis": {
-            "frequency_stability": "Normal (suspicious)",
-            "modulation_quality": "Good (suspicious)",
-            "signal_strength": f"{event['rssi']:.1f} dBm (abnormally high)",
-            "signal_path": "Multiple paths detected",
-            "propagation_delay": f"{random.uniform(1.5, 4.5):.2f} ms (abnormal)"
-        },
-        "authentication_analysis": {
-            "rolling_code": "Valid but suspicious timing",
-            "proximity_check": "Failed",
-            "signal_origin": "Inconsistent",
+    event["evidence"] = {
+        "detection_confidence": random.uniform(0.80, 0.95),
+        "signal_match_score": random.uniform(0.75, 0.98),
+        "burst_pattern": "".join(random.choice(["#", "-"]) for _ in range(8)),
+        "timing_analysis": {
+            "relay_delay_ms": random.randint(50, 2000),
+            "propagation_delay": f"{random.uniform(1.5, 4.5):.2f} ms (abnormal)",
             "time_of_flight": "Extended (suspicious)"
         },
-        "attack_indicators": {
-            "attack_type": AttackType.RELAY.value,
-            "confidence": f"{random.uniform(80, 95):.1f}%",
-            "similar_attacks": f"Matches {random.randint(1, 4)} known patterns",
-            "first_observed": (datetime.now().timestamp() - random.randint(30, 180))
+        "signal_analysis": {
+            "signal_strength": f"{event['rssi']:.1f} dBm (abnormally high)",
+            "signal_path": "Multiple paths detected",
+            "proximity_check": "Failed",
+            "signal_origin": "Inconsistent"
         }
     }
     
@@ -1092,3 +1077,5 @@ async def generate_synthetic_event():
         scenario_states[current_scenario]["last_time"] = datetime.now()
         
         yield event
+
+
