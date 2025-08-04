@@ -15,7 +15,7 @@
   - Test rendering consistency across multiple screen sizes (small, medium, large)
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 3. Fix critical alert refresh bug (highest priority)
+- [x] 3. Fix critical alert refresh bug (highest priority)
 
   - Identify root cause of constant refreshing during CRITICAL threat events
   - Implement refresh rate limiting or differential rendering for CRITICAL events
@@ -24,7 +24,7 @@
   - Test extended periods with multiple CRITICAL events for stability
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 4. Implement accurate threat counter
+- [x] 4. Implement accurate threat counter
 
   - Fix threat counter logic to properly count all Suspicious, Malicious, and Critical events
   - Separate total event count from actual threat count
@@ -33,7 +33,7 @@
   - Test counter accuracy with mixed event types and threat levels
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 5. Implement professional exit experience
+- [x] 5. Implement professional exit experience
 
   - Create Rich dialog system for exit confirmation when user presses 'q' or Ctrl+C
   - Add options in dialog for saving event history, logs, and reports to file

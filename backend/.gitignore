@@ -80,6 +80,8 @@ data/
 # Project specific
 *.log
 logs/
+exports/
+results/
 
 # POC
 poc/

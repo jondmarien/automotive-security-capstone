@@ -23,15 +23,10 @@ See backend/README.md for full project context.
 """
 import argparse
 import asyncio
-import os
-import sys
-import json
-import random
 import time
-import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import deque
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any
 
 import aiohttp
 import pyfiglet
@@ -41,14 +36,11 @@ from utils.signal_constants import TIMESTAMP_FORMAT, TIMESTAMP_FORMAT_SHORT
 from rich import box
 from rich.live import Live
 from rich.align import Align
-from rich.columns import Columns
 from rich.console import Console, Group
 from rich.layout import Layout
 from rich.panel import Panel
-from rich.padding import Padding
 from rich.progress import Progress, BarColumn, TextColumn
 from rich.spinner import Spinner
-from rich.status import Status
 from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
@@ -66,11 +58,12 @@ from utils.logging_config import (
     log_system_health
 )
 
+# Import professional exit dialog
+from utils.exit_dialog import handle_professional_exit
+
 # prompt_toolkit imports for keyboard navigation
 from prompt_toolkit.application import Application
-from prompt_toolkit.input import create_input
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout import Layout as PTLayout
 from prompt_toolkit.layout.containers import Window, VSplit
 from prompt_toolkit.layout.controls import FormattedTextControl
@@ -81,6 +74,96 @@ rssi_history = deque(maxlen=20)
 
 # Dashboard pagination configuration
 MAX_EVENTS_PER_PAGE = 20
+
+# --- Threat Counter Functions ---
+def calculate_threat_statistics(events):
+    """
+    Calculate accurate threat statistics from events list.
+    
+    Per requirements:
+    - Count all Suspicious, Malicious, and Critical events
+    - Include all multi-modal attacks (even if marked benign)
+    - Separate total event count from threat count
+    - Validate threat levels properly
+    
+    Args:
+        events (list): List of detection events
+        
+    Returns:
+        dict: Statistics including total_events, threat_count, breakdown by level
+    """
+    if not events:
+        return {
+            'total_events': 0,
+            'threat_count': 0,
+            'benign_count': 0,
+            'suspicious_count': 0,
+            'malicious_count': 0,
+            'critical_count': 0,
+            'multi_modal_count': 0
+        }
+    
+    stats = {
+        'total_events': len(events),
+        'threat_count': 0,
+        'benign_count': 0,
+        'suspicious_count': 0,
+        'malicious_count': 0,
+        'critical_count': 0,
+        'multi_modal_count': 0
+    }
+    
+    for event in events:
+        # Skip error events
+        if isinstance(event, dict) and "error" in event:
+            continue
+            
+        threat_level = event.get("threat", "").strip()
+        details = event.get("details", "")
+        nfc_correlated = event.get("nfc_correlated", False)
+        
+        # Check if this is a multi-modal attack
+        is_multi_modal = (
+            "Multi-modal attack detected" in details or
+            "multi_modal" in details.lower() or
+            nfc_correlated or
+            event.get("threat_category") == "multi_modal_attack"
+        )
+        
+        # Track if this event is a threat (will be set to True for any threat condition)
+        is_threat = False
+        
+        # Count by threat level first
+        if threat_level.lower() == "benign":
+            stats['benign_count'] += 1
+            # Benign is only a threat if it's multi-modal
+            if is_multi_modal:
+                is_threat = True
+        elif threat_level.lower() == "suspicious":
+            stats['suspicious_count'] += 1
+            is_threat = True
+        elif threat_level.lower() == "malicious":
+            stats['malicious_count'] += 1
+            is_threat = True
+        elif threat_level.lower() == "critical":
+            stats['critical_count'] += 1
+            is_threat = True
+        else:
+            # Unknown threat level - treat as suspicious for safety
+            stats['suspicious_count'] += 1
+            is_threat = True
+        
+        # Count multi-modal attacks separately (but don't double-count threats)
+        if is_multi_modal:
+            stats['multi_modal_count'] += 1
+            # Multi-modal attacks are always threats per requirements
+            is_threat = True
+        
+        # Increment threat count once per event if it qualifies as a threat
+        if is_threat:
+            stats['threat_count'] += 1
+    
+    return stats
 
 def generate_sparkline(values, min_value=-90, max_value=-20, width=20):
     """
@@ -268,7 +351,7 @@ def render_dashboard(events, selected_event, status_text, console, selected_even
     # Make footer expandable based on help display
     footer_size = 3 if show_help else 1
     layout.split_column(
-        Layout(name="header", size=3),
+        Layout(name="header", size=4),  # Increased to accommodate threat counter
         Layout(name="body"),
         Layout(name="footer", size=footer_size)
     )
@@ -285,12 +368,35 @@ def render_dashboard(events, selected_event, status_text, console, selected_even
         Layout(name="evidence_panel", ratio=1)
     )
     
-    # Header with gradient title and improved styling
-    header_panel = Panel(
+    # Calculate threat statistics for display
+    threat_stats = calculate_threat_statistics(events)
+    
+    # Create threat counter display
+    threat_counter_text = Text()
+    threat_counter_text.append("📊 ", style="bold yellow")
+    threat_counter_text.append(f"Events: {threat_stats['total_events']} ", style="bright_white")
+    threat_counter_text.append("| ", style="dim white")
+    threat_counter_text.append(f"Threats: {threat_stats['threat_count']} ", style="bold red")
+    threat_counter_text.append("[", style="dim white")
+    threat_counter_text.append(f"Suspicious: {threat_stats['suspicious_count']} ", style="orange1")
+    threat_counter_text.append(f"Malicious: {threat_stats['malicious_count']} ", style="red")
+    threat_counter_text.append(f"Critical: {threat_stats['critical_count']}", style="bold red")
+    if threat_stats['multi_modal_count'] > 0:
+        threat_counter_text.append(f" Multi-Modal: {threat_stats['multi_modal_count']}", style="bold magenta")
+    threat_counter_text.append("]", style="dim white")
+    
+    # Combine gradient header with threat counter
+    header_content = Group(
         create_gradient_header(),
+        Align.center(threat_counter_text)
+    )
+    
+    # Header with gradient title and threat counter
+    header_panel = Panel(
+        header_content,
         border_style="bright_cyan",
         expand=True,
-        height=3,
+        height=4,  # Increased height to accommodate threat counter
         padding=(0, 2),  # Increased horizontal padding
         title="Automotive Security",
         subtitle="Real-time Monitoring"
@@ -450,22 +556,26 @@ def render_dashboard(events, selected_event, status_text, console, selected_even
     performance_monitor = get_performance_monitor()
     performance_summary = performance_monitor.get_dashboard_summary()
     
-    # Combine status text with performance metrics
+    # Add event count from the same source as header to maintain consistency
+    event_count_text = f"Events: {len(events)}"
+    
+    # Combine status text with event count and performance metrics
     if performance_summary and performance_summary != 'Monitoring...':
-        enhanced_status_text = f"{status_text} | {performance_summary}"
+        enhanced_status_text = f"{status_text} | {event_count_text} | {performance_summary}"
     else:
-        enhanced_status_text = status_text
+        enhanced_status_text = f"{status_text} | {event_count_text}"
     
     # Create a properly centered and grouped footer
     if show_help:
-        # Multi-line footer with help information
+        # Single-line footer with help information
         help_text = Text()
-        help_text.append("📋 HELP - Keyboard Controls:\n", style="bold yellow")
-        help_text.append("  ↑/↓: Navigate events  ", style="cyan")
+        help_text.append("📋 HELP - ", style="bold yellow")
+        help_text.append("↑/↓: Navigate  ", style="cyan")
         help_text.append("Home/End: First/Last  ", style="cyan")
-        help_text.append("←/→: Page navigation  ", style="cyan")
-        help_text.append("?: Toggle help  ", style="cyan")
-        help_text.append("q: Quit", style="cyan")
+        help_text.append("←/→: Pages  ", style="cyan")
+        help_text.append("?: Help  ", style="cyan")
+        help_text.append("q: Quit  ", style="cyan")
+        help_text.append("Ctrl+C: Instant Exit", style="red")
         
         # Create a responsive footer layout
         status_spinner = Spinner('dots', text=enhanced_status_text, style="cyan")
@@ -712,11 +822,11 @@ def render_signal_metrics(event, console_width=None):
     # Add modulation and frequency info
     header_text = Text()
     if mod_type:
-        header_text.append(f"Modulation: ", style="bold")
+        header_text.append("Modulation: ", style="bold")
         header_text.append(f"{mod_type}", style="cyan")
         header_text.append(" | ")
     if freq_text:
-        header_text.append(f"Frequency: ", style="bold")
+        header_text.append("Frequency: ", style="bold")
         header_text.append(f"{freq_text}", style="cyan")
     
     if header_text.plain:  # Only add if there's actual content
@@ -746,12 +856,10 @@ def render_signal_metrics(event, console_width=None):
     max_width = min(80, console_width - 10) if console_width else 70
     
     # Create a constrained group that won't expand beyond reasonable limits
-    from rich.console import Group
+    # Group is already imported at the top of the file
     
     # The key fix: Create a group with fixed width to prevent wrapping and duplication
     # Set a reasonable fixed width that works on all screen sizes
-    from rich.console import Group
-    from rich.panel import Panel
     
     # Add spacing between elements to prevent them from running together
     spaced_elements = []
@@ -885,6 +993,12 @@ async def main():
     last_full_refresh = time.time()
     # Flag to track if a full refresh is needed
     needs_full_refresh = False
+    # Flag to track if first absolute event is requested (for home key)
+    first_absolute_event_requested = False
+    # Flag to track if professional exit was requested
+    exit_requested = False
+    # Flag to track if instant exit (Ctrl+C) was requested
+    instant_exit_requested = False
 
     if args.mock:
         # Pass synthetic flag to generate_mock_events
@@ -959,14 +1073,14 @@ async def main():
             follow_latest = False
             # Log navigation action
             if dashboard_logger:
-                log_dashboard_action(dashboard_logger, "navigation", "Home key - jumped to first absolute event")
+                log_dashboard_action(dashboard_logger, "navigation", f"Home key - selected event index: {selected_event_idx}")
     
     @bindings.add('end')
     def handle_end(event):
         nonlocal selected_event_idx, follow_latest, first_absolute_event_requested, current_page
         # Reset to first page when jumping to latest event
         current_page = 0
-        # Go to latest event and enable following the latest event
+        # Go to latest event and enable follow latest
         selected_event_idx = -1
         follow_latest = True
         # Reset the first absolute event flag
@@ -977,16 +1091,34 @@ async def main():
     
     @bindings.add('q')
     @bindings.add('Q')
-    @bindings.add('c-c')  # Ctrl+C
     def handle_quit(event):
-        # Set a flag to exit the application
-        nonlocal running, first_absolute_event_requested
-        running = False
-        # Reset the first absolute event flag
-        first_absolute_event_requested = False
+        # Set flag to request professional exit (avoid deadlock with Live display)
+        nonlocal running, first_absolute_event_requested, exit_requested
+        
         # Log quit action
         if dashboard_logger:
             log_dashboard_action(dashboard_logger, "quit", "User initiated dashboard shutdown")
+        
+        # Set exit request flag - will be handled after Live display closes
+        exit_requested = True
+        running = False
+        first_absolute_event_requested = False
+        event.app.exit()
+    
+    @bindings.add('c-c')  # Ctrl+C - Instant exit
+    def handle_instant_exit(event):
+        # Instant exit without confirmation dialog
+        nonlocal running, first_absolute_event_requested, exit_requested, instant_exit_requested
+        
+        # Log instant exit action
+        if dashboard_logger:
+            log_dashboard_action(dashboard_logger, "instant_exit", "User initiated instant shutdown (Ctrl+C)")
+        
+        # Set flags for instant exit (bypass confirmation)
+        exit_requested = True
+        instant_exit_requested = True
+        running = False
+        first_absolute_event_requested = False
         event.app.exit()
     
     @bindings.add('left')
@@ -1084,30 +1216,14 @@ async def main():
                       vertical_overflow="visible", auto_refresh=False) as live:
                 
                 # Create async tasks for event fetching and rendering
-                # Flag to track if we should follow the latest event
-                follow_latest = False
                 
                 async def event_fetcher():
                     nonlocal selected_event_idx, follow_latest, total_events_processed, first_absolute_event_requested
-                    
-                    # Track absolute position of selected event
-                    abs_selected_idx = None
                     
                     async for event in event_gen:
                         # Check if we should exit
                         if not running:
                             break
-                        
-                        # Special case: if End key was pressed, we want to stay at the latest event
-                        if follow_latest:
-                            # We'll set the index to -1 after adding the event
-                            pass
-                        # Otherwise, remember the absolute position of the selected event
-                        elif events and selected_event_idx != -1:
-                            # Convert relative index to absolute
-                            abs_selected_idx = len(events) + selected_event_idx if selected_event_idx < 0 else selected_event_idx
-                        else:
-                            abs_selected_idx = None
                         
                         log_event(event)
                         # Unpack signal_detection events with nested detections
@@ -1119,6 +1235,7 @@ async def main():
                                 events.append(detection)
                                 if len(events) > 100:
                                     events.pop(0)
+                                    # No adjustment needed - negative indices maintain relative position automatically
                         else:
                             # Add timestamp if not present
                             if "timestamp" not in event:
@@ -1131,19 +1248,10 @@ async def main():
                             total_events_processed += 1
                             if len(events) > 100:
                                 events.pop(0)
+                                # No adjustment needed - negative indices maintain relative position automatically
                         
-                        # After adding new events, update the selected event index
-                        if follow_latest:
-                            # If End key was pressed, always show the latest event
-                            selected_event_idx = -1
-                        elif abs_selected_idx is not None:
-                            # Keep the absolute position the same
-                            selected_event_idx = abs_selected_idx - len(events)
-                            # Ensure index is within valid range for highlighting
-                            if selected_event_idx < -len(events):
-                                selected_event_idx = -len(events)
-                            # Don't restrict to buffer bounds for navigation purposes
-                            # This allows viewing events by absolute index even if they're outside the buffer
+                        # Keep selected_event_idx stable unless explicitly following latest
+                        # Don't reset the index when new events arrive - preserve manual selection
                         # Detect repeated API connection errors
                         if event.get("error") and "API connection error" in event["error"]:
                             api_error_count += 1
@@ -1154,7 +1262,7 @@ async def main():
                             api_error_count = 0
                 
                 async def renderer():
-                    nonlocal total_events_processed, first_absolute_event_requested, needs_full_refresh
+                    nonlocal total_events_processed, first_absolute_event_requested, needs_full_refresh, follow_latest, selected_event_idx
                     # Variables to control refresh rates
                     last_full_refresh = time.time()
                     last_status_refresh = time.time()
@@ -1172,55 +1280,38 @@ async def main():
                         full_status = status_text
                         
                         if events:
-                            # Convert relative index to absolute (negative indices count from the end)
-                            if selected_event_idx == -1:
-                                # Show latest event
-                                selected_event = events[-1]
-                                abs_idx = len(events) - 1
+                            # Handle event selection based on user navigation
+                            # Ensure selected_event_idx is within valid bounds
+                            selected_event_idx = max(-len(events), min(-1, selected_event_idx))
+                            
+                            # Calculate absolute index
+                            abs_idx = len(events) + selected_event_idx
+                            
+                            # Handle special case for home key (first absolute event)
+                            if first_absolute_event_requested:
+                                # Show the oldest available event and indicate it's the first absolute event
+                                selected_event = events[0]
+                                # Add a note to the event that it's representing the first absolute event
+                                selected_event = dict(selected_event)  # Make a copy to avoid modifying the original
+                                selected_event['details'] = f"[First event (0/{total_events_processed})] {selected_event.get('details', '')}"
+                                abs_idx = 0
                             else:
-                                # Calculate absolute index from relative
-                                abs_idx = len(events) + selected_event_idx if selected_event_idx < 0 else selected_event_idx
-                                
-                                # Handle special case for home key (first absolute event)
-                                if first_absolute_event_requested:
-                                    # Show the oldest available event and indicate it's the first absolute event
-                                    selected_event = events[0]
-                                    # Add a note to the event that it's representing the first absolute event
-                                    selected_event = dict(selected_event)  # Make a copy to avoid modifying the original
-                                    selected_event['details'] = f"[First event (0/{total_events_processed})] {selected_event.get('details', '')}"
-                                    # Use the oldest event in buffer
-                                    abs_idx = 0
-                                # Check if the requested event is in the current buffer
-                                elif 0 <= abs_idx < len(events):
-                                    # Event is in buffer, show it
-                                    selected_event = events[abs_idx]
-                                else:
-                                    # Event is outside buffer (likely an older event that was pushed out)
-                                    # Show the oldest available event and indicate it's not the requested one
-                                    selected_event = events[0]
-                                    # Add a note to the event that it's not the originally requested one
-                                    selected_event = dict(selected_event)  # Make a copy to avoid modifying the original
-                                    event_num = total_events_processed - (len(events) - abs_idx) if abs_idx >= 0 else total_events_processed + selected_event_idx
-                                    if event_num < 0:
-                                        # Handle case where user tries to go before the first event
-                                        event_num = 0
-                                    selected_event['details'] = f"[Event #{event_num} not in buffer] {selected_event.get('details', '')}"
-                                    # Adjust abs_idx to point to the oldest event in buffer
-                                    abs_idx = 0
+                                # Show the selected event at the current index position
+                                selected_event = events[abs_idx]
                             
                             # Update navigation status with absolute event numbers
-                            event_num = total_events_processed - (len(events) - (abs_idx + 1))
-                            nav_status = f"Event {event_num}/{total_events_processed}"
+                            event_num = abs_idx + 1  # Simple 1-based indexing from current events
+                            nav_status = f"Event {event_num}/{len(events)}"
                             if selected_event_idx == -1:
                                 nav_status += " (Latest)"
                             
                             # Get current time for footer
                             display_time = datetime.now().strftime(TIMESTAMP_FORMAT)
                             
-                            # Format event counter with light blue color
-                            # Calculate the true event position based on total events processed
-                            current_position = total_events_processed - (len(events) - (abs_idx + 1))
-                            event_status = f"[cyan1]Events: {current_position}/{total_events_processed}"
+                            # Format event counter with light blue color - use same logic as header
+                            # Use len(events) to match header counter and prevent reset on exit cancel
+                            current_position = abs_idx + 1  # Simple 1-based indexing
+                            event_status = f"[cyan1]Events: {current_position}/{len(events)}"
                             if selected_event_idx == -1:
                                 event_status += " (Latest)[/cyan1]"
                             else:
@@ -1229,10 +1320,9 @@ async def main():
                             # Format timestamp with light green color
                             time_status = f"[spring_green3]Time: {display_time}[/spring_green3]"
                             
-                            # Get threats counter with red/bold styling
-                            performance_monitor = get_performance_monitor()
-                            threats_summary = performance_monitor.get_threats_summary()
-                            threats_status = f"[bold red]{threats_summary}[/bold red]" if threats_summary else ""
+                            # Get accurate threat counter using same logic as header
+                            threat_stats = calculate_threat_statistics(events)
+                            threats_status = f"[bold red]Threats: {threat_stats['threat_count']}[/bold red]" if threat_stats['threat_count'] > 0 else "[green]No Active Threats[/green]"
                             
                             # Comprehensive status with all elements and colors
                             source_text = "Source: SYNTHETIC SIGNALS (advanced testing)" if args.synthetic else "Source: MOCK DATA (demo/testing mode)"
@@ -1309,6 +1399,8 @@ async def main():
             console.print("\n[bold yellow]Dashboard interrupted by user (Ctrl+C). Exiting gracefully.[/bold yellow]")
             if dashboard_logger:
                 dashboard_logger.warning("Dashboard interrupted by user (Ctrl+C)")
+            # Set exit_requested flag for handling after dashboard loop
+            exit_requested = True
         except Exception as e:
             console.print(f"\n[bold red]Unexpected error: {e}[/bold red]")
             if dashboard_logger:
@@ -1317,8 +1409,43 @@ async def main():
             if dashboard_logger:
                 dashboard_logger.info("CLI Dashboard shutting down")
                 dashboard_logger.info("=" * 60)
-
-    await dashboard_loop()
+    
+    # Main dashboard loop with exit handling
+    while True:
+        await dashboard_loop()
+        
+        # Handle exit after dashboard loop completes
+        if exit_requested:
+            try:
+                if instant_exit_requested:
+                    # Instant exit (Ctrl+C) - bypass confirmation dialog
+                    from utils.exit_dialog import ExitDialogManager
+                    exit_manager = ExitDialogManager(console, events, dashboard_logger)
+                    exit_manager.show_final_goodbye(exported_data=False)  # No export on instant exit
+                    break
+                else:
+                    # Regular exit (q/Q) - show confirmation dialog
+                    should_exit = handle_professional_exit(console, events, dashboard_logger)
+                    if should_exit:
+                        # User confirmed exit - break out of main loop
+                        break
+                    else:
+                        # User cancelled exit - restart dashboard
+                        console.print("[green]Returning to dashboard...[/green]")
+                        exit_requested = False  # Reset the flag
+                        instant_exit_requested = False  # Reset instant exit flag too
+                        running = True  # Reset running flag
+                        # Brief pause before restarting
+                        await asyncio.sleep(1)
+                        continue
+            except Exception as e:
+                console.print(f"[bold red]Error in exit dialog: {e}[/bold red]")
+                if dashboard_logger:
+                    dashboard_logger.error(f"Error in exit dialog: {e}", exc_info=True)
+                break
+        else:
+            # No exit requested, normal shutdown
+            break
 
 # --- Mock Event Generator ---
 # --- Detection Adapter Integration ---
