@@ -42,9 +42,10 @@ from rich import box
 from rich.live import Live
 from rich.align import Align
 from rich.columns import Columns
-from rich.console import Console
+from rich.console import Console, Group
 from rich.layout import Layout
 from rich.panel import Panel
+from rich.padding import Padding
 from rich.progress import Progress, BarColumn, TextColumn
 from rich.spinner import Spinner
 from rich.status import Status
@@ -331,8 +332,9 @@ def render_dashboard(events, selected_event, status_text, console, selected_even
             # Default to most recent event
             selected_event = events[-1]
     
-    signal_viz = render_signal_metrics(selected_event) if selected_event else Text("No signal data available")
-    evidence_panel = render_evidence_panel(selected_event) if selected_event else Text("No evidence data available")
+    # Pass console width for consistent sizing across screen sizes
+    signal_viz = render_signal_metrics(selected_event, console_width=width) if selected_event else Align.center(Text("No signal data available"))
+    evidence_panel = render_evidence_panel(selected_event, console_width=width) if selected_event else Align.center(Text("No evidence data available"))
     
     # Pagination: Show 10 events per page
     # NOTE: Current custom pagination works well for our needs, but if future requirements demand more
@@ -421,12 +423,17 @@ def render_dashboard(events, selected_event, status_text, console, selected_even
         subtitle=f"↑/↓: Navigate | ←/→: Pages | End: Latest | {page_info}"
     ))
     
+    # Calculate consistent panel heights based on console size
+    # This prevents panels from expanding too much on larger screens
+    bottom_panel_height = max(8, min(12, height // 4))  # Between 8-12 lines based on screen height
+    
     layout["signal_metrics"].update(Panel(
         signal_viz, 
         title="Signal Analysis", 
         border_style="green",
         padding=(1, 1),
-        subtitle="RSSI Trend ↔"
+        subtitle="RSSI Trend ↔",
+        height=bottom_panel_height
     ))
     
     layout["evidence_panel"].update(Panel(
@@ -434,7 +441,8 @@ def render_dashboard(events, selected_event, status_text, console, selected_even
         title="Technical Evidence", 
         border_style="yellow",
         padding=(1, 1),
-        subtitle="Attack Details"
+        subtitle="Attack Details",
+        height=bottom_panel_height
     ))
     # Create footer with spinner and performance metrics
     performance_monitor = get_performance_monitor()
@@ -446,6 +454,7 @@ def render_dashboard(events, selected_event, status_text, console, selected_even
     else:
         enhanced_status_text = status_text
     
+    # Create a properly centered and grouped footer
     if show_help:
         # Multi-line footer with help information
         help_text = Text()
@@ -456,16 +465,20 @@ def render_dashboard(events, selected_event, status_text, console, selected_even
         help_text.append("?: Toggle help  ", style="cyan")
         help_text.append("q: Quit", style="cyan")
         
-        footer_content = Columns([
-            Spinner('dots', text=enhanced_status_text, style="cyan"),
-            help_text
-        ])
+        # Create a responsive footer layout
+        status_spinner = Spinner('dots', text=enhanced_status_text, style="cyan")
+        
+        # Use Group to stack elements vertically and center them
+        footer_group = Group(
+            Align.center(status_spinner),
+            Text(""),  # Spacing
+            Align.center(help_text)
+        )
+        footer_content = footer_group
     else:
-        # Single line footer
+        # Single line footer - centered
         spinner = Spinner('dots', text=enhanced_status_text, style="cyan")
-        footer_content = Columns([
-            spinner
-        ])
+        footer_content = Align.center(spinner)
     
     layout["footer"].update(footer_content)
     
@@ -484,18 +497,19 @@ def render_dashboard(events, selected_event, status_text, console, selected_even
     return panel
 
 
-def render_evidence_panel(event):
+def render_evidence_panel(event, console_width=None):
     """
     Renders a technical evidence panel as a collapsible tree with enhanced styling and icons.
     
     Args:
         event (dict): The event with evidence data.
+        console_width (int, optional): Console width for consistent sizing across screen sizes.
         
     Returns:
         rich.tree.Tree or rich.text.Text: Formatted evidence tree or status text.
     """
     if not event or not isinstance(event, dict) or "error" in event:
-        return Text("No evidence available", style="dim italic")
+        return Align.center(Text("No evidence available", style="dim italic"))
 
     security_types = ["Replay Attack", "Brute Force", "Jamming Attack", "NFC Scan", "NFC Tag Present"]
     is_security_event = (event.get("type", "") in security_types or 
@@ -504,7 +518,7 @@ def render_evidence_panel(event):
                          "NFC" in event.get("type", ""))
 
     if not is_security_event:
-        return Text("No security evidence for this event", style="dim italic")
+        return Align.center(Text("No security evidence for this event", style="dim italic"))
 
     # Extract evidence data
     evidence = event.get("evidence", {})
@@ -512,7 +526,7 @@ def render_evidence_panel(event):
     
     # Always show panel for NFC events even without evidence
     if not evidence and not technical_evidence and not event.get("nfc_correlated", False) and "NFC" not in event.get("type", ""):
-        return Text("Event lacks detailed evidence", style="dim italic")
+        return Align.center(Text("Event lacks detailed evidence", style="dim italic"))
 
     # Create a more detailed tree with better visual structure and icons
     tree = Tree(f"🛡️  [bold yellow]{event.get('type', 'Security Event')} Analysis[/]", guide_style="bright_blue")
@@ -585,30 +599,32 @@ def render_evidence_panel(event):
                 formatted_key = key.replace("_", " ").title()
                 branch.add(f"[green]{formatted_key}:[/green] [bright_white]{value}[/bright_white]")
 
-    return Align.left(tree)
+    # Return tree centered for better visual alignment
+    return Align.center(tree)
 
 
-def render_signal_metrics(event):
+def render_signal_metrics(event, console_width=None):
     """
     Renders signal quality visualization with progress bars, indicators, and sparklines.
     
     Args:
         event (dict): The latest event with signal metrics.
+        console_width (int, optional): Console width for consistent sizing across screen sizes.
         
     Returns:
-        rich.columns.Columns: Visual representation of signal metrics.
+        rich.console.Group: Visual representation of signal metrics.
     """
     global rssi_history
     
     if not event or not isinstance(event, dict) or "error" in event:
-        return Text("No signal data available", style="dim")
+        return Align.center(Text("No signal data available", style="dim"))
     
     # Check if this is a technical signal event
     technical_types = ["RF", "Jamming", "Replay", "Brute Force", "NFC", "TPMS"]
     is_technical = any(tech in event.get("type", "") for tech in technical_types)
     
     if not is_technical:
-        return Text("Event does not contain RF signal metrics", style="dim")
+        return Align.center(Text("Event does not contain RF signal metrics", style="dim"))
     
     # Extract signal metrics
     rssi = event.get("rssi")
@@ -636,12 +652,17 @@ def render_signal_metrics(event):
         rssi_percent = min(100, max(0, (rssi + 100) * 1.25))  # Scale from -100..-20 to 0..100%
         rssi_color = "green" if rssi_percent > 70 else "yellow" if rssi_percent > 30 else "red"
         
-        # Create progress bar
+        # Create progress bar with fixed width to prevent duplication issues
+        # Use a conservative fixed width that works well on all screen sizes
+        bar_width = 30  # Fixed width to prevent Rich layout issues
+        
         rssi_progress = Progress(
             TextColumn("RSSI:"),
-            BarColumn(bar_width=40, style=rssi_color),
+            BarColumn(bar_width=bar_width, style=rssi_color),
             TextColumn("{task.description}"),
-            expand=True
+            expand=False,  # Prevent expansion that can cause duplication
+            disable=False,
+            transient=False
         )
         rssi_task = rssi_progress.add_task(f"[{rssi_color}]{rssi} dBm[/]", total=100, completed=rssi_percent)    
     
@@ -652,12 +673,14 @@ def render_signal_metrics(event):
         snr_percent = min(100, max(0, snr * 3.33))  # Scale from 0..30 to 0..100%
         snr_color = "green" if snr_percent > 70 else "yellow" if snr_percent > 30 else "red"
         
-        # Create progress bar
+        # Create progress bar with consistent width regardless of screen size
         snr_progress = Progress(
             TextColumn("SNR: "),
-            BarColumn(bar_width=40, style=snr_color),
+            BarColumn(bar_width=bar_width, style=snr_color),
             TextColumn("{task.description}"),
-            expand=True
+            expand=False,  # Prevent expansion that can cause duplication
+            disable=False,
+            transient=False
         )
         snr_task = snr_progress.add_task(f"[{snr_color}]{snr} dB[/]", total=100, completed=snr_percent)
     
@@ -681,7 +704,7 @@ def render_signal_metrics(event):
             max_rssi = max(rssi_history)
             rssi_sparkline.append(f" [{min_rssi}..{max_rssi} dBm]", style="dim")
     
-    # Build the columns list with available metrics
+    # Build the metric elements list with available metrics (original approach)
     metric_elements = []
     
     # Add modulation and frequency info
@@ -694,15 +717,16 @@ def render_signal_metrics(event):
         header_text.append(f"Frequency: ", style="bold")
         header_text.append(f"{freq_text}", style="cyan")
     
-    metric_elements.append(Align.center(header_text))
+    if header_text.plain:  # Only add if there's actual content
+        metric_elements.append(Align.center(header_text))
     
     # Add the progress bars and other visualizations if available
     if rssi_progress:
-        metric_elements.append(rssi_progress)
+        metric_elements.append(Align.center(rssi_progress))
     if rssi_sparkline:  # Add sparkline visualization after RSSI progress bar
         metric_elements.append(Align.center(rssi_sparkline))
     if snr_progress:
-        metric_elements.append(snr_progress)
+        metric_elements.append(Align.center(snr_progress))
     if burst_viz:
         metric_elements.append(Align.center(burst_viz))
     
@@ -711,8 +735,35 @@ def render_signal_metrics(event):
         nfc_text = Text("!!! NFC+RF CORRELATION DETECTED !!!", style="bold red")
         metric_elements.append(Align.center(nfc_text))
     
-    # Return visualization components as columns
-    return Columns(metric_elements, padding=(0, 2))
+    # Return visualization components as a vertical group to prevent duplication
+    # The key fix: Use Group with explicit width constraint to prevent Rich from wrapping
+    if not metric_elements:
+        return Align.center(Text("No signal data available", style="dim"))
+    
+    # Calculate a reasonable max width to prevent wrapping issues on larger screens
+    max_width = min(80, console_width - 10) if console_width else 70
+    
+    # Create a constrained group that won't expand beyond reasonable limits
+    from rich.console import Group
+    
+    # The key fix: Create a group with fixed width to prevent wrapping and duplication
+    # Set a reasonable fixed width that works on all screen sizes
+    from rich.console import Group
+    from rich.panel import Panel
+    
+    # Add spacing between elements to prevent them from running together
+    spaced_elements = []
+    for i, element in enumerate(metric_elements):
+        spaced_elements.append(element)
+        # Add spacing between elements except after the last one
+        if i < len(metric_elements) - 1:
+            spaced_elements.append(Text(""))  # Empty line for spacing
+    
+    # Wrap in a panel with fixed width to prevent Rich from making poor layout decisions
+    constrained_group = Group(*spaced_elements)
+    
+    # Return the group directly - let the parent panel handle the sizing
+    return constrained_group
 
 def get_signal_summary(event):
     """

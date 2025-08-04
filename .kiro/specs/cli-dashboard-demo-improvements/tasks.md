@@ -1,17 +1,13 @@
 # Implementation Plan
 
-- [ ] 1. Fix synthetic signal generation enum issue
-
-
-
-
+- [x] 1. Fix synthetic signal generation enum issue
 
   - Add missing SIGNAL_CLONING_ATTACK to ScenarioType enum in utils/signal_constants.py
   - Verify all attack types are properly mapped and accessible
   - Test --synthetic flag works without AttributeError
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 2. Fix display duplication on larger screens
+- [x] 2. Fix display duplication on larger screens
 
   - Investigate Rich layout behavior differences between small and large screens
   - Implement consistent panel sizing logic regardless of terminal dimensions
