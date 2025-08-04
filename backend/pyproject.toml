@@ -25,6 +25,9 @@ dependencies = [
     "matplotlib>=3.10.3",
     "scikit-learn>=1.7.1",
     "seaborn>=0.13.2",
+    "pyfiglet>=1.0.3",
+    "rich>=14.1.0",
+    "prompt-toolkit>=3.0.51",
 ]
 
 [tool.hatch.build.targets.wheel]
