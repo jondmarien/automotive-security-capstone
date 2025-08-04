@@ -79,6 +79,9 @@ from prompt_toolkit.layout.controls import FormattedTextControl
 # Store RSSI history for sparkline visualization (max 20 values)
 rssi_history = deque(maxlen=20)
 
+# Dashboard pagination configuration
+MAX_EVENTS_PER_PAGE = 20
+
 def generate_sparkline(values, min_value=-90, max_value=-20, width=20):
     """
     Generate a sparkline visualization using Unicode block characters.
@@ -336,19 +339,18 @@ def render_dashboard(events, selected_event, status_text, console, selected_even
     signal_viz = render_signal_metrics(selected_event, console_width=width) if selected_event else Align.center(Text("No signal data available"))
     evidence_panel = render_evidence_panel(selected_event, console_width=width) if selected_event else Align.center(Text("No evidence data available"))
     
-    # Pagination: Show 10 events per page
+    # Pagination: Show events per page (configured by MAX_EVENTS_PER_PAGE)
     # NOTE: Current custom pagination works well for our needs, but if future requirements demand more
     # advanced features, we should consider migrating to Rich's Pager component for large-table navigation.
     # See: https://rich.readthedocs.io/en/latest/console.html#paging
-    EVENTS_PER_PAGE = 10
-    total_pages = max(1, (len(events) + EVENTS_PER_PAGE - 1) // EVENTS_PER_PAGE)
+    total_pages = max(1, (len(events) + MAX_EVENTS_PER_PAGE - 1) // MAX_EVENTS_PER_PAGE)
     
     # Ensure current_page is valid
     current_page = max(0, min(current_page, total_pages - 1))
     
     # Calculate the start and end indices for the current page
-    start_idx = max(0, len(events) - (current_page + 1) * EVENTS_PER_PAGE)
-    end_idx = max(0, len(events) - current_page * EVENTS_PER_PAGE)
+    start_idx = max(0, len(events) - (current_page + 1) * MAX_EVENTS_PER_PAGE)
+    end_idx = max(0, len(events) - current_page * MAX_EVENTS_PER_PAGE)
     
     # Get events for the current page (most recent events first)
     page_events = events[start_idx:end_idx]
@@ -993,9 +995,9 @@ async def main():
         if not events:
             return
         # Move to previous page
-        current_page = min((len(events) - 1) // 10, current_page + 1)
+        current_page = min((len(events) - 1) // MAX_EVENTS_PER_PAGE, current_page + 1)
         # Adjust selected event index to be on the new page
-        page_start_idx = max(0, len(events) - (current_page + 1) * 10)
+        page_start_idx = max(0, len(events) - (current_page + 1) * MAX_EVENTS_PER_PAGE)
         selected_event_idx = -len(events) + page_start_idx
         # Disable follow latest when manually navigating
         follow_latest = False
@@ -1013,7 +1015,7 @@ async def main():
         # Move to next page
         current_page = max(0, current_page - 1)
         # Adjust selected event index to be on the new page
-        page_start_idx = max(0, len(events) - (current_page + 1) * 10)
+        page_start_idx = max(0, len(events) - (current_page + 1) * MAX_EVENTS_PER_PAGE)
         selected_event_idx = -len(events) + page_start_idx
         # Enable follow latest if we're on the first page
         if current_page == 0:
