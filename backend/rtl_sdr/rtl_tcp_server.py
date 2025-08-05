@@ -12,6 +12,7 @@ Example:
     manager.start_rtl_tcp_server()
     asyncio.run(manager.start_pico_communication_server())
 """
+
 import subprocess
 import json
 import time
@@ -19,8 +20,10 @@ import asyncio
 from datetime import datetime
 import os
 
+
 def log(msg):
     print("[{}] {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), msg))
+
 
 class RTLTCPServerManager:
     """
@@ -40,6 +43,7 @@ class RTLTCPServerManager:
         manager.start_rtl_tcp_server()
         asyncio.run(manager.start_pico_communication_server())
     """
+
     def __init__(self, frequency=434000000, sample_rate=2048000, gain=25):
         """
         Initializes the RTLTCPServerManager instance.
@@ -67,27 +71,35 @@ class RTLTCPServerManager:
             manager.start_rtl_tcp_server()
         """
         # Use the rtl_tcp.exe from the rtl_sdr_bin directory (one level up)
-        rtl_tcp_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'rtl_sdr_bin', 'rtl_tcp.exe'))
+        rtl_tcp_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "rtl_sdr_bin", "rtl_tcp.exe")
+        )
         cmd = [
             rtl_tcp_path,
-            '-a', '0.0.0.0',
-            '-p', str(self.tcp_port),
-            '-f', str(self.frequency),
-            '-s', str(self.sample_rate),
-            '-g', str(self.gain),
-            '-n', '1'
+            "-a",
+            "0.0.0.0",
+            "-p",
+            str(self.tcp_port),
+            "-f",
+            str(self.frequency),
+            "-s",
+            str(self.sample_rate),
+            "-g",
+            str(self.gain),
+            "-n",
+            "1",
         ]
         log(f"Starting RTL-SDR V4 TCP server: {' '.join(cmd)}")
         try:
-            self.rtl_process = subprocess.Popen(cmd, 
-                stdout=subprocess.PIPE, 
-                stderr=subprocess.PIPE)
+            self.rtl_process = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
             time.sleep(3)
             if self.rtl_process.poll() is None:
                 log(f"RTL-TCP server running on port {self.tcp_port}")
                 return True
             else:
-                stderr = self.rtl_process.stderr.read().decode() # type: ignore
+                stderr = self.rtl_process.stderr.read().decode()  # type: ignore
                 log(f"RTL-TCP server failed to start: {stderr}")
                 return False
         except Exception as e:
@@ -103,9 +115,7 @@ class RTLTCPServerManager:
             await manager.start_pico_communication_server()
         """
         server = await asyncio.start_server(
-            self.handle_pico_connection,
-            '0.0.0.0',
-            self.pico_server_port
+            self.handle_pico_connection, "0.0.0.0", self.pico_server_port
         )
         log(f"Pico communication server listening on port {self.pico_server_port}")
         async with server:
@@ -120,23 +130,25 @@ class RTLTCPServerManager:
             reader (StreamReader): Asyncio stream reader from Pico.
             writer (StreamWriter): Asyncio stream writer to Pico.
         """
-        addr = writer.get_extra_info('peername')
+        addr = writer.get_extra_info("peername")
         log(f"Pico connected from {addr}")
-        self.connected_picos.append({
-            'reader': reader,
-            'writer': writer,
-            'address': addr,
-            'connected_at': datetime.now()
-        })
+        self.connected_picos.append(
+            {
+                "reader": reader,
+                "writer": writer,
+                "address": addr,
+                "connected_at": datetime.now(),
+            }
+        )
         try:
             config = {
-                'type': 'config',
-                'rtl_frequency': self.frequency,
-                'sample_rate': self.sample_rate,
-                'server_info': {
-                    'version': '1.0.0',
-                    'capabilities': ['rf_monitoring', 'nfc_detection']
-                }
+                "type": "config",
+                "rtl_frequency": self.frequency,
+                "sample_rate": self.sample_rate,
+                "server_info": {
+                    "version": "0.10",
+                    "capabilities": ["rf_monitoring", "nfc_detection"],
+                },
             }
             await self.send_to_pico(writer, config)
             buffer = ""
@@ -146,8 +158,8 @@ class RTLTCPServerManager:
                     if not data:
                         break
                     buffer += data.decode()
-                    while '\n' in buffer:
-                        line, buffer = buffer.split('\n', 1)
+                    while "\n" in buffer:
+                        line, buffer = buffer.split("\n", 1)
                         if line.strip():
                             try:
                                 message = json.loads(line)
@@ -156,12 +168,14 @@ class RTLTCPServerManager:
                                 log(f"Invalid JSON from Pico {addr}: {line}")
                 except asyncio.TimeoutError:
                     log(f"Pico {addr} heartbeat timeout")
-                await self.send_to_pico(writer, {'type': 'heartbeat'})
+                await self.send_to_pico(writer, {"type": "heartbeat"})
         except Exception as e:
             log(f"Pico connection error from {addr}: {e}")
         finally:
             log(f"Pico {addr} disconnected")
-            self.connected_picos = [p for p in self.connected_picos if p['writer'] != writer]
+            self.connected_picos = [
+                p for p in self.connected_picos if p["writer"] != writer
+            ]
             writer.close()
 
     async def send_to_pico(self, writer, data):
@@ -173,7 +187,7 @@ class RTLTCPServerManager:
             data (dict): Data to send (will be JSON-encoded).
         """
         try:
-            json_data = json.dumps(data) + '\n'
+            json_data = json.dumps(data) + "\n"
             writer.write(json_data.encode())
             await writer.drain()
         except Exception as e:
@@ -190,7 +204,7 @@ class RTLTCPServerManager:
             return
         for pico in self.connected_picos[:]:
             try:
-                await self.send_to_pico(pico['writer'], data)
+                await self.send_to_pico(pico["writer"], data)
             except Exception as e:
                 log(f"Failed to broadcast to {pico['address']}: {e}")
                 self.connected_picos.remove(pico)

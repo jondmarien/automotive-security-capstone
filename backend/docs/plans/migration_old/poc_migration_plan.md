@@ -99,7 +99,7 @@ class RTLTCPServerManager:
                 'rtl_frequency': self.frequency,
                 'sample_rate': self.sample_rate,
                 'server_info': {
-                    'version': '1.0.0',
+                    'version': '0.1.0',
                     'capabilities': ['rf_monitoring', 'nfc_detection']
                 }
             }
@@ -517,7 +517,7 @@ class AutomotiveSecurityPico:
                     'type': 'handshake',
                     'device_id': 'automotive_pico_001',
                     'capabilities': ['nfc_detection', 'signal_analysis', 'alert_generation'],
-                    'firmware_version': '1.0.0'
+                    'firmware_version': '0.1.0'
                 }
                 await self.send_to_server(handshake)
                 

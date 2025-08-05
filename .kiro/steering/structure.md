@@ -2,7 +2,7 @@
 
 ## Root Directory Layout & Organization Philosophy
 
-```
+```sh
 automotive-security-capstone/
 ├── backend/                  # Main Python backend code (core system)
 ├── .kiro/                   # Kiro IDE configuration and steering rules
@@ -12,6 +12,7 @@ automotive-security-capstone/
 ```
 
 ### Directory Design Principles
+
 - **Monorepo Structure**: Single repository contains all project components
 - **Clear Separation**: Each top-level directory has distinct responsibility
 - **IDE Integration**: Configuration for multiple development environments
@@ -20,7 +21,8 @@ automotive-security-capstone/
 ## Backend Directory Deep Dive
 
 ### Complete Backend Structure
-```
+
+```sh
 backend/
 ├── cli_dashboard.py                      # Rich-based CLI dashboard (main UI entry point)
 ├── cli_dashboard_detection_adapter.py   # Dashboard-detection system integration layer
@@ -134,6 +136,7 @@ backend/
 ## File Naming Conventions & Standards
 
 ### Python Code Standards
+
 - **Snake_case**: All Python files, directories, functions, and variables
 - **Descriptive Names**: Files clearly indicate their purpose and functionality
 - **Module Organization**: Related functionality grouped in logical directories
@@ -141,7 +144,8 @@ backend/
 - **Package Structure**: Proper `__init__.py` files for all packages
 
 ### Examples of Good Naming
-```
+
+```sh
 # Good Examples
 cli_dashboard.py              # Clear purpose: CLI dashboard
 security_analyzer.py          # Clear purpose: security analysis
@@ -156,6 +160,7 @@ temp.py                      # Temporary files should not be committed
 ```
 
 ### Configuration File Standards
+
 - **YAML**: Primary configuration format (human-readable, supports comments)
 - **TOML**: Python project configuration (pyproject.toml)
 - **INI**: Legacy configuration support (pytest.ini)
@@ -165,6 +170,7 @@ temp.py                      # Temporary files should not be committed
 ## Key Entry Points & System Interfaces
 
 ### Primary Entry Points
+
 ```python
 # Main User Interface
 backend/cli_dashboard.py
@@ -188,6 +194,7 @@ backend/pico/main.py
 ```
 
 ### System Integration Points
+
 ```python
 # Detection System Integration
 backend/cli_dashboard_detection_adapter.py
@@ -206,11 +213,12 @@ backend/hardware/pico_interface.py
 ## Configuration Management Architecture
 
 ### Configuration File Hierarchy
+
 ```yaml
 # config/default_config.yaml - Base configuration
 system:
   name: "Automotive Security Monitor"
-  version: "1.0.0"
+  version: "0.1.0"
   log_level: "INFO"
 
 rtl_sdr:
@@ -232,6 +240,7 @@ pico:
 ```
 
 ### Environment-Specific Overrides
+
 ```yaml
 # config/development.yaml - Development overrides
 system:
@@ -250,6 +259,7 @@ detection:
 ### Core System Directories
 
 #### `/detection` - Security Analysis Engine
+
 - **Purpose**: Core threat detection and security analysis logic
 - **Key Components**:
   - Event detection algorithms and heuristics
@@ -260,6 +270,7 @@ detection:
 - **Testing**: Comprehensive unit tests with mock RF data
 
 #### `/rtl_sdr` - Hardware Interface Layer
+
 - **Purpose**: RTL-SDR hardware integration and signal processing
 - **Key Components**:
   - Hardware server management and control
@@ -270,6 +281,7 @@ detection:
 - **Performance**: Optimized for real-time signal processing
 
 #### `/pico` - Embedded Alert System
+
 - **Purpose**: Raspberry Pi Pico W firmware and hardware interfaces
 - **Key Components**:
   - MicroPython TCP client for alert reception
@@ -280,6 +292,7 @@ detection:
 - **Constraints**: Memory and processing limitations of embedded system
 
 #### `/hardware` - Hardware Abstraction Layer
+
 - **Purpose**: Clean abstraction layer for all hardware components
 - **Key Components**:
   - RTL-SDR interface abstraction
@@ -292,6 +305,7 @@ detection:
 ### Support Directories
 
 #### `/utils` - Shared Utilities
+
 - **Purpose**: Common functionality used across multiple modules
 - **Key Components**:
   - Logging configuration and management
@@ -302,6 +316,7 @@ detection:
 - **Principle**: DRY (Don't Repeat Yourself) implementation
 
 #### `/tests` - Comprehensive Test Suite
+
 - **Purpose**: Ensure system reliability and correctness
 - **Test Categories**:
   - Unit tests for individual components
@@ -312,6 +327,7 @@ detection:
 - **Coverage**: Target >90% code coverage
 
 #### `/docs` - Documentation Ecosystem
+
 - **Purpose**: Comprehensive project documentation and knowledge base
 - **Documentation Types**:
   - API documentation and specifications
@@ -322,6 +338,7 @@ detection:
 - **Maintenance**: Documentation updated with code changes
 
 #### `/scripts` - Automation and Deployment
+
 - **Purpose**: Automate common development and deployment tasks
 - **Script Categories**:
   - Environment setup and configuration
@@ -336,7 +353,8 @@ detection:
 ### Architectural Patterns
 
 #### Layered Architecture
-```
+
+```sh
 ┌─────────────────────────────────────┐
 │           User Interface            │  cli_dashboard.py
 ├─────────────────────────────────────┤
@@ -349,12 +367,14 @@ detection:
 ```
 
 #### Event-Driven Architecture
+
 - **Event Sources**: RTL-SDR signal capture, network events
 - **Event Processors**: Detection algorithms, threat analysis
 - **Event Consumers**: CLI dashboard, Pico W alerts, log files
 - **Benefits**: Loose coupling, scalability, real-time processing
 
 #### Dependency Injection
+
 - **Configuration Injection**: System settings injected at startup
 - **Hardware Injection**: Hardware interfaces injected for testing
 - **Service Injection**: Services injected for modularity
@@ -363,21 +383,25 @@ detection:
 ### Design Principles
 
 #### Single Responsibility Principle (SRP)
+
 - Each module has one clear, focused purpose
 - Files are named to reflect their specific responsibility
 - Classes and functions have single, well-defined roles
 
 #### Open/Closed Principle (OCP)
+
 - System open for extension (new detection algorithms)
 - System closed for modification (stable interfaces)
 - Plugin architecture for future enhancements
 
 #### Dependency Inversion Principle (DIP)
+
 - High-level modules don't depend on low-level modules
 - Both depend on abstractions (interfaces)
 - Hardware abstraction enables testing and flexibility
 
 #### Don't Repeat Yourself (DRY)
+
 - Common functionality extracted to utility modules
 - Configuration centralized and reusable
 - Code generation for repetitive patterns
@@ -385,6 +409,7 @@ detection:
 ### Testing Strategy & Organization
 
 #### Test Categories (pytest markers)
+
 ```python
 # Unit Tests - Fast, isolated, no external dependencies
 @pytest.mark.unit
@@ -408,6 +433,7 @@ def test_performance_under_load():
 ```
 
 #### Mock Strategy
+
 - **Hardware Mocking**: Complete mock implementations for all hardware
 - **Network Mocking**: Mock TCP connections and HTTP requests
 - **Time Mocking**: Control time for deterministic testing
@@ -416,12 +442,14 @@ def test_performance_under_load():
 ### Documentation Standards
 
 #### Code Documentation
+
 - **Docstrings**: Google-style docstrings for all public functions
 - **Type Hints**: Comprehensive type annotations throughout
 - **Comments**: Explain complex algorithms and business logic
 - **Examples**: Usage examples in docstrings
 
 #### Architecture Documentation
+
 - **Mermaid Diagrams**: System architecture and data flow
 - **API Documentation**: Comprehensive API reference
 - **Decision Records**: Document architectural decisions and rationale

@@ -13,22 +13,23 @@ Example usage:
     # Legacy mode
     bridge = SignalProcessingBridge(rtl_server_manager)
     asyncio.run(bridge.start_signal_processing())
-    
+
     # Enhanced mode
     bridge = SignalProcessingBridge(rtl_server_manager, enhanced_mode=True)
     asyncio.run(bridge.start_signal_processing())
 """
+
 import numpy as np
 import asyncio
 from datetime import datetime
 import struct
-from detection.event_logic import analyze_event  # Unified detection/event logic
 import time
 import logging
 
 # Import enhanced components
 try:
     from .enhanced_signal_bridge import EnhancedSignalProcessingBridge
+
     ENHANCED_MODE_AVAILABLE = True
 except ImportError as e:
     ENHANCED_MODE_AVAILABLE = False
@@ -36,8 +37,10 @@ except ImportError as e:
 
 logger = logging.getLogger(__name__)
 
+
 def log(msg):
     print("[{}] {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), msg))
+
 
 # Key fob detection settings by model/brand
 FOB_SETTINGS = {
@@ -56,6 +59,7 @@ FOB_SETTINGS = {
     # Add more models here
 }
 
+
 class SignalProcessingBridge:
     """
     Bridges RTL-TCP server and Pico clients by processing IQ samples from RTL-SDR, detecting automotive signals,
@@ -72,13 +76,20 @@ class SignalProcessingBridge:
         # Legacy mode
         bridge = SignalProcessingBridge(rtl_server_manager)
         asyncio.run(bridge.start_signal_processing())
-        
+
         # Enhanced mode
         bridge = SignalProcessingBridge(rtl_server_manager, enhanced_mode=True)
         asyncio.run(bridge.start_signal_processing())
     """
-    def __init__(self, rtl_server_manager, rtl_tcp_host='localhost', rtl_tcp_port=1234, 
-                 fob_model="BMW_X1_2023", enhanced_mode=False):
+
+    def __init__(
+        self,
+        rtl_server_manager,
+        rtl_tcp_host="localhost",
+        rtl_tcp_port=1234,
+        fob_model="BMW_X1_2023",
+        enhanced_mode=False,
+    ):
         self.rtl_server = rtl_server_manager
         self.rtl_tcp_host = rtl_tcp_host
         self.rtl_tcp_port = rtl_tcp_port
@@ -89,7 +100,7 @@ class SignalProcessingBridge:
         self._last_burst_time = 0
         self.fob_settings = FOB_SETTINGS.get(fob_model, FOB_SETTINGS["BMW_X1_2023"])
         self.enhanced_mode = enhanced_mode
-        
+
         # Initialize enhanced bridge if requested and available
         self.enhanced_bridge = None
         if enhanced_mode:
@@ -99,7 +110,9 @@ class SignalProcessingBridge:
                 )
                 log("Enhanced signal processing mode enabled")
             else:
-                log("Enhanced mode requested but not available, falling back to legacy mode")
+                log(
+                    "Enhanced mode requested but not available, falling back to legacy mode"
+                )
                 self.enhanced_mode = False
 
     async def start_signal_processing(self):
@@ -114,7 +127,7 @@ class SignalProcessingBridge:
         if self.enhanced_mode and self.enhanced_bridge:
             log("Starting enhanced signal processing")
             return await self.enhanced_bridge.start_signal_processing()
-        
+
         # Fall back to legacy processing
         log("Starting legacy signal processing")
         self.processing_active = True
@@ -133,16 +146,18 @@ class SignalProcessingBridge:
                         break
                     # Only process if at least one Pico is connected
                     if len(self.rtl_server.connected_picos) > 0:
-                        processed_data = await self.process_samples(raw_data, sample_count)
+                        processed_data = await self.process_samples(
+                            raw_data, sample_count
+                        )
                         if processed_data:
                             await self.rtl_server.broadcast_to_picos(processed_data)
                     sample_count += 1
                     if sample_count % 100 == 0:
                         status = {
-                            'type': 'status',
-                            'samples_processed': sample_count,
-                            'frequency': self.rtl_server.frequency,
-                            'connected_picos': len(self.rtl_server.connected_picos)
+                            "type": "status",
+                            "samples_processed": sample_count,
+                            "frequency": self.rtl_server.frequency,
+                            "connected_picos": len(self.rtl_server.connected_picos),
                         }
                         await self.rtl_server.broadcast_to_picos(status)
                 writer.close()
@@ -161,11 +176,11 @@ class SignalProcessingBridge:
         Example:
             await bridge.configure_rtl_sdr(writer)
         """
-        freq_cmd = struct.pack('>BI', 0x01, self.rtl_server.frequency)
+        freq_cmd = struct.pack(">BI", 0x01, self.rtl_server.frequency)
         writer.write(freq_cmd)
-        rate_cmd = struct.pack('>BI', 0x02, self.rtl_server.sample_rate)
+        rate_cmd = struct.pack(">BI", 0x02, self.rtl_server.sample_rate)
         writer.write(rate_cmd)
-        gain_cmd = struct.pack('>BI', 0x04, self.rtl_server.gain)
+        gain_cmd = struct.pack(">BI", 0x04, self.rtl_server.gain)
         writer.write(gain_cmd)
         await writer.drain()
         log("RTL-SDR configured via TCP")
@@ -197,12 +212,12 @@ class SignalProcessingBridge:
         detections = await self.detect_automotive_signals(power_db, complex_samples)
         if detections:
             return {
-                'type': 'signal_detection',
-                'timestamp': datetime.now().isoformat(),
-                'sample_count': sample_count,
-                'detections': detections,
-                'frequency_mhz': self.rtl_server.frequency / 1e6,
-                'sample_rate': self.rtl_server.sample_rate
+                "type": "signal_detection",
+                "timestamp": datetime.now().isoformat(),
+                "sample_count": sample_count,
+                "detections": detections,
+                "frequency_mhz": self.rtl_server.frequency / 1e6,
+                "sample_rate": self.rtl_server.sample_rate,
             }
         return None
 
@@ -237,36 +252,48 @@ class SignalProcessingBridge:
 
         if len(peaks) < MIN_PEAK_COUNT:
             if now - self._last_cooldown_log_time > COOLDOWN_LOG_INTERVAL:
-                log(f"[BURST] Ignored: peak_count below threshold ({len(peaks)} < {MIN_PEAK_COUNT})")
+                log(
+                    f"[BURST] Ignored: peak_count below threshold ({len(peaks)} < {MIN_PEAK_COUNT})"
+                )
                 self._last_cooldown_log_time = now
             return []
 
         max_power = np.max(power_db[peaks])
         if max_power < MIN_MAX_POWER_DB:
             if now - self._last_cooldown_log_time > COOLDOWN_LOG_INTERVAL:
-                log(f"[BURST] Ignored: max_power below threshold ({max_power:.2f} < {MIN_MAX_POWER_DB})")
+                log(
+                    f"[BURST] Ignored: max_power below threshold ({max_power:.2f} < {MIN_MAX_POWER_DB})"
+                )
                 self._last_cooldown_log_time = now
             return []
 
         if now - self._last_burst_time < COOLDOWN_SECONDS:
             if now - self._last_cooldown_log_time > COOLDOWN_LOG_INTERVAL:
-                log(f"[BURST] Ignored due to cooldown: max_power={max_power:.2f}, peak_count={len(peaks)}")
+                log(
+                    f"[BURST] Ignored due to cooldown: max_power={max_power:.2f}, peak_count={len(peaks)}"
+                )
                 self._last_cooldown_log_time = now
             return []
 
         self._last_burst_time = now
 
         burst_pattern = self.analyze_burst_pattern(power_db, peaks, settings)
-        log(f"[BURST] Detected burst_pattern={burst_pattern}, max_power={max_power:.2f}, mean_power={mean_power:.2f}, peak_count={len(peaks)}")
+        log(
+            f"[BURST] Detected burst_pattern={burst_pattern}, max_power={max_power:.2f}, mean_power={mean_power:.2f}, peak_count={len(peaks)}"
+        )
 
         detection = {
-            'detection_id': f"det_{int(datetime.now().timestamp())}",
-            'event_type': self.classify_signal_type(burst_pattern, max_power, peaks, settings),
-            'burst_pattern': burst_pattern,
-            'power_db': float(max_power),
-            'mean_power': float(mean_power),
-            'peak_count': len(peaks),
-            'threat_level': self.calculate_threat_level(burst_pattern, max_power, mean_power),
+            "detection_id": f"det_{int(datetime.now().timestamp())}",
+            "event_type": self.classify_signal_type(
+                burst_pattern, max_power, peaks, settings
+            ),
+            "burst_pattern": burst_pattern,
+            "power_db": float(max_power),
+            "mean_power": float(mean_power),
+            "peak_count": len(peaks),
+            "threat_level": self.calculate_threat_level(
+                burst_pattern, max_power, mean_power
+            ),
         }
         detections.append(detection)
         return detections
@@ -284,15 +311,15 @@ class SignalProcessingBridge:
             str: Pattern label (e.g., 'key_fob_pattern', 'jamming_pattern', etc).
         """
         if len(peaks) < 3:
-            return 'single_burst'
+            return "single_burst"
         peak_intervals = np.diff(peaks)
         if len(peak_intervals) >= 2:
             interval_consistency = np.std(peak_intervals) / np.mean(peak_intervals)
             if interval_consistency < settings.get("interval_consistency", 0.3):
-                return 'key_fob_pattern'
+                return "key_fob_pattern"
         if len(peaks) > 10 and np.mean(peak_intervals) < 5:
-            return 'jamming_pattern'
-        return 'unknown_pattern'
+            return "jamming_pattern"
+        return "unknown_pattern"
 
     def classify_signal_type(self, burst_pattern, max_power, peaks, settings):
         """
@@ -307,14 +334,14 @@ class SignalProcessingBridge:
         Returns:
             str: Signal type label (e.g., 'key_fob_transmission').
         """
-        if burst_pattern == 'key_fob_pattern':
-            return 'key_fob_transmission'
-        elif burst_pattern == 'jamming_pattern':
-            return 'potential_jamming'
+        if burst_pattern == "key_fob_pattern":
+            return "key_fob_transmission"
+        elif burst_pattern == "jamming_pattern":
+            return "potential_jamming"
         elif max_power > -50 and len(peaks) > 40:
-            return 'strong_unknown_signal'
+            return "strong_unknown_signal"
         else:
-            return 'unknown_signal'
+            return "unknown_signal"
 
     def calculate_threat_level(self, burst_pattern, max_power, mean_power):
         """
@@ -329,9 +356,9 @@ class SignalProcessingBridge:
             float: Threat score (0.0 to 1.0).
         """
         threat_score = 0.0
-        if burst_pattern == 'key_fob_pattern':
+        if burst_pattern == "key_fob_pattern":
             threat_score += 0.6
-        elif burst_pattern == 'jamming_pattern':
+        elif burst_pattern == "jamming_pattern":
             threat_score += 0.9
         power_ratio = (max_power - mean_power) / abs(mean_power)
         threat_score += min(0.4, power_ratio / 10)

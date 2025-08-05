@@ -61,11 +61,11 @@ MIFARE_CMD_WRITE = const(0xA0)
 MIFARE_ULTRALIGHT_CMD_WRITE = const(0xA2)
 
 # Known keys
-KEY_DEFAULT_B = bytes([0xFF]*6)
+KEY_DEFAULT_B = bytes([0xFF] * 6)
 
 
-_ACK = b'\x00\x00\xFF\x00\xFF\x00'
-_FRAME_START = b'\x00\x00\xFF'
+_ACK = b"\x00\x00\xff\x00\xff\x00"
+_FRAME_START = b"\x00\x00\xff"
 # pylint: enable=bad-whitespace
 _SPI_STATREAD = const(0x02)
 _SPI_DATAWRITE = const(0x01)
@@ -86,6 +86,7 @@ def _reset(pin):
 
 class BusyError(Exception):
     """Base class for exceptions in this module."""
+
     pass
 
 
@@ -95,7 +96,7 @@ def reverse_bit(num):
     result = 0
     for _ in range(8):
         result <<= 1
-        result += (num & 1)
+        result += num & 1
         num >>= 1
     return result
 
@@ -141,14 +142,14 @@ class PN532:
         status = bytearray([0, 0])
         timestamp = time.ticks_ms()
         while time.ticks_diff(time.ticks_ms(), timestamp) < timeout:
-            time.sleep(0.02)   # required
+            time.sleep(0.02)  # required
             self.CSB.off()
             time.sleep_ms(2)
             self._spi.write_readinto(status_query, status)
             time.sleep_ms(2)
             self.CSB.on()
             if reverse_bit(status[1]) == 0x01:  # LSB data is read in MSB
-                return True      # Not busy anymore!
+                return True  # Not busy anymore!
             else:
                 time.sleep(0.01)  # pause a bit till we ask again
         # Timed out!
@@ -157,10 +158,10 @@ class PN532:
     def _read_data(self, count):
         """Read a specified count of bytes from the PN532."""
         # Build a read request frame.
-        frame = bytearray(count+1)
+        frame = bytearray(count + 1)
         # Add the SPI data read signal byte, but LSB'ify it
         frame[0] = reverse_bit(_SPI_DATAREAD)
-        time.sleep(0.02)   # required
+        time.sleep(0.02)  # required
         self.CSB.off()
         time.sleep_ms(2)
         self._spi.write_readinto(frame, frame)
@@ -170,17 +171,16 @@ class PN532:
             frame[i] = reverse_bit(val)  # turn LSB data to MSB
         if self.debug:
             print("DEBUG: _read_data: ", [hex(i) for i in frame[1:]])
-        return frame[1:]   # don't return the status byte
+        return frame[1:]  # don't return the status byte
 
     def _write_data(self, framebytes):
         """Write a specified count of bytes to the PN532"""
         # start by making a frame with data write in front,
         # then rest of bytes, and LSBify it
-        rev_frame = [reverse_bit(x)
-                     for x in bytes([_SPI_DATAWRITE]) + framebytes]
+        rev_frame = [reverse_bit(x) for x in bytes([_SPI_DATAWRITE]) + framebytes]
         if self.debug:
             print("DEBUG: _write_data: ", [hex(i) for i in rev_frame])
-        time.sleep(0.02)   # required
+        time.sleep(0.02)  # required
         self.CSB.off()
         time.sleep_ms(2)
         self._spi.write(bytes(rev_frame))  # pylint: disable=no-member
@@ -189,8 +189,9 @@ class PN532:
 
     def _write_frame(self, data):
         """Write a frame to the PN532 with the specified data bytearray."""
-        assert data is not None and 1 < len(
-            data) < 255, 'Data must be array of 1 to 255 bytes.'
+        assert data is not None and 1 < len(data) < 255, (
+            "Data must be array of 1 to 255 bytes."
+        )
         # Build frame to send as:
         # - Preamble (0x00)
         # - Start code  (0x00, 0xFF)
@@ -200,7 +201,7 @@ class PN532:
         # - Checksum
         # - Postamble (0x00)
         length = len(data)
-        frame = bytearray(length+8)
+        frame = bytearray(length + 8)
         frame[0] = _PREAMBLE
         frame[1] = _STARTCODE1
         frame[2] = _STARTCODE2
@@ -213,7 +214,7 @@ class PN532:
         frame[-1] = _POSTAMBLE
         # Send frame.
         if self.debug:
-            print('DEBUG: _write_frame: ', [hex(i) for i in frame])
+            print("DEBUG: _write_frame: ", [hex(i) for i in frame])
         self._write_data(bytes(frame))
 
     def _read_frame(self, length):
@@ -223,35 +224,33 @@ class PN532:
         might be returned!
         """
         # Read frame with expected length of data.
-        response = self._read_data(length+8)
+        response = self._read_data(length + 8)
         if self.debug:
-            print('DEBUG: _read_frame:', [hex(i) for i in response])
+            print("DEBUG: _read_frame:", [hex(i) for i in response])
 
         # Swallow all the 0x00 values that preceed 0xFF.
         offset = 0
         while response[offset] == 0x00:
             offset += 1
             if offset >= len(response):
-                raise RuntimeError(
-                    'Response frame preamble does not contain 0x00FF!')
+                raise RuntimeError("Response frame preamble does not contain 0x00FF!")
         if response[offset] != 0xFF:
-            raise RuntimeError(
-                'Response frame preamble does not contain 0x00FF!')
+            raise RuntimeError("Response frame preamble does not contain 0x00FF!")
         offset += 1
         if offset >= len(response):
-            raise RuntimeError('Response contains no data!')
+            raise RuntimeError("Response contains no data!")
         # Check length & length checksum match.
         frame_len = response[offset]
-        if (frame_len + response[offset+1]) & 0xFF != 0:
-            raise RuntimeError(
-                'Response length checksum did not match length!')
+        if (frame_len + response[offset + 1]) & 0xFF != 0:
+            raise RuntimeError("Response length checksum did not match length!")
         # Check frame checksum value matches bytes.
-        checksum = sum(response[offset+2:offset+2+frame_len+1]) & 0xFF
+        checksum = sum(response[offset + 2 : offset + 2 + frame_len + 1]) & 0xFF
         if checksum != 0:
             raise RuntimeError(
-                'Response checksum did not match expected value: ', checksum)
+                "Response checksum did not match expected value: ", checksum
+            )
         # Return frame data.
-        return response[offset+2:offset+2+frame_len]
+        return response[offset + 2 : offset + 2 + frame_len]
 
     def call_function(self, command, response_length=0, params=[], timeout=1000):  # pylint: disable=dangerous-default-value
         """Send specified command to the PN532 and expect up to response_length
@@ -262,11 +261,11 @@ class PN532:
         response is available within the timeout.
         """
         # Build frame data with command and parameters.
-        data = bytearray(2+len(params))
+        data = bytearray(2 + len(params))
         data[0] = _HOSTTOPN532
         data[1] = command & 0xFF
         for i, val in enumerate(params):
-            data[2+i] = val
+            data[2 + i] = val
         # Send frame and wait for response.
         try:
             self._write_frame(data)
@@ -274,23 +273,23 @@ class PN532:
             self._wakeup()
             return None
         if not self._wait_ready(timeout):
-            if(self.debug):
-                print('DEBUG: _wait_ready timed out waiting for ACK')
+            if self.debug:
+                print("DEBUG: _wait_ready timed out waiting for ACK")
             return None
         # Verify ACK response and wait to be ready for function response.
         if not _ACK == self._read_data(len(_ACK)):
-            raise RuntimeError('Did not receive expected ACK from PN532!')
+            raise RuntimeError("Did not receive expected ACK from PN532!")
         if not self._wait_ready(timeout):
-            if(self.debug):
-                print('DEBUG: _wait_ready timed out waiting for response')
+            if self.debug:
+                print("DEBUG: _wait_ready timed out waiting for response")
             return None
         # Read response bytes.
-        response = self._read_frame(response_length+2)
-        if(self.debug):
-            print('DEBUG: call_function response:', [hex(i) for i in response])
+        response = self._read_frame(response_length + 2)
+        if self.debug:
+            print("DEBUG: call_function response:", [hex(i) for i in response])
         # Check that response is for the called function.
-        if not (response[0] == _PN532TOHOST and response[1] == (command+1)):
-            raise RuntimeError('Received unexpected command response!')
+        if not (response[0] == _PN532TOHOST and response[1] == (command + 1)):
+            raise RuntimeError("Received unexpected command response!")
         # Return response data.
         return response[2:]
 
@@ -298,13 +297,12 @@ class PN532:
         """Call PN532 GetFirmwareVersion function and return a tuple with the IC,
         Ver, Rev, and Support values.
         """
-        response = self.call_function(
-            _COMMAND_GETFIRMWAREVERSION, 4, timeout=500)
+        response = self.call_function(_COMMAND_GETFIRMWAREVERSION, 4, timeout=500)
         if response is None:
-            raise RuntimeError('Failed to detect the PN532')
+            raise RuntimeError("Failed to detect the PN532")
         return tuple(response)
 
-    def SAM_configuration(self):   # pylint: disable=invalid-name
+    def SAM_configuration(self):  # pylint: disable=invalid-name
         """Configure the PN532 to read MiFare cards."""
         # Send SAM configuration command with configuration for:
         # - 0x01, normal mode
@@ -312,8 +310,7 @@ class PN532:
         # - 0x01, use IRQ pin
         # Note that no other verification is necessary as call_function will
         # check the command was executed as expected.
-        self.call_function(_COMMAND_SAMCONFIGURATION,
-                           params=[0x01, 0x14, 0x01])
+        self.call_function(_COMMAND_SAMCONFIGURATION, params=[0x01, 0x14, 0x01])
 
     def read_passive_target(self, card_baud=_MIFARE_ISO14443A, timeout=1000):
         """Wait for a MiFare card to be available and return its UID when found.
@@ -322,10 +319,12 @@ class PN532:
         """
         # Send passive read command for 1 card.  Expect at most a 7 byte UUID.
         try:
-            response = self.call_function(_COMMAND_INLISTPASSIVETARGET,
-                                          params=[0x01, card_baud],
-                                          response_length=19,
-                                          timeout=timeout)
+            response = self.call_function(
+                _COMMAND_INLISTPASSIVETARGET,
+                params=[0x01, card_baud],
+                response_length=19,
+                timeout=timeout,
+            )
         except BusyError:
             return None  # no card found!
         # If no response is available return None to indicate no card is present.
@@ -333,11 +332,11 @@ class PN532:
             return None
         # Check only 1 card with up to a 7 byte UID is present.
         if response[0] != 0x01:
-            raise RuntimeError('More than one card detected!')
+            raise RuntimeError("More than one card detected!")
         if response[5] > 7:
-            raise RuntimeError('Found card with unexpectedly long UID!')
+            raise RuntimeError("Found card with unexpectedly long UID!")
         # Return UID of card.
-        return response[6:6+response[5]]
+        return response[6 : 6 + response[5]]
 
     def ntag2xx_write_block(self, block_number, data):
         """Write a block of data to the card.  Block number should be the block
@@ -345,18 +344,17 @@ class PN532:
         write.  If the data is successfully written then True is returned,
         otherwise False is returned.
         """
-        assert data is not None and len(
-            data) == 4, 'Data must be an array of 4 bytes!'
+        assert data is not None and len(data) == 4, "Data must be an array of 4 bytes!"
         # Build parameters for InDataExchange command to do NTAG203 classic write.
-        params = bytearray(3+len(data))
+        params = bytearray(3 + len(data))
         params[0] = 0x01  # Max card numbers
         params[1] = MIFARE_ULTRALIGHT_CMD_WRITE
         params[2] = block_number & 0xFF
         params[3:] = data
         # Send InDataExchange request.
-        response = self.call_function(_COMMAND_INDATAEXCHANGE,
-                                      params=params,
-                                      response_length=1)
+        response = self.call_function(
+            _COMMAND_INDATAEXCHANGE, params=params, response_length=1
+        )
         return response[0] == 0x00
 
     def ntag2xx_read_block(self, block_number):
@@ -365,7 +363,9 @@ class PN532:
         data starting at the specified block will be returned.  If the block is
         not read then None will be returned.
         """
-        return self.mifare_classic_read_block(block_number)[0:4]  # only 4 bytes per page
+        return self.mifare_classic_read_block(block_number)[
+            0:4
+        ]  # only 4 bytes per page
 
     def mifare_classic_read_block(self, block_number):
         """Read a block of data from the card.  Block number should be the block
@@ -374,17 +374,20 @@ class PN532:
         not read then None will be returned.
         """
         # Send InDataExchange request to read block of MiFare data.
-        response = self.call_function(_COMMAND_INDATAEXCHANGE,
-                                      params=[0x01, MIFARE_CMD_READ,
-                                              block_number & 0xFF],
-                                      response_length=17)
+        response = self.call_function(
+            _COMMAND_INDATAEXCHANGE,
+            params=[0x01, MIFARE_CMD_READ, block_number & 0xFF],
+            response_length=17,
+        )
         # Check first response is 0x00 to show success.
         if response[0] != 0x00:
             return None
         # Return first 4 bytes since 16 bytes are always returned.
         return response[1:]
 
-    def mifare_classic_authenticate_block(self, uid, block_number, key_number=MIFARE_CMD_AUTH_B, key=KEY_DEFAULT_B):  # pylint: disable=invalid-name
+    def mifare_classic_authenticate_block(
+        self, uid, block_number, key_number=MIFARE_CMD_AUTH_B, key=KEY_DEFAULT_B
+    ):  # pylint: disable=invalid-name
         """Authenticate specified block number for a MiFare classic card.  Uid
         should be a byte array with the UID of the card, block number should be
         the block to authenticate, key number should be the key type (like
@@ -406,4 +409,3 @@ class PN532:
             _COMMAND_INDATAEXCHANGE, params=params, response_length=1
         )
         return response[0] == 0x00
-
