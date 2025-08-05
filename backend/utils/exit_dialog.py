@@ -27,8 +27,9 @@ import pyfiglet
 
 def display_logo(console: Console):
     """Display the ASCII art logo for the Automotive Security PoC."""
+    from rich.align import Align
     logo_text = pyfiglet.figlet_format("AutoSec Monitor", font="standard")
-    console.print(logo_text, style="bold cyan")
+    console.print(Align.center(logo_text), style="bold cyan")
     console.print("Automotive Cybersecurity Proof of Concept", style="dim white", justify="center")
     console.print("=" * console.width, style="dim white")
     console.print()  # Add spacing

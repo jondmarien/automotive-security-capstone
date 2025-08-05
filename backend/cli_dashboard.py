@@ -29,25 +29,34 @@ from collections import deque
 from typing import Dict, Any
 
 import aiohttp
-import pyfiglet
 
 # Import timestamp format constants
 from utils.signal_constants import TIMESTAMP_FORMAT, TIMESTAMP_FORMAT_SHORT
+from utils.exit_dialog import display_logo
 from rich import box
 from rich.live import Live
 from rich.align import Align
 from rich.console import Console, Group
+from rich.text import Text
 from rich.layout import Layout
 from rich.panel import Panel
 from rich.progress import Progress, BarColumn, TextColumn
 from rich.spinner import Spinner
 from rich.table import Table
-from rich.text import Text
 from rich.tree import Tree
 
 # Import performance monitoring
 from utils.simple_performance_monitor import get_performance_monitor
 from rich.theme import Theme
+
+# Import prompt_toolkit for key handling
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.application import Application
+from prompt_toolkit.layout.containers import HSplit, Window, VSplit
+from prompt_toolkit.layout.controls import FormattedTextControl
+from prompt_toolkit.layout import Layout as PTLayout
+from prompt_toolkit.input import create_input
+from prompt_toolkit.output import create_output
 
 # Import logging configuration
 from utils.logging_config import (
@@ -60,13 +69,6 @@ from utils.logging_config import (
 
 # Import professional exit dialog
 from utils.exit_dialog import handle_professional_exit
-
-# prompt_toolkit imports for keyboard navigation
-from prompt_toolkit.application import Application
-from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.layout import Layout as PTLayout
-from prompt_toolkit.layout.containers import Window, VSplit
-from prompt_toolkit.layout.controls import FormattedTextControl
 
 # Global variables
 # Store RSSI history for sparkline visualization (max 20 values)
@@ -223,13 +225,283 @@ custom_theme = Theme({
 })
 console = Console(theme=custom_theme)
 
-# ASCII art logo using pyfiglet
-def display_logo():
-    """Display the ASCII art logo for the Automotive Security PoC."""
+# ASCII art logo - now using the new implementation from utils.exit_dialog
+
+def render_landing_screen_content(args):
+    """Render the landing screen content without progress bars for toggling in main dashboard."""
+    # Create the landing screen content as a renderable
+    from rich.columns import Columns
+    
+    # ASCII art logo using new implementation
+    import pyfiglet
+    
+    # Create the logo content properly
     logo_text = pyfiglet.figlet_format("AutoSec Monitor", font="standard")
-    console.print(logo_text, style="bold cyan")
-    console.print("Automotive Cybersecurity Proof of Concept", style="dim white", justify="center")
-    console.print("=" * console.width, style="dim white")
+    
+    logo_panel = Panel(
+        Align.center(Group(
+            Align.center(Text(logo_text, style="bold cyan")),
+            Text("Automotive Cybersecurity Proof of Concept", style="dim white"),
+            Text("4th Year Cybersecurity Capstone Project (2025)", style="italic dim")
+        )),
+        title="[bold blue]AutoSec Monitor[/bold blue]",
+        border_style="cyan",
+        padding=(1, 2)
+    )
+    
+    # System information panel
+    system_info = Table.grid(padding=1)
+    system_info.add_column(justify="left", style="bold white")  # Labels stay left-aligned
+    system_info.add_column(justify="center", style="white")  # Values are centered
+    
+    system_info.add_row("🖥️  System:", "Real-time RF/NFC Threat Detection & Analysis")
+    system_info.add_row("📡 Hardware:", "RTL-SDR V4 + Raspberry Pi Pico W")
+    system_info.add_row("🎯 Target:", "Automotive Wireless Attack Detection")
+    system_info.add_row("📅 Timestamp:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    system_info.add_row("🔧 Version:", "AutoSec Monitor v1.0")
+    
+    system_panel = Panel(system_info, title="[bold]System Information[/bold]", 
+                         border_style="blue", padding=(1, 2))
+    
+    # Configuration panel
+    config_info = Table.grid(padding=1)
+    config_info.add_column(justify="left", style="bold white")
+    config_info.add_column(justify="center", style="green")  # Values are centered
+    
+    # Determine configuration mode and status
+    if args.mock:
+        if args.synthetic:
+            mode = "🧪 SYNTHETIC SIGNALS"
+            status = "Advanced testing mode with realistic signal characteristics"
+            mode_color = "magenta"
+        else:
+            mode = "🎭 MOCK DATA"
+            status = "Demo/testing mode with simulated events"
+            mode_color = "yellow"
+    elif args.source == "api":
+        mode = "🌐 API POLLING"
+        status = f"Backend API at {args.api_url}"
+        mode_color = "cyan"
+    elif args.source == "tcp":
+        mode = "📡 TCP STREAM"
+        status = f"Real-time TCP stream from {args.tcp_host}:{args.tcp_port}"
+        mode_color = "green"
+    else:
+        mode = "🔄 AUTO DETECT"
+        status = "Automatic event source detection"
+        mode_color = "blue"
+    
+    config_info.add_row("🔧 Mode:", f"[{mode_color}]{mode}[/{mode_color}]")
+    config_info.add_row("📊 Status:", status)
+    config_info.add_row("🔍 Signal Analysis:", "✅ Enabled" if args.detailed else "❌ Disabled")
+    config_info.add_row("📱 NFC Correlation:", "✅ Enabled" if args.nfc else "❌ Disabled")
+    
+    if args.event != -1:
+        config_info.add_row("👁️  Event Focus:", f"Event #{args.event} (manual selection)")
+    else:
+        config_info.add_row("👁️  Event Focus:", "Latest event (real-time follow)")
+    
+    config_panel = Panel(config_info, title="[bold]Active Configuration[/bold]", 
+                         border_style="green", padding=(1, 2))
+    
+    # Help information
+    help_info = Table.grid(padding=1)
+    help_info.add_column(justify="left", style="bold white")  # Emojis stay left-aligned
+    help_info.add_column(justify="center", style="dim white")  # Descriptions are centered
+    
+    help_info.add_row("⬆️⬇️", "Navigate events (Up/Down arrows)")
+    help_info.add_row("🏠🔚", "First/Latest event (Home/End)")
+    help_info.add_row("⬅️➡️", "Previous/Next page (Left/Right arrows)")
+    help_info.add_row("❓", "Toggle help display ('?' key)")
+    help_info.add_row("🏁", "Toggle landing screen ('m' key)")
+    help_info.add_row("🚪", "Exit dashboard ('q' key)")
+    help_info.add_row(" ⚡", "Instant exit (Ctrl+C)")
+    
+    help_panel = Panel(help_info, title="[bold]Keyboard Controls[/bold]", 
+                       border_style="yellow", padding=(1, 2))
+    
+    # Group and center the system and config panels
+    info_panels_group = Align.center(
+        Columns([system_panel, config_panel], equal=True, expand=False, padding=(0, 2))
+    )
+    
+    # Center the keyboard controls panel
+    centered_help_panel = Align.center(help_panel)
+    
+    # Combine all panels with proper spacing and centering
+    panels = Group(
+        logo_panel,
+        "",  # Empty line for spacing
+        info_panels_group,
+        "",  # Empty line for spacing
+        centered_help_panel,
+        "",  # Empty line for spacing
+        Align.center("[dim]Press 'm' to return to dashboard[/dim]")
+    )
+    
+    return panels
+
+def display_enhanced_startup_screen(args, startup_delay=2.5):
+    """Display enhanced startup screen with ASCII art, system info, and configuration details."""
+    console.clear()
+    
+    # Display ASCII art logo immediately (using new implementation)
+    display_logo(console)
+    console.print(Align.center("4th Year Cybersecurity Capstone Project (2025)"), style="italic dim")
+    console.print("\n")
+    
+    # System information panel
+    system_info = Table.grid(padding=1)
+    system_info.add_column(justify="left", style="bold white")
+    system_info.add_column(justify="left", style="white")
+    
+    system_info.add_row("🖥️  System:", "Real-time RF/NFC Threat Detection & Analysis")
+    system_info.add_row("📡 Hardware:", "RTL-SDR V4 + Raspberry Pi Pico W")
+    system_info.add_row("🎯 Target:", "Automotive Wireless Attack Detection")
+    system_info.add_row("📅 Timestamp:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    
+    console.print(Align.center(Panel(system_info, title="[bold]System Information[/bold]", 
+                                     border_style="blue", padding=(1, 2))), "\n")
+    
+    # Configuration panel
+    config_info = Table.grid(padding=1)
+    config_info.add_column(justify="left", style="bold white")
+    config_info.add_column(justify="center", style="green")  # Values are centered
+    
+    # Determine configuration mode and status
+    if args.mock:
+        if args.synthetic:
+            mode = "🧪 SYNTHETIC SIGNALS"
+            status = "Advanced testing mode with realistic signal characteristics"
+            mode_color = "magenta"
+        else:
+            mode = "🎭 MOCK DATA"
+            status = "Demo/testing mode with simulated events"
+            mode_color = "yellow"
+    elif args.source == "api":
+        mode = "🌐 API POLLING"
+        status = f"Backend API at {args.api_url}"
+        mode_color = "cyan"
+    elif args.source == "tcp":
+        mode = "📡 TCP STREAM"
+        status = f"Real-time TCP stream from {args.tcp_host}:{args.tcp_port}"
+        mode_color = "green"
+    else:
+        mode = "🔄 AUTO DETECT"
+        status = "Automatic event source detection"
+        mode_color = "blue"
+    
+    config_info.add_row("🔧 Mode:", f"[{mode_color}]{mode}[/{mode_color}]")
+    config_info.add_row("📊 Status:", status)
+    config_info.add_row("🔍 Signal Analysis:", "✅ Enabled" if args.detailed else "❌ Disabled")
+    config_info.add_row("📱 NFC Correlation:", "✅ Enabled" if args.nfc else "❌ Disabled")
+    
+    if args.event != -1:
+        config_info.add_row("👁️  Event Focus:", f"Event #{args.event} (manual selection)")
+    else:
+        config_info.add_row("👁️  Event Focus:", "Latest event (real-time follow)")
+    
+    console.print(Align.center(Panel(config_info, title="[bold]Active Configuration[/bold]", 
+                                     border_style="green", padding=(1, 2))), "\n")
+    
+    # Loading progress with countdown
+    console.print(Align.center("[dim]Initializing threat detection systems...[/dim]"))
+    console.print("\n")
+
+    # Simulate startup delay (in seconds)
+    startup_delay = 7  # Adjust as needed
+
+    # Startup sequence
+    startup_steps = [
+        (10, "Initializing Rich console..."),
+        (25, "Loading signal processing modules..."),
+        (40, "Setting up event logging system..."),
+        (55, "Configuring threat detection engine..."),
+        (70, "Establishing event data source..."),
+        (85, "Preparing real-time dashboard..."),
+        (100, "Ready to monitor threats!")
+    ]
+
+    step_delay = startup_delay / len(startup_steps)
+
+    # Create progress (no task yet)
+    progress = Progress(
+        TextColumn("[bold blue]{task.description}", justify="center"),
+        BarColumn(bar_width=60),
+        TextColumn("[progress.percentage]{task.percentage:>3.1f}%"),
+        console=console,
+        transient=True  # Auto-remove when done
+    )
+
+    # Function to get the centered panel (will be empty until task is added)
+    def get_progress_panel():
+        return Align.center(
+            Panel(progress, expand=False, title="Startup Progress", border_style="blue")
+        )
+
+    # Now use Live to manage display
+    with Live(get_progress_panel(), console=console, refresh_per_second=4) as live:
+        # Add the task inside Live (starts displaying centered)
+        task = progress.add_task(startup_steps[0][1], total=100)
+    
+        for percent, description in startup_steps:
+            progress.update(task, completed=percent, description=f"[cyan]{description}")
+            live.update(get_progress_panel())  # Refresh in place
+            time.sleep(step_delay)
+    
+    # Final startup message
+    console.print("\n")
+    console.print(Align.center("[bold green]✅ System Ready![/bold green]"))
+    console.print("\n")
+    console.print(Align.center("[bold white]Press any key to launch dashboard, or 'q' to quit...[/bold white]"))
+    console.print(Align.center("[dim](Arrow keys will navigate events once dashboard loads)[/dim]"))
+    
+    # Use prompt_toolkit input directly (no Application.run() to avoid asyncio conflicts)
+    exit_app = False
+    launch_dashboard = False
+    
+    # Simple prompt_toolkit key reading without Application
+    import sys
+    try:
+        input_obj = create_input()
+        key = input_obj.read_key()
+        
+        # Handle the key press
+        if hasattr(key, 'data'):
+            key_data = key.data.lower() if hasattr(key.data, 'lower') else str(key.data)
+            if key_data == 'q':
+                exit_app = True
+            else:
+                launch_dashboard = True
+        elif hasattr(key, 'key'):
+            from prompt_toolkit.keys import Keys
+            if key.key == Keys.ControlC:
+                exit_app = True
+            else:
+                launch_dashboard = True
+        else:
+            # Any other key launches dashboard
+            launch_dashboard = True
+            
+        input_obj.close()
+        
+    except KeyboardInterrupt:
+        exit_app = True
+    except Exception:
+        # Fallback - launch dashboard
+        launch_dashboard = True
+    
+    if exit_app:
+        console.print(Align.center("[dim]Goodbye![/dim]"))
+        sys.exit(0)
+    
+    if launch_dashboard:
+        # Clear and transition to dashboard
+        console.clear()
+        console.print("\n" + "=" * console.width, style="dim white")
+        console.print(Align.center("[bold cyan]🚀 Launching Dashboard...[/bold cyan]"))
+        console.print("=" * console.width, style="dim white")
+        time.sleep(0.3)  # Brief visual transition
 
 # Gradient header for dashboard title
 def create_gradient_header():
@@ -378,11 +650,14 @@ def render_dashboard(events, selected_event, status_text, console, selected_even
     threat_counter_text.append("| ", style="dim white")
     threat_counter_text.append(f"Threats: {threat_stats['threat_count']} ", style="bold red")
     threat_counter_text.append("[", style="dim white")
-    threat_counter_text.append(f"Suspicious: {threat_stats['suspicious_count']} ", style="orange1")
-    threat_counter_text.append(f"Malicious: {threat_stats['malicious_count']} ", style="red")
+    threat_counter_text.append(f"Suspicious: {threat_stats['suspicious_count']}", style="orange1")
+    threat_counter_text.append(" | ", style="dim white")
+    threat_counter_text.append(f"Malicious: {threat_stats['malicious_count']}", style="red")
+    threat_counter_text.append(" | ", style="dim white")
     threat_counter_text.append(f"Critical: {threat_stats['critical_count']}", style="bold red")
     if threat_stats['multi_modal_count'] > 0:
-        threat_counter_text.append(f" Multi-Modal: {threat_stats['multi_modal_count']}", style="bold magenta")
+        threat_counter_text.append(" | ", style="dim white")
+        threat_counter_text.append(f"Multi-Modal: {threat_stats['multi_modal_count']}", style="bold magenta")
     threat_counter_text.append("]", style="dim white")
     
     # Combine gradient header with threat counter
@@ -574,6 +849,7 @@ def render_dashboard(events, selected_event, status_text, console, selected_even
         help_text.append("Home/End: First/Last  ", style="cyan")
         help_text.append("←/→: Pages  ", style="cyan")
         help_text.append("?: Help  ", style="cyan")
+        help_text.append("m: Landing Screen  ", style="cyan")
         help_text.append("q: Quit  ", style="cyan")
         help_text.append("Ctrl+C: Instant Exit", style="red")
         
@@ -975,9 +1251,8 @@ async def main():
     dashboard_logger.info("CLI Dashboard starting up")
     dashboard_logger.info(f"Arguments: {vars(args)}")
     
-    display_logo()  # Display ASCII art logo at startup
-    console.print("Initializing real-time event streaming...", style="dim white")
-    console.print("=" * console.width, style="dim white")
+    # Display enhanced startup screen with ASCII art, system info, and configuration details
+    display_enhanced_startup_screen(args, startup_delay=2.5)
 
     events = []
     status_text = "Starting..."
@@ -987,6 +1262,8 @@ async def main():
     follow_latest = False
     # Flag to track help display state
     show_help = False
+    # Flag to track landing screen display state
+    show_landing = False
     # Current page for pagination
     current_page = 0
     # Timestamp of the last full refresh
@@ -1169,6 +1446,18 @@ async def main():
         # Log help action
         if dashboard_logger:
             log_dashboard_action(dashboard_logger, "help_toggle", f"Help display {'enabled' if show_help else 'disabled'}")
+    
+    @bindings.add('m')
+    @bindings.add('M')
+    def handle_main_menu(event):
+        nonlocal show_landing, first_absolute_event_requested
+        # Toggle the landing screen display (different from help)
+        show_landing = not show_landing
+        # Reset the first absolute event flag
+        first_absolute_event_requested = False
+        # Log main menu action
+        if dashboard_logger:
+            log_dashboard_action(dashboard_logger, "landing_screen_toggle", f"Landing screen display {'enabled' if show_landing else 'disabled'}")
 
     # Create a prompt_toolkit application with a proper layout for keyboard input
     # This ensures key bindings are properly processed
@@ -1339,16 +1628,28 @@ async def main():
                         
                         # Determine if we should do a full refresh or just update the status bar
                         if needs_full_refresh or current_time - last_full_refresh >= FULL_REFRESH_RATE:
-                            # Full refresh including evidence trees and page navigation
-                            live.update(render_dashboard(events, selected_event, full_status, console, selected_event_idx, show_help=show_help, current_page=current_page, force_refresh=needs_full_refresh))
+                            # Check if landing screen should be displayed
+                            if show_landing:
+                                # Display the landing screen content instead of dashboard
+                                landing_content = render_landing_screen_content(args)
+                                live.update(Panel(landing_content, title="[bold blue]AutoSec Monitor - Landing Screen[/bold blue]", border_style="cyan"))
+                            else:
+                                # Full refresh including evidence trees and page navigation
+                                live.update(render_dashboard(events, selected_event, full_status, console, selected_event_idx, show_help=show_help, current_page=current_page, force_refresh=needs_full_refresh))
                             last_full_refresh = current_time
                             last_status_refresh = current_time
                             # Reset the flag after refresh
                             needs_full_refresh = False
                         elif current_time - last_status_refresh >= STATUS_REFRESH_RATE:
-                            # Only update status bar (more frequent)
-                            status_only = render_dashboard(events, None if selected_event else None, full_status, console, selected_event_idx, status_only=True, show_help=show_help, current_page=current_page)
-                            live.update(status_only)
+                            # Check if landing screen should be displayed
+                            if show_landing:
+                                # Display the landing screen content instead of dashboard
+                                landing_content = render_landing_screen_content(args)
+                                live.update(Panel(landing_content, title="[bold blue]AutoSec Monitor - Landing Screen[/bold blue]", border_style="cyan"))
+                            else:
+                                # Only update status bar (more frequent)
+                                status_only = render_dashboard(events, None if selected_event else None, full_status, console, selected_event_idx, status_only=True, show_help=show_help, current_page=current_page)
+                                live.update(status_only)
                             # Force refresh to ensure UI updates properly
                             live.refresh()
                             last_status_refresh = current_time
