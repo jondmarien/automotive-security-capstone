@@ -917,6 +917,415 @@ def generate_synthetic_relay_attack(step):
     return event
 
 
+def generate_synthetic_critical_exploit(step):
+    """
+    Generate a synthetic critical vulnerability exploit event.
+    
+    Args:
+        step (int): The step in the critical exploit sequence
+        
+    Returns:
+        dict: A synthetic critical exploit event
+    """
+    # Define the steps in a critical exploit attack
+    steps = {
+        0: {
+            "type": "Vulnerability Scan",
+            "details": "Critical vulnerability scanning detected.",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "System vulnerability probe detected",
+                "Firmware version enumeration",
+                "Security assessment tools identified"
+            ]
+        },
+        1: {
+            "type": "Exploit Preparation",
+            "details": "Exploit preparation activity detected.",
+            "threat": "Suspicious",
+            "color": "yellow",
+            "evidence": [
+                "Payload crafting detected",
+                "Buffer overflow attempt preparation",
+                "Memory corruption patterns observed"
+            ]
+        },
+        2: {
+            "type": "Critical Exploit",
+            "details": "Critical vulnerability exploit in progress!",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "Zero-day exploit signature detected",
+                "Memory corruption attack confirmed",
+                "Privilege escalation attempt",
+                "System integrity compromised"
+            ]
+        },
+        3: {
+            "type": "System Compromise",
+            "details": "System compromise detected!",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "Root access obtained",
+                "Persistent backdoor installed",
+                "Security controls bypassed",
+                "Critical system functions compromised"
+            ]
+        }
+    }
+    
+    # Get the appropriate step data or default to the last step
+    step_data = steps.get(step, steps[3])
+    
+    # Base event structure
+    event = {
+        "timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
+        "id": random.randint(10000, 99999),
+        "frequency": KEY_FOB_FREQUENCIES[random.choice(list(KEY_FOB_FREQUENCIES.keys()))],
+        "modulation": random.choice([m.value for m in ModulationType]),
+        "rssi": random.uniform(-60, -40),
+        "snr": random.uniform(15, 25),
+        "burst_count": random.randint(1, 3),
+        "type": step_data["type"],
+        "details": step_data["details"],
+        "threat": step_data["threat"],
+        "color": step_data["color"],
+        "source": "Unknown/Malicious",
+        "nfc_correlated": False,
+        "evidence": step_data["evidence"]
+    }
+    
+    # Add technical evidence
+    event["evidence"] = {
+        "detection_confidence": random.uniform(0.85, 0.98),
+        "exploit_signature": f"CVE-{random.randint(2020, 2024)}-{random.randint(1000, 9999)}",
+        "vulnerability_score": random.uniform(8.5, 10.0),
+        "attack_vector": random.choice(["Network", "Physical", "RF"]),
+        "payload_analysis": {
+            "shellcode_detected": random.choice([True, False]),
+            "buffer_overflow_pattern": random.choice([True, False]),
+            "rop_chain_identified": random.choice([True, False])
+        },
+        "system_impact": {
+            "confidentiality": "High",
+            "integrity": "High",
+            "availability": "High"
+        }
+    }
+    
+    return event
+
+
+def generate_synthetic_multi_modal_attack(step):
+    """
+    Generate a synthetic multi-modal attack event.
+    
+    Args:
+        step (int): The step in the multi-modal attack sequence
+        
+    Returns:
+        dict: A synthetic multi-modal attack event
+    """
+    # Define the steps in a multi-modal attack
+    steps = {
+        0: {
+            "type": "RF Reconnaissance",
+            "details": "Multi-vector reconnaissance detected.",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "RF spectrum analysis",
+                "Bluetooth scanning activity",
+                "WiFi network enumeration"
+            ]
+        },
+        1: {
+            "type": "Protocol Analysis",
+            "details": "Multi-protocol analysis in progress.",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "CAN bus traffic analysis",
+                "Key fob protocol dissection",
+                "Cellular communication monitoring"
+            ]
+        },
+        2: {
+            "type": "Coordinated Attack",
+            "details": "Multi-modal attack in progress!",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "Simultaneous RF and network attack",
+                "Cross-protocol exploitation",
+                "Coordinated attack vectors",
+                "Multiple attack surfaces compromised"
+            ]
+        },
+        3: {
+            "type": "System Integration Breach",
+            "details": "Multi-system breach detected!",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "Vehicle ECU compromise",
+                "Telematics system breach",
+                "Infotainment system access",
+                "Cross-system privilege escalation"
+            ]
+        }
+    }
+    
+    # Get the appropriate step data or default to the last step
+    step_data = steps.get(step, steps[3])
+    
+    # Base event structure
+    event = {
+        "timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
+        "id": random.randint(10000, 99999),
+        "frequency": KEY_FOB_FREQUENCIES[random.choice(list(KEY_FOB_FREQUENCIES.keys()))],
+        "modulation": random.choice([m.value for m in ModulationType]),
+        "rssi": random.uniform(-55, -35),
+        "snr": random.uniform(12, 22),
+        "burst_count": random.randint(2, 6),
+        "type": step_data["type"],
+        "details": step_data["details"],
+        "threat": step_data["threat"],
+        "color": step_data["color"],
+        "source": "Coordinated Attack",
+        "nfc_correlated": random.choice([True, False]),
+        "evidence": step_data["evidence"]
+    }
+    
+    # Add technical evidence
+    event["evidence"] = {
+        "detection_confidence": random.uniform(0.80, 0.95),
+        "attack_vectors": random.choice(["RF+Network", "RF+Bluetooth", "RF+CAN", "RF+WiFi+Cellular"]),
+        "coordination_score": random.uniform(0.75, 0.95),
+        "protocols_affected": random.randint(2, 5),
+        "attack_complexity": "High",
+        "threat_actor_sophistication": "Advanced",
+        "cross_protocol_correlation": {
+            "rf_bluetooth_sync": random.choice([True, False]),
+            "network_rf_timing": random.choice([True, False]),
+            "can_rf_coordination": random.choice([True, False])
+        }
+    }
+    
+    return event
+
+
+def generate_synthetic_apt_attack(step):
+    """
+    Generate a synthetic Advanced Persistent Threat (APT) attack event.
+    
+    Args:
+        step (int): The step in the APT attack sequence
+        
+    Returns:
+        dict: A synthetic APT attack event
+    """
+    # Define the steps in an APT attack
+    steps = {
+        0: {
+            "type": "Reconnaissance",
+            "details": "Advanced reconnaissance activity detected.",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "Long-term monitoring detected",
+                "Target profiling activity",
+                "Infrastructure mapping"
+            ]
+        },
+        1: {
+            "type": "Initial Compromise",
+            "details": "Initial system compromise detected.",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "Spear-phishing attempt",
+                "Zero-day exploit deployment",
+                "Lateral movement preparation"
+            ]
+        },
+        2: {
+            "type": "Persistence Establishment",
+            "details": "Persistent threat establishment detected!",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "Backdoor installation confirmed",
+                "Command and control established",
+                "Stealth mechanisms deployed",
+                "Long-term access secured"
+            ]
+        },
+        3: {
+            "type": "Data Exfiltration",
+            "details": "Advanced persistent threat active!",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "Sensitive data access detected",
+                "Covert communication channels",
+                "Data staging for exfiltration",
+                "Advanced evasion techniques"
+            ]
+        }
+    }
+    
+    # Get the appropriate step data or default to the last step
+    step_data = steps.get(step, steps[3])
+    
+    # Base event structure
+    event = {
+        "timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
+        "id": random.randint(10000, 99999),
+        "frequency": KEY_FOB_FREQUENCIES[random.choice(list(KEY_FOB_FREQUENCIES.keys()))],
+        "modulation": random.choice([m.value for m in ModulationType]),
+        "rssi": random.uniform(-65, -45),
+        "snr": random.uniform(10, 18),
+        "burst_count": random.randint(1, 4),
+        "type": step_data["type"],
+        "details": step_data["details"],
+        "threat": step_data["threat"],
+        "color": step_data["color"],
+        "source": "APT Group",
+        "nfc_correlated": False,
+        "evidence": step_data["evidence"]
+    }
+    
+    # Add technical evidence
+    event["evidence"] = {
+        "detection_confidence": random.uniform(0.75, 0.90),
+        "apt_group": random.choice(["APT28", "APT29", "Lazarus", "Unknown Advanced Actor"]),
+        "campaign_duration": f"{random.randint(30, 365)} days",
+        "stealth_score": random.uniform(0.80, 0.95),
+        "persistence_mechanisms": random.randint(2, 5),
+        "c2_infrastructure": {
+            "domains_identified": random.randint(3, 15),
+            "ip_addresses": random.randint(5, 25),
+            "communication_protocol": random.choice(["HTTPS", "DNS", "Custom"])
+        },
+        "attack_timeline": {
+            "initial_compromise": f"{random.randint(1, 90)} days ago",
+            "persistence_established": f"{random.randint(1, 60)} days ago",
+            "lateral_movement": f"{random.randint(1, 30)} days ago"
+        }
+    }
+    
+    return event
+
+
+def generate_synthetic_zero_day_exploit(step):
+    """
+    Generate a synthetic zero-day exploit event.
+    
+    Args:
+        step (int): The step in the zero-day exploit sequence
+        
+    Returns:
+        dict: A synthetic zero-day exploit event
+    """
+    # Define the steps in a zero-day exploit
+    steps = {
+        0: {
+            "type": "Unknown Behavior",
+            "details": "Unknown attack pattern detected.",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "Novel attack signature",
+                "Unrecognized exploit pattern",
+                "Anomalous system behavior"
+            ]
+        },
+        1: {
+            "type": "Zero-Day Analysis",
+            "details": "Potential zero-day exploit detected.",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "Unknown vulnerability exploitation",
+                "Novel attack vector identified",
+                "Signature-less malicious activity"
+            ]
+        },
+        2: {
+            "type": "Zero-Day Exploit",
+            "details": "Zero-day exploit confirmed!",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "Previously unknown vulnerability exploited",
+                "No existing patches available",
+                "Advanced exploitation techniques",
+                "Critical system compromise"
+            ]
+        },
+        3: {
+            "type": "Zero-Day Impact",
+            "details": "Zero-day exploit causing system damage!",
+            "threat": "Critical",
+            "color": "red",
+            "evidence": [
+                "Widespread system compromise",
+                "Defense evasion successful",
+                "Critical infrastructure at risk",
+                "Emergency patching required"
+            ]
+        }
+    }
+    
+    # Get the appropriate step data or default to the last step
+    step_data = steps.get(step, steps[3])
+    
+    # Base event structure
+    event = {
+        "timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
+        "id": random.randint(10000, 99999),
+        "frequency": KEY_FOB_FREQUENCIES[random.choice(list(KEY_FOB_FREQUENCIES.keys()))],
+        "modulation": random.choice([m.value for m in ModulationType]),
+        "rssi": random.uniform(-58, -38),
+        "snr": random.uniform(14, 24),
+        "burst_count": random.randint(1, 3),
+        "type": step_data["type"],
+        "details": step_data["details"],
+        "threat": step_data["threat"],
+        "color": step_data["color"],
+        "source": "Zero-Day Actor",
+        "nfc_correlated": False,
+        "evidence": step_data["evidence"]
+    }
+    
+    # Add technical evidence
+    event["evidence"] = {
+        "detection_confidence": random.uniform(0.70, 0.85),
+        "zero_day_score": random.uniform(0.85, 0.98),
+        "novelty_index": random.uniform(0.90, 1.0),
+        "vulnerability_class": random.choice(["Memory Corruption", "Logic Flaw", "Cryptographic", "Protocol"]),
+        "exploit_sophistication": "Very High",
+        "patch_availability": "None",
+        "threat_intelligence": {
+            "first_seen": "Today",
+            "attribution": "Unknown",
+            "similar_attacks": 0,
+            "ioc_matches": 0
+        },
+        "impact_assessment": {
+            "affected_systems": "All vulnerable versions",
+            "exploitation_difficulty": "Medium to High",
+            "weaponization_potential": "Very High"
+        }
+    }
+    
+    return event
+
+
 async def generate_synthetic_event():
     """
     Async generator that yields advanced synthetic signal events for testing and demonstration.
@@ -953,18 +1362,28 @@ async def generate_synthetic_event():
         ScenarioType.JAMMING_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False},
         ScenarioType.BRUTE_FORCE_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False},
         ScenarioType.SIGNAL_CLONING_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False},
-        ScenarioType.RELAY_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False}
+        ScenarioType.RELAY_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False},
+        # Critical attack scenarios
+        ScenarioType.CRITICAL_VULNERABILITY_EXPLOIT.value: {"step": 0, "last_time": datetime.now(), "in_progress": False},
+        ScenarioType.MULTI_MODAL_ATTACK.value: {"step": 0, "last_time": datetime.now(), "in_progress": False},
+        ScenarioType.ADVANCED_PERSISTENT_THREAT.value: {"step": 0, "last_time": datetime.now(), "in_progress": False},
+        ScenarioType.ZERO_DAY_EXPLOIT.value: {"step": 0, "last_time": datetime.now(), "in_progress": False}
     }
     
     # Probability weights for different scenarios
     # Normal operation should be most common, followed by occasional attacks
     scenario_weights = {
-        ScenarioType.NORMAL_OPERATION.value: 0.5,  # 50% chance for normal events
-        ScenarioType.REPLAY_ATTACK.value: 0.1,     # 10% chance for replay attacks
-        ScenarioType.JAMMING_ATTACK.value: 0.1,    # 10% chance for jamming attacks
-        ScenarioType.BRUTE_FORCE_ATTACK.value: 0.1,# 10% chance for brute force attacks
-        ScenarioType.SIGNAL_CLONING_ATTACK.value: 0.1, # 10% chance for signal cloning attacks
-        ScenarioType.RELAY_ATTACK.value: 0.1       # 10% chance for relay attacks
+        ScenarioType.NORMAL_OPERATION.value: 0.4,  # 40% chance for normal events
+        ScenarioType.REPLAY_ATTACK.value: 0.08,    # 8% chance for replay attacks
+        ScenarioType.JAMMING_ATTACK.value: 0.08,   # 8% chance for jamming attacks
+        ScenarioType.BRUTE_FORCE_ATTACK.value: 0.08, # 8% chance for brute force attacks
+        ScenarioType.SIGNAL_CLONING_ATTACK.value: 0.08, # 8% chance for signal cloning attacks
+        ScenarioType.RELAY_ATTACK.value: 0.08,     # 8% chance for relay attacks
+        # Critical attack scenarios (lower probability but high impact)
+        ScenarioType.CRITICAL_VULNERABILITY_EXPLOIT.value: 0.05, # 5% chance for critical exploits
+        ScenarioType.MULTI_MODAL_ATTACK.value: 0.05, # 5% chance for multi-modal attacks
+        ScenarioType.ADVANCED_PERSISTENT_THREAT.value: 0.05, # 5% chance for APT attacks
+        ScenarioType.ZERO_DAY_EXPLOIT.value: 0.05  # 5% chance for zero-day exploits
     }
     
     while True:
@@ -1072,6 +1491,46 @@ async def generate_synthetic_event():
             if scenario_step >= random.randint(3, 6):
                 scenario_states[current_scenario]["in_progress"] = False
                 logging.info("Relay attack sequence completed")
+                
+        elif current_scenario == ScenarioType.CRITICAL_VULNERABILITY_EXPLOIT.value:
+            event = generate_synthetic_critical_exploit(scenario_step)
+            scenario_states[current_scenario]["step"] += 1
+            await asyncio.sleep(0.3)  # Critical exploits happen rapidly
+            
+            # End the critical exploit sequence after several steps
+            if scenario_step >= random.randint(2, 4):
+                scenario_states[current_scenario]["in_progress"] = False
+                logging.info("Critical vulnerability exploit sequence completed")
+                
+        elif current_scenario == ScenarioType.MULTI_MODAL_ATTACK.value:
+            event = generate_synthetic_multi_modal_attack(scenario_step)
+            scenario_states[current_scenario]["step"] += 1
+            await asyncio.sleep(0.4)  # Multi-modal attacks have varied timing
+            
+            # End the multi-modal attack sequence after several steps
+            if scenario_step >= random.randint(4, 7):
+                scenario_states[current_scenario]["in_progress"] = False
+                logging.info("Multi-modal attack sequence completed")
+                
+        elif current_scenario == ScenarioType.ADVANCED_PERSISTENT_THREAT.value:
+            event = generate_synthetic_apt_attack(scenario_step)
+            scenario_states[current_scenario]["step"] += 1
+            await asyncio.sleep(1.2)  # APT attacks are slower and more methodical
+            
+            # End the APT sequence after extended steps
+            if scenario_step >= random.randint(5, 10):
+                scenario_states[current_scenario]["in_progress"] = False
+                logging.info("Advanced persistent threat sequence completed")
+                
+        elif current_scenario == ScenarioType.ZERO_DAY_EXPLOIT.value:
+            event = generate_synthetic_zero_day_exploit(scenario_step)
+            scenario_states[current_scenario]["step"] += 1
+            await asyncio.sleep(0.2)  # Zero-day exploits are very fast
+            
+            # End the zero-day exploit sequence after few steps
+            if scenario_step >= random.randint(1, 3):
+                scenario_states[current_scenario]["in_progress"] = False
+                logging.info("Zero-day exploit sequence completed")
         
         # Update the last time this scenario was used
         scenario_states[current_scenario]["last_time"] = datetime.now()

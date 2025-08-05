@@ -42,7 +42,7 @@ class ExitDialogManager:
     """
     
 
-    def __init__(self, console: Console, events: List[Dict[str, Any]], dashboard_logger=None):
+    def __init__(self, console: Console, events: List[Dict[str, Any]], dashboard_logger=None, synthetic_mode: bool = False):
         """
         Initialize the exit dialog manager.
         
@@ -50,14 +50,17 @@ class ExitDialogManager:
             console (Console): Rich console instance
             events (List[Dict]): List of detection events from the session
             dashboard_logger: Logger instance for recording exit actions
+            synthetic_mode (bool): Whether synthetic mode is active
         """
         self.console = console
         self.events = events
         self.logger = dashboard_logger
+        self.synthetic_mode = synthetic_mode
         
-        # Create timestamped export directory
+        # Create timestamped export directory with synthetic prefix if applicable
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.export_dir = Path("exports") / f"session_{timestamp}"
+        session_prefix = "synthetic_session" if synthetic_mode else "session"
+        self.export_dir = Path("exports") / f"{session_prefix}_{timestamp}"
         self.export_dir.mkdir(parents=True, exist_ok=True)
         
     def show_exit_confirmation(self) -> Tuple[bool, Dict[str, bool]]:
@@ -255,7 +258,8 @@ class ExitDialogManager:
             if export_options.get('events', False):
                 task = progress.add_task("Exporting event history...", total=1)
                 try:
-                    events_file = self.export_dir / f"events_{timestamp}.json"
+                    file_prefix = "synthetic_events" if self.synthetic_mode else "events"
+                    events_file = self.export_dir / f"{file_prefix}_{timestamp}.json"
                     with open(events_file, 'w', encoding='utf-8') as f:
                         json.dump(self.events, f, indent=2, default=str)
                     progress.update(task, completed=1)
@@ -269,7 +273,8 @@ class ExitDialogManager:
             if export_options.get('csv_report', False):
                 task = progress.add_task("Generating CSV report...", total=1)
                 try:
-                    csv_file = self.export_dir / f"report_{timestamp}.csv"
+                    file_prefix = "synthetic_report" if self.synthetic_mode else "report"
+                    csv_file = self.export_dir / f"{file_prefix}_{timestamp}.csv"
                     self._export_csv_report(csv_file)
                     progress.update(task, completed=1)
                     self.console.print(f"✅ CSV report exported to: [green]{csv_file}[/green]")
@@ -466,7 +471,7 @@ class ExitDialogManager:
         pass
 
 
-def handle_professional_exit(console: Console, events: List[Dict[str, Any]], dashboard_logger=None) -> bool:
+def handle_professional_exit(console: Console, events: List[Dict[str, Any]], dashboard_logger=None, synthetic_mode: bool = False) -> bool:
     """
     Handle professional exit experience with Rich dialogs and export options.
     
@@ -474,11 +479,12 @@ def handle_professional_exit(console: Console, events: List[Dict[str, Any]], das
         console (Console): Rich console instance
         events (List[Dict]): List of detection events from the session
         dashboard_logger: Logger instance for recording exit actions
+        synthetic_mode (bool): Whether synthetic mode is active
     
     Returns:
         bool: True if user confirms exit, False if cancelled
     """
-    exit_manager = ExitDialogManager(console, events, dashboard_logger)
+    exit_manager = ExitDialogManager(console, events, dashboard_logger, synthetic_mode)
     
     # Show exit confirmation dialog
     should_exit, export_options = exit_manager.show_exit_confirmation()

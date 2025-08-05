@@ -23,6 +23,7 @@ See backend/README.md for full project context.
 """
 import argparse
 import asyncio
+import random
 import time
 from datetime import datetime
 from collections import deque
@@ -1522,7 +1523,8 @@ async def main():
                                 if 'timestamp' not in detection:
                                     detection['timestamp'] = event.get('timestamp', datetime.now().strftime(TIMESTAMP_FORMAT))
                                 events.append(detection)
-                                if len(events) > 100:
+                                # Only cap events when neither mock nor synthetic mode is active
+                                if not args.mock and not args.synthetic and len(events) > 100:
                                     events.pop(0)
                                     # No adjustment needed - negative indices maintain relative position automatically
                         else:
@@ -1535,7 +1537,8 @@ async def main():
                                 
                             events.append(event)
                             total_events_processed += 1
-                            if len(events) > 100:
+                            # Only cap events when neither mock nor synthetic mode is active
+                            if not args.mock and not args.synthetic and len(events) > 100:
                                 events.pop(0)
                                 # No adjustment needed - negative indices maintain relative position automatically
                         
@@ -1721,12 +1724,12 @@ async def main():
                 if instant_exit_requested:
                     # Instant exit (Ctrl+C) - bypass confirmation dialog
                     from utils.exit_dialog import ExitDialogManager
-                    exit_manager = ExitDialogManager(console, events, dashboard_logger)
+                    exit_manager = ExitDialogManager(console, events, dashboard_logger, args.synthetic)
                     exit_manager.show_final_goodbye(exported_data=False)  # No export on instant exit
                     break
                 else:
                     # Regular exit (q/Q) - show confirmation dialog
-                    should_exit = handle_professional_exit(console, events, dashboard_logger)
+                    should_exit = handle_professional_exit(console, events, dashboard_logger, args.synthetic)
                     if should_exit:
                         # User confirmed exit - break out of main loop
                         break

@@ -4,7 +4,7 @@ signal_constants.py
 Centralized constants for automotive RF signal parameters and attack scenarios.
 Used by both the synthetic signal generation and detection modules.
 """
-from enum import Enum, auto
+from enum import Enum
 
 # Common key fob frequencies (Hz)
 KEY_FOB_FREQUENCIES = {
@@ -103,6 +103,11 @@ class ScenarioType(Enum):
     BRUTE_FORCE_ATTACK = "brute_force_attack"
     SIGNAL_CLONING_ATTACK = "signal_cloning_attack"
     RELAY_ATTACK = "relay_attack"
+    # Critical attack scenarios
+    CRITICAL_VULNERABILITY_EXPLOIT = "critical_vulnerability_exploit"
+    MULTI_MODAL_ATTACK = "multi_modal_attack"
+    ADVANCED_PERSISTENT_THREAT = "advanced_persistent_threat"
+    ZERO_DAY_EXPLOIT = "zero_day_exploit"
 
 # Attack types
 class AttackType(Enum):
@@ -111,6 +116,11 @@ class AttackType(Enum):
     BRUTE_FORCE = "brute_force"
     SIGNAL_CLONING = "signal_cloning"
     RELAY = "relay"
+    # Critical attack types
+    CRITICAL_EXPLOIT = "critical_exploit"
+    MULTI_MODAL = "multi_modal"
+    PERSISTENT_THREAT = "persistent_threat"
+    ZERO_DAY = "zero_day"
 
 # NFC tag types commonly used in automotive security
 class NFCTagType(Enum):
