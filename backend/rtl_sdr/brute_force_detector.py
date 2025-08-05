@@ -615,10 +615,10 @@ class BruteForceDetector:
 
         # Calculate timing differences
         timing_diffs = [abs(t1 - t2) for t1, t2 in zip(timing1, timing2)]
-        avg_diff = np.mean(timing_diffs)
+        avg_diff = float(np.mean(timing_diffs))
 
         # Convert to similarity score (smaller differences = higher similarity)
-        return max(0, 1 - avg_diff / 0.01)  # 10ms threshold
+        return max(0.0, 1.0 - avg_diff / 0.01)  # 10ms threshold
 
     def _calculate_interval_consistency(self, intervals: Dict[str, Any]) -> float:
         """Calculate consistency score for signal intervals."""

@@ -261,7 +261,7 @@ class ReplayAttackDetector:
             timing_diffs = [
                 abs(c - h) for c, h in zip(current_timing, historical_timing)
             ]
-            avg_diff = np.mean(timing_diffs) if timing_diffs else 0
+            avg_diff = float(np.mean(timing_diffs)) if timing_diffs else 0.0
 
             # Very similar timing patterns indicate replay
             return avg_diff < 0.001  # Less than 1ms difference
@@ -313,10 +313,10 @@ class ReplayAttackDetector:
             return 0.0
 
         timing_diffs = [abs(c - h) for c, h in zip(current_timing, historical_timing)]
-        avg_diff = np.mean(timing_diffs)
+        avg_diff = float(np.mean(timing_diffs))
 
         # Convert to similarity score (smaller differences = higher similarity)
-        return max(0, 1 - avg_diff / 0.005)  # 5ms threshold
+        return max(0.0, 1.0 - avg_diff / 0.005)  # 5ms threshold
 
     def _calculate_frequency_match(
         self, current_signal: DetectedSignal, historical_signal

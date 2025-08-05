@@ -50,6 +50,12 @@ from rich.tree import Tree
 from utils.simple_performance_monitor import get_performance_monitor
 from rich.theme import Theme
 
+# Import detection adapter functions
+from cli_dashboard_detection_adapter import (
+    generate_detection_event,
+    generate_synthetic_event,
+)
+
 # Import prompt_toolkit for key handling
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.application import Application
@@ -533,7 +539,7 @@ def display_enhanced_startup_screen(args, startup_delay=2.5):
 
     try:
         input_obj = create_input()
-        key = input_obj.read_key()
+        key = input_obj.read_key()  # type: ignore
 
         # Handle the key press
         if hasattr(key, "data"):
@@ -1220,7 +1226,7 @@ def render_signal_metrics(event, console_width=None):
             disable=False,
             transient=False,
         )
-        rssi_task = rssi_progress.add_task(
+        rssi_progress.add_task(
             f"[{rssi_color}]{rssi} dBm[/]", total=100, completed=rssi_percent
         )
 
@@ -1242,7 +1248,7 @@ def render_signal_metrics(event, console_width=None):
             disable=False,
             transient=False,
         )
-        snr_task = snr_progress.add_task(
+        snr_progress.add_task(
             f"[{snr_color}]{snr} dB[/]", total=100, completed=snr_percent
         )
 
@@ -1305,7 +1311,7 @@ def render_signal_metrics(event, console_width=None):
         return Align.center(Text("No signal data available", style="dim"))
 
     # Calculate a reasonable max width to prevent wrapping issues on larger screens
-    max_width = min(80, console_width - 10) if console_width else 70
+    min(80, console_width - 10) if console_width else 70  # Width constraint
 
     # Create a constrained group that won't expand beyond reasonable limits
     # Group is already imported at the top of the file
@@ -1354,7 +1360,7 @@ def get_signal_summary(event):
     mod_type = event.get("modulation_type", "")
     freq = event.get("frequency", 0)
     rssi = event.get("rssi", 0)
-    snr = event.get("snr", 0)
+    event.get("snr", 0)  # SNR data available but not used in display
 
     # Format frequency if present
     freq_str = ""
@@ -1494,7 +1500,7 @@ async def main():
     # Current page for pagination
     current_page = 0
     # Timestamp of the last full refresh
-    last_full_refresh = time.time()
+    time.time()  # Initialize timing reference
     # Flag to track if a full refresh is needed
     needs_full_refresh = False
     # Flag to track if first absolute event is requested (for home key)
@@ -1809,7 +1815,8 @@ async def main():
                         selected_event_idx, \
                         follow_latest, \
                         total_events_processed, \
-                        first_absolute_event_requested
+                        first_absolute_event_requested, \
+                        api_error_count
 
                     async for event in event_gen:
                         # Check if we should exit
@@ -2100,8 +2107,8 @@ async def main():
             )
             if dashboard_logger:
                 dashboard_logger.warning("Dashboard interrupted by user (Ctrl+C)")
-            # Set exit_requested flag for handling after dashboard loop
-            exit_requested = True
+            # Exit requested by user (Ctrl+C)
+            pass
         except Exception as e:
             console.print(f"\n[bold red]Unexpected error: {e}[/bold red]")
             if dashboard_logger:
@@ -2160,11 +2167,6 @@ async def main():
 
 # --- Mock Event Generator ---
 # --- Detection Adapter Integration ---
-from cli_dashboard_detection_adapter import (
-    generate_detection_event,
-    generate_synthetic_event,
-)
-
 
 async def generate_mock_events(synthetic=False):
     """

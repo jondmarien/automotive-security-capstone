@@ -37,8 +37,8 @@ def test_help_functionality():
     ]
 
     # Test without help
-    print("\\n📱 Testing dashboard without help:")
-    dashboard_no_help = render_dashboard(
+    print("\n📱 Testing dashboard without help:")
+    render_dashboard(
         events=events,
         selected_event=None,
         status_text="Testing help functionality",
@@ -49,8 +49,8 @@ def test_help_functionality():
     print("   ✅ Dashboard rendered without help (footer should be 1 line)")
 
     # Test with help
-    print("\\n📱 Testing dashboard with help:")
-    dashboard_with_help = render_dashboard(
+    print("\n📱 Testing dashboard with help:")
+    render_dashboard(
         events=events,
         selected_event=None,
         status_text="Testing help functionality",

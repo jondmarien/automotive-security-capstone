@@ -146,7 +146,7 @@ class RTLTCPServerManager:
                 "rtl_frequency": self.frequency,
                 "sample_rate": self.sample_rate,
                 "server_info": {
-                    "version": "1.0.0",
+                    "version": "0.10",
                     "capabilities": ["rf_monitoring", "nfc_detection"],
                 },
             }

@@ -5,7 +5,6 @@ Tests for the simple performance monitoring system.
 """
 
 import pytest
-import time
 from unittest.mock import patch
 
 from utils.simple_performance_monitor import (
@@ -256,7 +255,6 @@ class TestPerformanceMonitorIntegration:
         monitor = SimplePerformanceMonitor()
 
         # Simulate 30 seconds of monitoring
-        start_time = time.time()
 
         # Simulate processing key fob signals
         for i in range(5):

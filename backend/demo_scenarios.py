@@ -208,7 +208,7 @@ class ComprehensiveDemoScenario(DemonstrationScenario):
         return self.events
 
 
-async def run_demo_scenario(scenario_name: str, output_file: str = None):
+async def run_demo_scenario(scenario_name: str, output_file: str | None = None):
     """
     Run a specific demonstration scenario.
 

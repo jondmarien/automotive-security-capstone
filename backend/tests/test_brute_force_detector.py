@@ -92,7 +92,7 @@ class TestBruteForceDetector:
         """Test that a single signal is not detected as brute force."""
         result = brute_force_detector.check_brute_force(sample_detected_signal)
 
-        assert result["is_brute_force"] == False
+        assert not result["is_brute_force"]
 
     def test_suspicious_rate_detection(
         self, brute_force_detector, sample_detected_signal, signal_history
@@ -110,7 +110,7 @@ class TestBruteForceDetector:
 
         result = brute_force_detector.check_brute_force(sample_detected_signal)
 
-        assert result["is_brute_force"] == True
+        assert result["is_brute_force"]
         assert result["confidence"] > 0.0
         assert (
             result["evidence"]["attack_classification"]["threat_level"] == "suspicious"
@@ -132,7 +132,7 @@ class TestBruteForceDetector:
 
         result = brute_force_detector.check_brute_force(sample_detected_signal)
 
-        assert result["is_brute_force"] == True
+        assert result["is_brute_force"]
         assert result["evidence"]["attack_classification"]["threat_level"] == "moderate"
         assert result["confidence"] > 0.6
 
@@ -152,7 +152,7 @@ class TestBruteForceDetector:
 
         result = brute_force_detector.check_brute_force(sample_detected_signal)
 
-        assert result["is_brute_force"] == True
+        assert result["is_brute_force"]
         assert result["evidence"]["attack_classification"]["threat_level"] == "high"
         assert result["confidence"] > 0.7
 
@@ -172,7 +172,7 @@ class TestBruteForceDetector:
 
         result = brute_force_detector.check_brute_force(sample_detected_signal)
 
-        assert result["is_brute_force"] == True
+        assert result["is_brute_force"]
         assert result["evidence"]["attack_classification"]["threat_level"] == "critical"
         assert result["confidence"] > 0.8
 
@@ -194,7 +194,7 @@ class TestBruteForceDetector:
 
         result = brute_force_detector.check_brute_force(sample_detected_signal)
 
-        assert result["is_brute_force"] == True
+        assert result["is_brute_force"]
         assert result["evidence"]["pattern_evidence"]["burst_pattern"]["count"] > 0
         assert (
             result["evidence"]["attack_classification"]["attack_type"] == "rapid_burst"
@@ -217,8 +217,8 @@ class TestBruteForceDetector:
 
         result = brute_force_detector.check_brute_force(sample_detected_signal)
 
-        assert result["is_brute_force"] == True
-        assert result["evidence"]["pattern_evidence"]["persistent_attack"] == True
+        assert result["is_brute_force"]
+        assert result["evidence"]["pattern_evidence"]["persistent_attack"]
 
     def test_signal_consistency_analysis(
         self, brute_force_detector, sample_detected_signal, signal_history
@@ -293,7 +293,7 @@ class TestBruteForceDetector:
 
         result = brute_force_detector.check_brute_force(sample_detected_signal)
 
-        assert result["is_brute_force"] == True
+        assert result["is_brute_force"]
 
         evidence = result["evidence"]
 
@@ -431,7 +431,7 @@ class TestBruteForceDetector:
 
         # Should complete within reasonable time (< 1 second)
         assert processing_time < 1.0
-        assert result["is_brute_force"] == True  # Should detect with this many signals
+        assert result["is_brute_force"]  # Should detect with this many signals
 
     def test_different_signal_types_isolation(
         self, brute_force_detector, signal_history
@@ -477,7 +477,7 @@ class TestBruteForceDetector:
         result = brute_force_detector.check_brute_force(tpms_signal)
 
         # Should not detect brute force for TPMS since key_fob signals are separate
-        assert result["is_brute_force"] == False
+        assert not result["is_brute_force"]
 
 
 if __name__ == "__main__":

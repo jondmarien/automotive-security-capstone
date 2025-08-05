@@ -8,14 +8,14 @@ sample_rate, data = wavfile.read(
 
 # If stereo (I/Q channels), separate them
 if len(data.shape) == 2:
-    I = data[:, 0]  # Left channel = I
+    i_channel = data[:, 0]  # Left channel = I
     Q = data[:, 1]  # Right channel = Q
 else:
     # If mono, you'll need to process differently
     print("Mono WAV - may need different processing")
 
 # Create complex IQ samples
-iq_samples = I + 1j * Q
+iq_samples = i_channel + 1j * Q
 
 # Convert to desired format and save
 # Option 1: Save as complex64 (32-bit float IQ)

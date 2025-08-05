@@ -187,7 +187,7 @@ uv run python deploy_pico.py /dev/ttyACM0  # Linux
 #### Manual Setup (LEGACY)
 
 - Flash MicroPython firmware
-- Upload `main.py` and required libraries (see [docs/poc_migration_plan.md](../docs/poc_migration_plan.md))
+- Upload `main.py` and required libraries (see [docs/plans/migration_old/poc_migration_plan.md](docs/plans/migration_old/poc_migration_plan.md))
 - Configure WiFi and server IP/port in `pico/config.py`
 - Pico will connect to computer, receive detection events, and trigger alerts/NFC
 
@@ -340,7 +340,7 @@ uv run pytest tests/ --cov=rtl_sdr --cov-report=html
 ## 🗒️ Notes
 
 - **No FastAPI or MongoDB**: This MVP/POC does not require a web API or database. All event streaming is via TCP.
-- **For full hardware setup and wiring, see**: [`docs/poc_migration_plan.md`](../docs/poc_migration_plan.md)
+- **For full hardware setup and wiring, see**: [`docs/plans/migration_old/poc_migration_plan.md`](docs/plans/migration_old/poc_migration_plan.md)
 
 ## 📚 References
 

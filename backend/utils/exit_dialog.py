@@ -8,6 +8,7 @@ Part of the automotive security capstone project CLI dashboard improvements.
 """
 
 import os
+import sys
 import json
 import csv
 import shutil
@@ -403,9 +404,9 @@ class ExitDialogManager:
                 else "",
             },
             "export_info": {
-                "dashboard_version": "1.0.0",
+                "dashboard_version": "0.1.0",
                 "export_format_version": "1.0",
-                "python_version": f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}",
+                "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
             },
         }
 

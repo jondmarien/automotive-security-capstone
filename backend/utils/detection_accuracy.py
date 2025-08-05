@@ -9,7 +9,7 @@ import numpy as np
 import logging
 import time
 import asyncio
-from typing import Dict, List
+from typing import Dict, List, Optional
 from datetime import datetime
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, classification_report
@@ -313,7 +313,7 @@ class DetectionAccuracyValidator:
             "real_time_requirement_met": real_time_requirement_met,
         }
 
-    def generate_confusion_matrix(self, save_path: str = None) -> np.ndarray:
+    def generate_confusion_matrix(self, save_path: Optional[str] = None) -> np.ndarray:
         """
         Generate and optionally save a confusion matrix visualization.
 

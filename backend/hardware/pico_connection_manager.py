@@ -222,7 +222,7 @@ class PicoConnectionManager:
             "device_id": device.device_id,
             "heartbeat_interval": self.heartbeat_interval,
             "server_info": {
-                "version": "1.0.0",
+                "version": "0.1.0",
                 "capabilities": ["rf_monitoring", "nfc_detection", "led_alerts"],
             },
             "timestamp": time.time(),
@@ -242,6 +242,11 @@ class PicoConnectionManager:
 
         while device.status == PicoStatus.CONNECTED:
             try:
+                # Check if reader is available
+                if device.reader is None:
+                    logger.warning(f"Reader not available for device {device.device_id}")
+                    break
+                    
                 # Read data with timeout
                 data = await asyncio.wait_for(
                     device.reader.read(1024), timeout=self.connection_timeout

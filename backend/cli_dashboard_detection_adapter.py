@@ -495,25 +495,26 @@ def generate_synthetic_jamming_attack(step):
         signal_strength = random.uniform(0.6, 0.8)
         signal_quality = random.uniform(0.3, 0.5)  # Poor quality due to noise
         confidence = random.uniform(0.5, 0.7)
-        evidence = [
-            {
-                "type": "Signal Analysis",
-                "details": {
-                    "frequency_range": "433-435 MHz",
-                    "signal_strength": f"{signal_strength:.2f}",
-                    "signal_quality": f"{signal_quality:.2f}",
-                    "noise_floor": "Elevated",
-                },
-            },
-            {
-                "type": "Jamming Indicators",
-                "details": {
-                    "confidence": f"{confidence:.2f}",
-                    "pattern": "Continuous",
-                    "bandwidth": "2 MHz",
-                },
-            },
-        ]
+        # Evidence structure for jamming detection (unused variable - data is used directly in event)
+        # evidence = [
+        #     {
+        #         "type": "Signal Analysis",
+        #         "details": {
+        #             "frequency_range": "433-435 MHz",
+        #             "signal_strength": f"{signal_strength:.2f}",
+        #             "signal_quality": f"{signal_quality:.2f}",
+        #             "noise_floor": "Elevated",
+        #         },
+        #     },
+        #     {
+        #         "type": "Jamming Indicators",
+        #         "details": {
+        #             "confidence": f"{confidence:.2f}",
+        #             "pattern": "Continuous",
+        #             "bandwidth": "2 MHz",
+        #         },
+        #     },
+        # ]
     elif step < 3:
         # Increasing jamming signal
         threat_level = "Suspicious"
@@ -521,26 +522,27 @@ def generate_synthetic_jamming_attack(step):
         signal_strength = random.uniform(0.7, 0.9)
         signal_quality = random.uniform(0.2, 0.4)  # Decreasing quality
         confidence = random.uniform(0.6, 0.8)
-        evidence = [
-            {
-                "type": "Signal Analysis",
-                "details": {
-                    "frequency_range": "430-440 MHz",
-                    "signal_strength": f"{signal_strength:.2f}",
-                    "signal_quality": f"{signal_quality:.2f}",
-                    "noise_floor": "Highly Elevated",
-                },
-            },
-            {
-                "type": "Jamming Indicators",
-                "details": {
-                    "confidence": f"{confidence:.2f}",
-                    "pattern": "Wideband Interference",
-                    "duration": f"{step * 5} seconds",
-                    "bandwidth": "10 MHz",
-                },
-            },
-        ]
+        # Evidence structure for jamming detection (unused variable - data is used directly in event)
+        # evidence = [
+        #     {
+        #         "type": "Signal Analysis",
+        #         "details": {
+        #             "frequency_range": "430-440 MHz",
+        #             "signal_strength": f"{signal_strength:.2f}",
+        #             "signal_quality": f"{signal_quality:.2f}",
+        #             "noise_floor": "Highly Elevated",
+        #         },
+        #     },
+        #     {
+        #         "type": "Jamming Indicators",
+        #         "details": {
+        #             "confidence": f"{confidence:.2f}",
+        #             "pattern": "Wideband Interference",
+        #             "duration": f"{step * 5} seconds",
+        #             "bandwidth": "10 MHz",
+        #         },
+        #     },
+        # ]
     else:
         # Confirmed jamming attack
         threat_level = "Malicious"
@@ -548,34 +550,35 @@ def generate_synthetic_jamming_attack(step):
         signal_strength = random.uniform(0.8, 1.0)
         signal_quality = random.uniform(0.1, 0.3)  # Very poor quality
         confidence = random.uniform(0.85, 0.98)
-        evidence = [
-            {
-                "type": "Signal Analysis",
-                "details": {
-                    "frequency_range": "425-445 MHz",
-                    "signal_strength": f"{signal_strength:.2f}",
-                    "signal_quality": f"{signal_quality:.2f}",
-                    "noise_floor": "Critical",
-                },
-            },
-            {
-                "type": "Jamming Indicators",
-                "details": {
-                    "confidence": f"{confidence:.2f}",
-                    "pattern": "Sustained Wideband Interference",
-                    "duration": f"{step * 5} seconds",
-                    "bandwidth": "20 MHz",
-                },
-            },
-            {
-                "type": "Attack Evidence",
-                "details": {
-                    "key_fob_blocked": "Yes",
-                    "known_pattern_match": "Yes",
-                    "attack_confidence": "High",
-                },
-            },
-        ]
+        # Evidence structure for jamming detection (unused variable - data is used directly in event)
+        # evidence = [
+        #     {
+        #         "type": "Signal Analysis",
+        #         "details": {
+        #             "frequency_range": "425-445 MHz",
+        #             "signal_strength": f"{signal_strength:.2f}",
+        #             "signal_quality": f"{signal_quality:.2f}",
+        #             "noise_floor": "Critical",
+        #         },
+        #     },
+        #     {
+        #         "type": "Jamming Indicators",
+        #         "details": {
+        #             "confidence": f"{confidence:.2f}",
+        #             "pattern": "Sustained Wideband Interference",
+        #             "duration": f"{step * 5} seconds",
+        #             "bandwidth": "20 MHz",
+        #         },
+        #     },
+        #     {
+        #         "type": "Attack Evidence",
+        #         "details": {
+        #             "key_fob_blocked": "Yes",
+        #             "known_pattern_match": "Yes",
+        #             "attack_confidence": "High",
+        #         },
+        #     },
+        # ]
 
     # Create the jamming event
     event = {
@@ -717,43 +720,39 @@ def generate_synthetic_brute_force_attack(step):
         "evidence": step_data["evidence"],
     }
 
-    # Get manufacturer-specific parameters
+    # Get manufacturer-specific parameters (for future use)
     manufacturer = event["source"]
     if manufacturer in MANUFACTURER_PARAMETERS:
-        params = MANUFACTURER_PARAMETERS[manufacturer]
-        frequency = params["frequency"]
-        modulation = params["modulation"]
+        # params = MANUFACTURER_PARAMETERS[manufacturer]  # Available but not used
+        # frequency = params["frequency"]  # Available but not used in current implementation
+        # modulation = params["modulation"]  # Available but not used in current implementation
+        pass
     else:
-        # Fallback for unknown manufacturers
-        frequency = KEY_FOB_FREQUENCIES["EU_STANDARD"]
-        modulation = random.choice(
-            [
-                ModulationType.FSK.value,
-                ModulationType.ASK.value,
-                ModulationType.OOK.value,
-            ]
-        )
+        # Fallback for unknown manufacturers (for future use)
+        # frequency = KEY_FOB_FREQUENCIES["EU_STANDARD"]  # Available but not used
+        # modulation = random.choice([  # Available but not used
+        #     ModulationType.FSK.value,
+        #     ModulationType.ASK.value,
+        #     ModulationType.OOK.value,
+        # ])
+        pass
 
-    # Generate a key fob ID for this attempt
-    key_fob_id = f"{random.randint(0, 0xFFFFFF):06x}".upper()
+    # Generate parameters for brute force attack simulation (for future use)
+    # key_fob_id = f"{random.randint(0, 0xFFFFFF):06x}".upper()  # Available but not used
+    # rolling_code = random.randint(0, 2**32 - 1)  # Available but not used
+    # signal_strength = random.uniform(0.5, 0.8)  # Available but not used
+    # signal_quality = random.uniform(0.4, 0.7)  # Available but not used
+    # snr = random.uniform(10, 20)  # Available but not used
+    # power_db = random.uniform(-65, -45)  # Available but not used
 
-    # Generate a rolling code value
-    rolling_code = random.randint(0, 2**32 - 1)
-
-    # Calculate realistic signal parameters for brute force device
-    signal_strength = random.uniform(0.5, 0.8)  # Moderate signal for attack device
-    signal_quality = random.uniform(0.4, 0.7)  # Moderate quality for attack device
-    snr = random.uniform(10, 20)  # Moderate SNR for attack device
-    power_db = random.uniform(-65, -45)  # Typical power level
-
-    # Determine threat level based on step
+    # Determine threat level based on step (confidence used in evidence)
     if step < 3:
-        threat_level = "Suspicious"
-        details = f"Unusual Key Fob Activity ({step + 1} attempts)"
+        # threat_level = "Suspicious"  # Available in step_data
+        # details = f"Unusual Key Fob Activity ({step + 1} attempts)"  # Available in step_data
         confidence = random.uniform(0.6, 0.8)
     else:
-        threat_level = "Malicious"
-        details = f"Brute Force Attack Detected ({step + 1} attempts)"
+        # threat_level = "Malicious"  # Available in step_data
+        # details = f"Brute Force Attack Detected ({step + 1} attempts)"  # Available in step_data
         confidence = random.uniform(0.8, 0.95)
 
     # Add technical evidence
@@ -1457,17 +1456,17 @@ async def generate_synthetic_event():
     """
     # Track previously generated events for replay attack simulation
     event_history = []
-    attack_history = {}
+    # attack_history = {}  # Available but not used in current implementation
 
-    # Define demonstration scenarios using the enum
-    scenarios = [
-        ScenarioType.NORMAL_OPERATION.value,
-        ScenarioType.REPLAY_ATTACK.value,
-        ScenarioType.JAMMING_ATTACK.value,
-        ScenarioType.BRUTE_FORCE_ATTACK.value,
-        ScenarioType.SIGNAL_CLONING_ATTACK.value,
-        ScenarioType.RELAY_ATTACK.value,
-    ]
+    # Define demonstration scenarios using the enum (available but not used)
+    # scenarios = [
+    #     ScenarioType.NORMAL_OPERATION.value,
+    #     ScenarioType.REPLAY_ATTACK.value,
+    #     ScenarioType.JAMMING_ATTACK.value,
+    #     ScenarioType.BRUTE_FORCE_ATTACK.value,
+    #     ScenarioType.SIGNAL_CLONING_ATTACK.value,
+    #     ScenarioType.RELAY_ATTACK.value,
+    # ]
 
     # Scenario state tracking
     scenario_states = {
@@ -1523,17 +1522,18 @@ async def generate_synthetic_event():
     # Probability weights for different scenarios
     # Normal operation should be most common, followed by occasional attacks
     scenario_weights = {
-        ScenarioType.NORMAL_OPERATION.value: 0.4,  # 40% chance for normal events
-        ScenarioType.REPLAY_ATTACK.value: 0.08,  # 8% chance for replay attacks
-        ScenarioType.JAMMING_ATTACK.value: 0.08,  # 8% chance for jamming attacks
-        ScenarioType.BRUTE_FORCE_ATTACK.value: 0.08,  # 8% chance for brute force attacks
-        ScenarioType.SIGNAL_CLONING_ATTACK.value: 0.08,  # 8% chance for signal cloning attacks
-        ScenarioType.RELAY_ATTACK.value: 0.08,  # 8% chance for relay attacks
-        # Critical attack scenarios (lower probability but high impact)
-        ScenarioType.CRITICAL_VULNERABILITY_EXPLOIT.value: 0.05,  # 5% chance for critical exploits
-        ScenarioType.MULTI_MODAL_ATTACK.value: 0.05,  # 5% chance for multi-modal attacks
-        ScenarioType.ADVANCED_PERSISTENT_THREAT.value: 0.05,  # 5% chance for APT attacks
-        ScenarioType.ZERO_DAY_EXPLOIT.value: 0.05,  # 5% chance for zero-day exploits
+        ScenarioType.NORMAL_OPERATION.value: 0.45,  # 45% chance for normal events
+        # Malicious attack scenarios (lower probability due to lower impact)
+        ScenarioType.REPLAY_ATTACK.value: 0.05,  # 5% chance for replay attacks
+        ScenarioType.JAMMING_ATTACK.value: 0.06,  # 6% chance for jamming attacks
+        ScenarioType.BRUTE_FORCE_ATTACK.value: 0.05,  # 5% chance for brute force attacks
+        ScenarioType.SIGNAL_CLONING_ATTACK.value: 0.06,  # 6% chance for signal cloning attacks
+        ScenarioType.RELAY_ATTACK.value: 0.04,  # 4% chance for relay attacks
+        # Critical attack scenarios (higher probability due to high impact)
+        ScenarioType.CRITICAL_VULNERABILITY_EXPLOIT.value: 0.10,  # 10% chance for critical exploits
+        ScenarioType.MULTI_MODAL_ATTACK.value: 0.07,  # 7% chance for multi-modal attacks
+        ScenarioType.ADVANCED_PERSISTENT_THREAT.value: 0.08,  # 8% chance for APT attacks
+        ScenarioType.ZERO_DAY_EXPLOIT.value: 0.04,  # 4% chance for zero-day exploits
     }
 
     while True:

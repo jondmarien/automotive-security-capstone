@@ -324,13 +324,13 @@ class SignalHistoryBuffer:
 
             # Calculate timing differences
             timing_diffs = [abs(t1 - t2) for t1, t2 in zip(timing1, timing2)]
-            avg_diff = np.mean(timing_diffs)
+            avg_diff = float(np.mean(timing_diffs))
 
             # Convert to similarity (smaller differences = higher similarity)
             # Assume timing differences > 5ms indicate different patterns
-            similarity = max(0, 1 - avg_diff / 0.005)
+            similarity = max(0.0, 1.0 - avg_diff / 0.005)
 
-            return similarity
+            return float(similarity)
 
         except Exception as e:
             logger.warning(f"Error comparing burst timing: {e}")

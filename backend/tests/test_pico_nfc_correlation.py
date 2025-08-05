@@ -12,6 +12,9 @@ import time
 # Add the pico directory to the path so we can import the module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "pico"))
 
+# Import after path modification
+from main import AutomotiveSecurityPico
+
 # Mock MicroPython-specific modules
 network_mock = Mock()
 sys.modules["network"] = network_mock
@@ -38,8 +41,6 @@ wlan_mock.ifconfig.return_value = (
 # Mock uasyncio functions
 uasyncio_mock.sleep = AsyncMock()
 uasyncio_mock.create_task = Mock()
-
-from main import AutomotiveSecurityPico
 
 
 @pytest.fixture
@@ -91,7 +92,7 @@ async def test_nfc_correlation_activation(pico_client):
     await pico_client.activate_nfc_correlation(detections)
 
     # Verify correlation mode is active
-    assert pico_client.nfc_correlation_mode == True
+    assert pico_client.nfc_correlation_mode
 
     # Verify active RF threat is stored
     assert pico_client.active_rf_threat == detections[0]
@@ -116,7 +117,7 @@ async def test_nfc_correlation_timeout(pico_client):
     await pico_client.activate_nfc_correlation(detections)
 
     # Verify correlation is active
-    assert pico_client.nfc_correlation_mode == True
+    assert pico_client.nfc_correlation_mode
 
     # Wait for timeout
     await asyncio.sleep(0.2)
@@ -125,11 +126,11 @@ async def test_nfc_correlation_timeout(pico_client):
     if pico_client.correlation_timer:
         try:
             await pico_client.nfc_correlation_timeout()
-        except:
+        except Exception:
             pass
 
     # Verify correlation mode is deactivated
-    assert pico_client.nfc_correlation_mode == False
+    assert not pico_client.nfc_correlation_mode
     assert pico_client.active_rf_threat is None
 
     # Restore original timeout

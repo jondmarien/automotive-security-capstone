@@ -31,6 +31,7 @@ import asyncio
 import argparse
 import logging
 import signal
+import subprocess
 import sys
 import time
 from typing import Optional

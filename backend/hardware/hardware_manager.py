@@ -387,7 +387,7 @@ class HardwareManager:
         Returns:
             HardwareHealth object with current status
         """
-        pico_health = asyncio.create_task(self.pico_manager.check_health())
+        # pico_health = asyncio.create_task(self.pico_manager.check_health())  # Available but not used in sync method
 
         # Get current health data (simplified for sync method)
         rtl_status = self.rtl_sdr.get_status()

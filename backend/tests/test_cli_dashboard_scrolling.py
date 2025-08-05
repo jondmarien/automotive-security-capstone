@@ -76,7 +76,7 @@ def test_event_scrolling():
         print(f"\\n📍 Testing selected_event_idx = {idx}")
 
         # Render dashboard with specific selected event
-        dashboard = render_dashboard(
+        render_dashboard(
             events=events,
             selected_event=None,  # Let it use selected_event_idx
             status_text="Testing event scrolling",

@@ -315,7 +315,7 @@ class TestReplayAttackDetector:
 
         result = self.replay_detector.check_replay(test_signal)
 
-        assert result["is_replay"] == False
+        assert not result["is_replay"]
 
     def test_replay_detection(self):
         """Test detection of replay attack."""
@@ -395,7 +395,7 @@ class TestJammingDetector:
 
         result = self.jamming_detector.check_jamming(normal_signal)
 
-        assert result["is_jamming"] == False
+        assert not result["is_jamming"]
 
     def test_wideband_jamming_detection(self):
         """Test detection of wideband jamming."""
@@ -407,7 +407,7 @@ class TestJammingDetector:
 
         result = self.jamming_detector.check_jamming(jamming_signal)
 
-        assert result["is_jamming"] == True
+        assert result["is_jamming"]
         assert result["confidence"] > 0.5
         assert "broadband_interference" in result["evidence"]
 
@@ -457,7 +457,7 @@ class TestBruteForceDetector:
 
         result = self.brute_force_detector.check_brute_force(test_signal)
 
-        assert result["is_brute_force"] == False
+        assert not result["is_brute_force"]
 
     def test_high_rate_brute_force_detection(self):
         """Test detection of high-rate brute force attacks."""
@@ -477,7 +477,7 @@ class TestBruteForceDetector:
 
         result = self.brute_force_detector.check_brute_force(test_signal)
 
-        assert result["is_brute_force"] == True
+        assert result["is_brute_force"]
         assert result["confidence"] > 0.0
         assert "signal_rate" in result["evidence"]
 
@@ -551,7 +551,7 @@ class TestEnhancedSignalProcessingBridge:
 
         self.bridge.stop_processing()
 
-        assert self.bridge.processing_active == False
+        assert not self.bridge.processing_active
 
 
 if __name__ == "__main__":
