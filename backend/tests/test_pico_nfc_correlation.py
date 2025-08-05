@@ -9,13 +9,7 @@ import sys
 import os
 import time
 
-# Add the pico directory to the path so we can import the module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "pico"))
-
-# Import after path modification
-from main import AutomotiveSecurityPico
-
-# Mock MicroPython-specific modules
+# Mock MicroPython-specific modules BEFORE importing
 network_mock = Mock()
 sys.modules["network"] = network_mock
 socket_mock = Mock()
@@ -24,6 +18,18 @@ machine_mock = Mock()
 sys.modules["machine"] = machine_mock
 uasyncio_mock = Mock()
 sys.modules["uasyncio"] = uasyncio_mock
+
+# Mock micropython module and const function
+micropython_mock = Mock()
+micropython_mock.const = lambda x: x  # const just returns the value
+sys.modules["micropython"] = micropython_mock
+
+# Add the pico directory to the path so we can import the module
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "pico"))
+
+# Import after mocks are set up
+from main import AutomotiveSecurityPico  # noqa: E402
+
 nfc_mock = Mock()
 sys.modules["NFC_PN532"] = nfc_mock
 
