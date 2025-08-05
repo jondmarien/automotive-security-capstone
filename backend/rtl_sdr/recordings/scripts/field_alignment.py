@@ -1,6 +1,3 @@
-import re
-from collections import defaultdict
-
 INPUT_FILE = "../signals/analyze/decoded_signals.txt"
 OUTPUT_FILE = "../signals/analyze/field_alignment_table.txt"
 
@@ -38,7 +35,7 @@ with open(OUTPUT_FILE, "w") as out:
     out.write("Burst | " + " ".join(f"{i:>2}" for i in range(max_len)) + "\n")
     out.write("-" * (7 + 3 * max_len) + "\n")
     for idx, b in enumerate(bursts):
-        out.write(f"{idx+1:>5} | ")
+        out.write(f"{idx + 1:>5} | ")
         for i, byte in enumerate(b):
             mark = "*" if i in invariant_cols and byte.strip() else " "
             out.write(f"{byte}{mark} ")
@@ -48,4 +45,4 @@ with open(OUTPUT_FILE, "w") as out:
         out.write(", ".join(str(i) for i in invariant_cols) + "\n")
     else:
         out.write("None found.\n")
-    out.write("\n* Columns marked with * are invariant across all bursts.\n") 
+    out.write("\n* Columns marked with * are invariant across all bursts.\n")

@@ -1,4 +1,3 @@
-import re
 from collections import Counter
 
 INPUT_FILE = "../signals/analyze/decoded_signals.txt"
@@ -13,23 +12,27 @@ FIELD_LAYOUT = [
     ("Checksum/CRC", 1),
 ]
 
+
 # Helper to split hex string into fields
 def split_fields(hex_bytes):
     fields = {}
     idx = 0
     for name, length in FIELD_LAYOUT:
-        fields[name] = hex_bytes[idx:idx+length]
+        fields[name] = hex_bytes[idx : idx + length]
         idx += length
     fields["Unknown"] = hex_bytes[idx:]
     return fields
+
 
 # Helper to pretty-print a field row
 def field_row(name, value):
     return f"| {name:<12} | {value:<24} |"
 
+
 # Helper to join bytes for display
 def join_bytes(byte_list):
-    return ' '.join(byte_list) if byte_list else ''
+    return " ".join(byte_list) if byte_list else ""
+
 
 # Parse decoded_signals.txt for bursts and their hex data
 with open(INPUT_FILE, "r") as f:
@@ -70,9 +73,9 @@ with open(OUTPUT_FILE, "w") as out:
         out.write("+--------------+--------------------------+\n\n")
 
     # --- Summary Section ---
-    out.write("\n" + "="*40 + "\n")
+    out.write("\n" + "=" * 40 + "\n")
     out.write("Summary of Field Analysis\n")
-    out.write("="*40 + "\n")
+    out.write("=" * 40 + "\n")
     total_bursts = len(bursts)
     for name in all_field_values:
         values = all_field_values[name]
@@ -80,12 +83,18 @@ with open(OUTPUT_FILE, "w") as out:
         most_common, count = counter.most_common(1)[0] if counter else (None, 0)
         confidence = (count / total_bursts) * 100 if total_bursts else 0
         if most_common and confidence > 50:
-            out.write(f"Most likely {name}: {most_common} (Confidence: {confidence:.1f}%)\n")
+            out.write(
+                f"Most likely {name}: {most_common} (Confidence: {confidence:.1f}%)\n"
+            )
         elif most_common:
-            out.write(f"No clear {name}. Most common: {most_common} (Confidence: {confidence:.1f}%)\n")
+            out.write(
+                f"No clear {name}. Most common: {most_common} (Confidence: {confidence:.1f}%)\n"
+            )
         else:
             out.write(f"No data for {name}.\n")
     out.write("\n")
-    out.write("Confidence is the percentage of bursts with the most common value. If no value exceeds 50%, the result is uncertain.\n")
+    out.write(
+        "Confidence is the percentage of bursts with the most common value. If no value exceeds 50%, the result is uncertain.\n"
+    )
 
-print(f"Extracted fields for {len(bursts)} bursts to {OUTPUT_FILE}.") 
+print(f"Extracted fields for {len(bursts)} bursts to {OUTPUT_FILE}.")

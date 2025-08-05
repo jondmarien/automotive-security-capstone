@@ -28,6 +28,8 @@ dependencies = [
     "pyfiglet>=1.0.3",
     "rich>=14.1.0",
     "prompt-toolkit>=3.0.51",
+    "ty>=0.0.1a16",
+    "ruff>=0.12.7",
 ]
 
 [tool.hatch.build.targets.wheel]
