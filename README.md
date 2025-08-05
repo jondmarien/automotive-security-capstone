@@ -5,8 +5,43 @@ This repository contains a comprehensive proof-of-concept (POC) automotive RF/NF
 **Latest Enhancements**: Professional CLI dashboard with enhanced startup experience and graceful exit handling, advanced synthetic event generation with realistic attack scenarios, comprehensive session data export capabilities, improved event navigation with pagination, and enhanced user experience with Rich-based dialogs and ASCII art presentation.
 
 ---
+<details>
+<summary>Loading Screen</summary>
 
-<img width="1634" height="754" alt="image" src="https://github.com/user-attachments/assets/b2d988be-8661-441e-9f8b-632c85889117" />
+<img width="1100" height="1009" alt="Loading Screen" src="https://github.com/user-attachments/assets/cdaf5e7a-c4b9-4adf-91fc-686aa3587074" />
+
+</details>
+
+<details>
+<summary>Menu Screen</summary>
+
+<img width="2508" height="990" alt="Menu Screen" src="https://github.com/user-attachments/assets/ed963dcd-5128-49f3-a676-5f48a335b443" />
+
+</details>
+
+<details>
+<summary>Main Screen</summary>
+
+<img width="2520" height="1174" alt="Main Screen" src="https://github.com/user-attachments/assets/a4548a29-b0b3-4a50-a32e-40fdd27b995d" />
+
+</details>
+
+<details>
+<summary>Exit Dashboard</summary>
+
+<img width="2514" height="1197" alt="Exit Dashboard" src="https://github.com/user-attachments/assets/2899421c-7f26-4d99-922b-e7ba5b5ddd47" />
+
+</details>
+
+<details>
+<summary>Goodbye Screen</summary>
+
+<img width="2504" height="474" alt="Goodbye Screen" src="https://github.com/user-attachments/assets/43d67e15-d56e-497f-a383-20c215454991" />
+
+</details>
+
+
+
 
 ## Project Structure
 
