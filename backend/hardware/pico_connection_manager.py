@@ -244,9 +244,11 @@ class PicoConnectionManager:
             try:
                 # Check if reader is available
                 if device.reader is None:
-                    logger.warning(f"Reader not available for device {device.device_id}")
+                    logger.warning(
+                        f"Reader not available for device {device.device_id}"
+                    )
                     break
-                    
+
                 # Read data with timeout
                 data = await asyncio.wait_for(
                     device.reader.read(1024), timeout=self.connection_timeout

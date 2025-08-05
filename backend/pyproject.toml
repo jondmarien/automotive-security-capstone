@@ -49,6 +49,7 @@ dev = [
 [tool.ruff]
 target-version = "py313"
 line-length = 88
+indent-width = 4
 
 [tool.ruff.lint]
 # Enable basic linting rules
@@ -56,10 +57,59 @@ select = ["E4", "E7", "E9", "F"]
 # Ignore problematic rules
 ignore = ["E501"]
 
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
 [tool.ruff.lint.per-file-ignores]
 # Ignore import errors for MicroPython files
 "pico/*.py" = ["F401", "E402", "F811"]
 "setup.py" = ["F401", "E402"]
+
+[tool.ruff.lint.isort]
+case-sensitive = true
+force-wrap-aliases = true
+combine-as-imports = true
+detect-same-package = true
+from-first = true
+length-sort = true
+force-to-top = ["backend"]
+known-local-folder = ["backend"]
+classes = ["SVC"]
+# Use a single line after each import block. (-1 for automatic determination)
+lines-after-imports = -1
+# Use a single line between direct and from import.
+lines-between-types = 1
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+# Enable auto-formatting of code examples in docstrings. Markdown,
+# reStructuredText code/literal blocks and doctests are all supported.
+#
+# This is currently disabled by default, but it is planned for this
+# to be opt-out in the future.
+docstring-code-format = true
+
+# Set the line length limit used when formatting code snippets in
+# docstrings.
+#
+# This only has an effect when the `docstring-code-format` setting is
+# enabled.
+docstring-code-line-length = "dynamic"
 
 # Type checking configuration for ty
 [tool.ty.src]

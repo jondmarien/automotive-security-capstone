@@ -2168,6 +2168,7 @@ async def main():
 # --- Mock Event Generator ---
 # --- Detection Adapter Integration ---
 
+
 async def generate_mock_events(synthetic=False):
     """
     Async generator that yields simulated detection events for dashboard demo/testing.

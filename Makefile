@@ -4,7 +4,7 @@
 # Runner command - change this if you want to use a different runner
 UV_RUN = uv run
 
-.PHONY: run lint type test format clean install dev help
+.PHONY: run lint type test format analyze clean install dev help
 
 # Default target - run CLI dashboard with mock and synthetic modes
 run:
@@ -13,6 +13,10 @@ run:
 # Linting with ruff
 lint:
 	cd backend && $(UV_RUN) ruff check .
+
+# Fix linting issues automatically
+lint-fix:
+	cd backend && $(UV_RUN) ruff check --fix .
 
 # Type checking with ty (astral-sh/ty)
 type:
@@ -26,12 +30,14 @@ test:
 format:
 	cd backend && $(UV_RUN) ruff format .
 
-# Fix linting issues automatically
-lint-fix:
-	cd backend && $(UV_RUN) ruff check --fix .
+# Analyze code with ruff analyzer
+analyze:
+	cd backend && $(UV_RUN) ruff analyze graph
 
 # Run all quality checks (lint, type, test)
 check: lint type test
+
+suite: lint type format lint-fix analyze test
 
 # Install dependencies
 install:
@@ -62,6 +68,7 @@ deploy-pico:
 
 # Clean up temporary files
 clean:
+	cd backend && $(UV_RUN) ruff clean
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name "__pycache__" -delete
 	find . -type d -name ".pytest_cache" -delete
@@ -76,6 +83,7 @@ help:
 	@echo "  test         - Run pytest tests"
 	@echo "  format       - Format code with ruff"
 	@echo "  lint-fix     - Fix linting issues automatically"
+	@echo "  analyze      - Analyze code with ruff analyzer"
 	@echo "  check        - Run all quality checks (lint, type, test)"
 	@echo "  install      - Install dependencies"
 	@echo "  dev          - Install development dependencies"
@@ -84,5 +92,5 @@ help:
 	@echo "  synthetic    - Run CLI dashboard in synthetic mode"
 	@echo "  validate     - Validate detection accuracy"
 	@echo "  deploy-pico  - Deploy to Pico W"
-	@echo "  clean        - Clean up temporary files"
+	@echo "  clean        - Clean up temporary files (includes ruff clean)"
 	@echo "  help         - Show this help message"
