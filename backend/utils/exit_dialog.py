@@ -378,13 +378,13 @@ class ExitDialogManager:
     def _copy_log_files(self, timestamp: str):
         """Copy current log files to exports directory."""
 
-        # Common log file locations
-        log_files = ["detection_events.log", "dashboard.log", "system.log"]
+        # Dynamically discover all .log files in the current directory
+        log_files = list(Path(".").glob("*.log"))
 
         for log_file in log_files:
-            if os.path.exists(log_file):
+            if log_file.is_file():
                 dest_file = (
-                    self.export_dir / f"{log_file.replace('.log', '')}_{timestamp}.log"
+                    self.export_dir / f"{log_file.stem}_{timestamp}.log"
                 )
                 shutil.copy2(log_file, dest_file)
 
