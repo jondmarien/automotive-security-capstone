@@ -7,6 +7,7 @@ Demo-specific behaviors (aggressive attack simulation, forced replay attack mark
 
 # TODO: Design logic and dependencies to be compatible with a future Micropython port for Raspberry Pi Pico deployment.
 """
+
 from datetime import datetime
 import random
 
@@ -14,18 +15,23 @@ import random
 DETAILS_MAP = {
     "RF Unlock": {"desc": "RF unlock signal detected", "example": "Key fob unlock"},
     "RF Lock": {"desc": "RF lock signal detected", "example": "Key fob lock"},
-    "Replay Attack": {"desc": "Replay attack detected", "example": "Captured unlock replayed"},
-    "Jamming Attack": {"desc": "RF jamming detected", "example": "Jammer device active"},
-    "Brute Force": {"desc": "Brute force attempt detected", "example": "Repeated unlock attempts"},
+    "Replay Attack": {
+        "desc": "Replay attack detected",
+        "example": "Captured unlock replayed",
+    },
+    "Jamming Attack": {
+        "desc": "RF jamming detected",
+        "example": "Jammer device active",
+    },
+    "Brute Force": {
+        "desc": "Brute force attempt detected",
+        "example": "Repeated unlock attempts",
+    },
     "Unknown": {"desc": "Unknown RF signal", "example": "Unclassified burst"},
     # Add all other event types as needed
 }
 
-THREAT_COLOR_MAP = {
-    "Benign": "green",
-    "Malicious": "red",
-    "Suspicious": "orange"
-}
+THREAT_COLOR_MAP = {"Benign": "green", "Malicious": "red", "Suspicious": "orange"}
 
 ALL_EVENT_TYPES = list(DETAILS_MAP.keys())
 
@@ -67,16 +73,16 @@ def analyze_event(packet, *, demo_mode=False, event_types=None, details_map=None
             threat_level = "Benign"
         elif event_type in AMBIGUOUS_EVENT_TYPES:
             threat_level = random.choices(
-                ["Benign", "Suspicious", "Malicious"],
-                weights=[1, 2, 4],
-                k=1
+                ["Benign", "Suspicious", "Malicious"], weights=[1, 2, 4], k=1
             )[0]
         else:
             threat_level = "Benign"
         # Color mapping
         color = THREAT_COLOR_MAP.get(threat_level, "white")
         # Timestamp
-        timestamp = packet.get("timestamp") or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = packet.get("timestamp") or datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
         # Compose event dict
         event = {
             "event_type": event_type,
@@ -85,7 +91,12 @@ def analyze_event(packet, *, demo_mode=False, event_types=None, details_map=None
             "timestamp": timestamp,
             "details": details_map.get(event_type, {}),
             # Pass through other fields
-            **{k: v for k, v in packet.items() if k not in ["event_type", "threat_level", "color", "timestamp", "details"]}
+            **{
+                k: v
+                for k, v in packet.items()
+                if k
+                not in ["event_type", "threat_level", "color", "timestamp", "details"]
+            },
         }
         return event
 
@@ -123,7 +134,9 @@ def analyze_event(packet, *, demo_mode=False, event_types=None, details_map=None
         # Color mapping
         color = THREAT_COLOR_MAP.get(threat_level, "white")
         # Timestamp
-        timestamp = packet.get("timestamp") or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = packet.get("timestamp") or datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
         # Compose event dict
         event = {
             "event_type": event_type,
@@ -132,9 +145,15 @@ def analyze_event(packet, *, demo_mode=False, event_types=None, details_map=None
             "timestamp": timestamp,
             "details": details_map.get(event_type, {}),
             # Pass through other fields
-            **{k: v for k, v in packet.items() if k not in ["event_type", "threat_level", "color", "timestamp", "details"]}
+            **{
+                k: v
+                for k, v in packet.items()
+                if k
+                not in ["event_type", "threat_level", "color", "timestamp", "details"]
+            },
         }
         return event
+
 
 # TODO: Add more sophisticated analysis logic as needed for real SDR packets.
 #       Ensure all event types in DETAILS_MAP are covered.

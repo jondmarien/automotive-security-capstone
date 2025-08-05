@@ -5,6 +5,7 @@
 ### Prerequisites and System Requirements
 
 #### Hardware Requirements
+
 - **Development Machine**: Windows 10/11, macOS 10.15+, or Linux (Ubuntu 20.04+)
 - **RAM**: Minimum 8GB, recommended 16GB for signal processing
 - **Storage**: 10GB free space for development environment and recordings
@@ -12,6 +13,7 @@
 - **Network**: WiFi or Ethernet for Pico W development
 
 #### Software Prerequisites
+
 ```bash
 # Python Environment
 Python 3.11+ (required for modern type hints and performance)
@@ -30,6 +32,7 @@ Windows Terminal or equivalent (for CLI dashboard)
 ### Environment Setup Workflow
 
 #### 1. Repository Setup
+
 ```bash
 # Clone repository
 git clone <repository-url>
@@ -52,6 +55,7 @@ pip install -r requirements-dev.txt
 ```
 
 #### 2. Hardware Setup
+
 ```bash
 # Test RTL-SDR connection
 rtl_test
@@ -67,6 +71,7 @@ rtl_tcp -a 127.0.0.1 -p 1234
 ```
 
 #### 3. Development Configuration
+
 ```bash
 # Copy environment template
 cp .env.example .env
@@ -85,6 +90,7 @@ pytest tests/test_basic_functionality.py
 ### Branch Strategy (Git Flow)
 
 #### Main Branches
+
 - **main**: Production-ready code, stable releases
 - **develop**: Integration branch for features, latest development
 - **feature/***: Individual feature development branches
@@ -92,6 +98,7 @@ pytest tests/test_basic_functionality.py
 - **release/***: Release preparation and stabilization
 
 #### Branch Naming Conventions
+
 ```bash
 # Feature branches
 feature/rtl-sdr-integration
@@ -112,6 +119,7 @@ release/v1.1.0-beta
 ```
 
 #### Commit Message Standards
+
 ```bash
 # Format: <type>(<scope>): <description>
 # Types: feat, fix, docs, style, refactor, test, chore
@@ -129,6 +137,7 @@ chore(deps): update numpy to latest version
 ### Code Review Process
 
 #### Pull Request Requirements
+
 - **Automated Tests**: All tests must pass
 - **Code Coverage**: Maintain >90% coverage for new code
 - **Documentation**: Update relevant documentation
@@ -136,6 +145,7 @@ chore(deps): update numpy to latest version
 - **Performance**: No significant performance regressions
 
 #### Review Checklist
+
 ```markdown
 ## Code Review Checklist
 
@@ -169,6 +179,7 @@ chore(deps): update numpy to latest version
 ### Test Categories and Organization
 
 #### Unit Tests (Fast, Isolated)
+
 ```python
 # tests/test_detection/test_threat_levels.py
 @pytest.mark.unit
@@ -187,6 +198,7 @@ def test_packet_parsing():
 ```
 
 #### Integration Tests (Component Interaction)
+
 ```python
 # tests/integration/test_detection_pipeline.py
 @pytest.mark.integration
@@ -209,6 +221,7 @@ async def test_detection_pipeline():
 ```
 
 #### Hardware Tests (Require Physical Hardware)
+
 ```python
 # tests/test_hardware/test_rtl_sdr_integration.py
 @pytest.mark.hardware
@@ -224,6 +237,7 @@ def test_rtl_sdr_connection():
 ```
 
 #### Performance Tests (Resource Usage)
+
 ```python
 # tests/test_performance/test_real_time_processing.py
 @pytest.mark.slow
@@ -279,6 +293,7 @@ def test_noise_floor_analysis_with_timestamps():
 ### Test Execution and Automation
 
 #### Local Testing Workflow
+
 ```bash
 # Run all tests
 pytest
@@ -311,6 +326,7 @@ pytest tests/test_automotive_signal_analyzer.py::TestAutomotiveSignalAnalyzer::t
 ```
 
 #### Continuous Integration Pipeline
+
 ```yaml
 # .github/workflows/ci.yml
 name: Continuous Integration
@@ -355,6 +371,7 @@ jobs:
 ### Code Quality Standards
 
 #### Automated Code Formatting
+
 ```bash
 # Format code automatically
 black .                          # Code formatting
@@ -366,6 +383,7 @@ isort --check-only .
 ```
 
 #### Linting and Static Analysis
+
 ```bash
 # Style and complexity checking
 flake8                          # PEP 8 compliance and complexity
@@ -379,6 +397,7 @@ safety check                   # Dependency vulnerability checking
 ```
 
 #### Pre-commit Hooks
+
 ```yaml
 # .pre-commit-config.yaml
 repos:
@@ -409,6 +428,7 @@ repos:
 ### Feature Development Lifecycle
 
 #### 1. Planning and Design
+
 ```bash
 # Create feature branch
 git checkout develop
@@ -421,6 +441,7 @@ git checkout -b feature/new-detection-algorithm
 ```
 
 #### 2. Test-Driven Development (TDD)
+
 ```python
 # 1. Write failing test first
 def test_new_detection_algorithm():
@@ -443,6 +464,7 @@ class NewDetectionAlgorithm:
 ```
 
 #### 3. Integration and Testing
+
 ```bash
 # Run comprehensive tests
 pytest                          # All tests (now includes 45 enhanced signal processing tests)
@@ -460,6 +482,7 @@ pytest tests/test_automotive_signal_analyzer.py::TestAutomotiveSignalAnalyzer::t
 ```
 
 #### 4. Code Review and Merge
+
 ```bash
 # Push feature branch
 git push origin feature/new-detection-algorithm
@@ -478,6 +501,7 @@ git push origin develop
 ### Debugging and Troubleshooting
 
 #### Debug Configuration
+
 ```python
 # backend/config/debug.yaml
 system:
@@ -495,6 +519,7 @@ detection:
 ```
 
 #### Debugging Tools and Techniques
+
 ```python
 # Logging for debugging
 import logging
@@ -531,6 +556,7 @@ def profile_detection_performance():
 ```
 
 #### Common Issues and Solutions
+
 ```python
 # Issue: RTL-SDR connection problems
 def diagnose_rtl_sdr_issues():
@@ -577,6 +603,7 @@ def monitor_memory_usage():
 ### Performance Optimization Guidelines
 
 #### Signal Processing Optimization
+
 ```python
 # Use NumPy vectorized operations
 def efficient_fft_analysis(signal_samples):
@@ -604,6 +631,7 @@ def process_signal_chunks(signal_stream, chunk_size=1024):
 ```
 
 #### Real-time Performance Requirements
+
 ```python
 # Performance monitoring
 class PerformanceMonitor:
