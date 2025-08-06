@@ -28,10 +28,8 @@ jobs:
 
       - name: Build release distributions
         run: |
-          # NOTE: put your own distribution build steps here.
           cd backend
-          uv venv
-          uv pip install -r requirements.txt
+          uv sync
           uv build
 
       - name: Upload distributions
@@ -53,11 +51,10 @@ jobs:
     environment:
       name: pypi
       # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
-      # url: https://pypi.org/p/YOURPROJECT
-      #
+      url: https://pypi.org/p/automotive-security-capstone
       # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
       # ALTERNATIVE: exactly, uncomment the following line instead:
-      # url: https://pypi.org/project/YOURPROJECT/${{ github.event.release.name }}
+      # url: https://pypi.org/project/automotive-security-capstone/${{ github.event.release.name }}
 
     steps:
       - name: Retrieve release distributions

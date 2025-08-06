@@ -1,5 +1,68 @@
 # Backend Changelog
 
+## [2025-08-06] Native uv Build System Integration & CLI Entry Points
+
+### Added
+
+- **Native uv Build Backend** (`pyproject.toml`)
+  - Switched from setuptools to native `uv_build` backend for lightning-fast builds (<1 second)
+  - Configured `[tool.uv.build-backend]` with proper module-root settings
+  - Added `requires = ["uv_build>=0.8.4,<0.9.0"]` for native uv integration
+  - Rust-powered build performance with instant package creation
+
+- **CLI Entry Points System**
+  - `autosec-dashboard` → Main interactive dashboard (`cli_dashboard:main`)
+  - `autosec-demo-mock` → Dashboard with mock data (`cli_dashboard:main_mock`)
+  - `autosec-demo-synthetic` → Dashboard with synthetic attacks (`cli_dashboard:main_synthetic`)
+  - `autosec-deploy-pico` → Pico W deployment tool (`deploy_pico:main`)
+  - `autosec-demo` → Structured demo scenarios (`demo_scenarios:main`)
+  - `autosec-hardware` → Hardware launcher (`real_hardware_launcher:main`)
+
+- **Package Structure Improvements**
+  - Added missing `__init__.py` files to all backend packages (detection, rtl_sdr, pico, utils)
+  - Fixed package discovery for proper Python module structure
+  - Enhanced import system for better module organization
+
+### Enhanced Features
+
+- **Build System Performance**
+  - Lightning-fast builds with native uv backend (from ~10s to <1s)
+  - Modern Python packaging with full pyproject.toml configuration
+  - Automatic dependency management with uv.lock
+  - Clean wheel and source distribution generation
+
+- **CLI Wrapper Functions**
+  - Added `main_mock()` and `main_synthetic()` wrapper functions in `cli_dashboard.py`
+  - Proper argument handling for demo modes
+  - Enhanced CLI entry point architecture
+
+### Fixed
+
+- **Import Errors**
+  - Fixed `ImportError` in `detection/__init__.py` (EventLogic → analyze_event)
+  - Corrected module imports for proper package structure
+  - Updated `__all__` lists to match actual exported functions
+
+- **License Configuration**
+  - Updated license format from deprecated table to SPDX expression (`license = "MIT"`)
+  - Removed deprecated license classifiers to eliminate build warnings
+  - Modern PEP 639 license declarations
+
+- **Build Configuration**
+  - Fixed `module-root = "."` in uv build backend configuration
+  - Resolved source tree packaging issues
+  - Eliminated all build warnings and deprecation messages
+
+### Technical Details
+
+- **Build Backend**: Native `uv_build` with Rust performance
+- **Package Discovery**: Automatic with proper `__init__.py` structure
+- **CLI Architecture**: Entry points with wrapper function pattern
+- **License Format**: Modern SPDX expression (MIT)
+- **Build Time**: <1 second (down from ~10 seconds with setuptools)
+
+---
+
 ## [2025-08-04] CLI Dashboard Demo Improvements & Professional Exit Experience
 
 ### Added

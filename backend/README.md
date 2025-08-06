@@ -2,6 +2,59 @@
 
 This backend powers the Automotive Security Capstone POC, enabling real-time automotive RF and NFC event detection, logging, and demo visualization via an enhanced CLI dashboard with technical evidence presentation and signal analysis visualization.
 
+## 🚀 Quick Start & Installation
+
+### Prerequisites
+
+- **Python 3.11+** (required)
+- **uv package manager** (recommended) - [Install uv](https://docs.astral.sh/uv/getting-started/installation/)
+- **RTL-SDR V4 dongle** (for real hardware mode)
+- **Raspberry Pi Pico W** (optional, for alerting/NFC)
+
+### Installation with uv (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/jondmarien/automotive-security-capstone.git
+cd automotive-security-capstone/backend
+
+# Install dependencies with uv (lightning fast!)
+uv sync
+
+# Build the project (native uv build backend - <1 second!)
+uv build
+```
+
+### Available CLI Commands
+
+After installation, you can run these CLI tools:
+
+```bash
+# Main dashboard (interactive monitoring)
+uv run autosec-dashboard
+
+# Demo modes for presentations
+uv run autosec-demo-mock          # Dashboard with mock data
+uv run autosec-demo-synthetic     # Dashboard with synthetic attack scenarios
+
+# Hardware deployment
+uv run autosec-deploy-pico        # Deploy code to Raspberry Pi Pico W
+
+# Demo scenarios
+uv run autosec-demo               # Run structured demo scenarios
+
+# Hardware launcher
+uv run autosec-hardware           # Launch with real hardware detection
+```
+
+### Build System Features
+
+- ⚡ **Lightning-fast builds** with native uv build backend (<1 second)
+- 🔧 **Modern Python packaging** with pyproject.toml configuration
+- 📦 **Automatic dependency management** with uv.lock
+- 🛠️ **CLI entry points** for all major tools
+- 🚀 **Rust-powered performance** for build operations
+
 ## 🚘 Project Overview
 
 - **RTL-SDR V4** dongle connects to a computer for RF signal capture.

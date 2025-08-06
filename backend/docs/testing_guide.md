@@ -22,9 +22,54 @@ This guide covers the comprehensive testing suite for the Automotive Security Ca
 
 ## Running Tests
 
-### Quick Start
+### Quick Start with Make (Recommended)
+
 ```bash
-# Run all tests
+# Run all tests (from project root)
+make test
+
+# Run complete quality suite (lint + type + format + analyze + test)
+make suite
+
+# Run all quality checks (lint + type + test)
+make check
+
+# Individual quality commands
+make lint          # Run ruff linting
+make type          # Run ty type checking
+make format        # Format code with ruff
+make lint-fix      # Fix linting issues automatically
+make analyze       # Analyze code with ruff analyzer
+```
+
+### Direct uv Commands (Alternative)
+
+```bash
+# From backend directory
+cd backend
+
+# Run all tests with uv (lightning fast!)
+uv run pytest
+
+# Run with coverage report
+uv run pytest --cov=rtl_sdr --cov=detection --cov-report=html
+
+# Run specific test files
+uv run pytest tests/test_automotive_signal_analyzer.py -v
+
+# Quality checks
+uv run ruff check .        # Linting
+uv run ty check           # Type checking
+uv run ruff format .      # Code formatting
+```
+
+### Legacy Python Commands (Fallback)
+
+```bash
+# From backend directory
+cd backend
+
+# Run all tests (fallback method)
 python -m pytest tests/ -v
 
 # Run with coverage report
@@ -34,6 +79,7 @@ python -m pytest tests/ --cov=rtl_sdr --cov=detection --cov-report=html
 ### Individual Test Suites
 
 #### Automotive Signal Analyzer Tests
+
 ```bash
 # Run signal analysis tests
 python -m pytest tests/test_automotive_signal_analyzer.py -v
@@ -44,6 +90,7 @@ python -m pytest tests/test_automotive_signal_analyzer.py::TestAutomotiveSignalA
 ```
 
 #### Brute Force Detection Tests
+
 ```bash
 # Run brute force detection tests
 python -m pytest tests/test_brute_force_detector.py -v
@@ -53,6 +100,7 @@ python -m pytest tests/test_brute_force_detector.py::TestBruteForceDetector::tes
 python -m pytest tests/test_brute_force_detector.py::TestBruteForceDetector::test_temporal_analysis -v
 
 #### NFC Correlation System Tests
+
 ```bash
 # Run NFC correlation system tests
 python -m pytest tests/test_pico_nfc_correlation.py -v
@@ -64,9 +112,9 @@ python -m pytest tests/test_pico_nfc_correlation.py::TestNFCCorrelation::test_nf
 # Test correlated security events
 python -m pytest tests/test_pico_nfc_correlation.py::TestNFCCorrelation::test_create_correlated_security_event -v
 ```
-```
 
 #### Jamming Detection Tests
+
 ```bash
 # Run jamming detection tests
 python -m pytest tests/test_jamming_detector.py -v
@@ -77,6 +125,7 @@ python -m pytest tests/test_jamming_detector.py::TestJammingDetector::test_pulse
 ```
 
 #### Enhanced Signal Processing Tests
+
 ```bash
 # Run enhanced processing tests
 python -m pytest tests/test_enhanced_signal_bridge.py -v
@@ -86,6 +135,7 @@ python -m pytest tests/test_enhanced_signal_bridge.py::TestEnhancedSignalProcess
 ```
 
 #### CLI Dashboard Tests
+
 ```bash
 # Run all CLI dashboard tests
 python -m pytest tests/test_cli_dashboard.py -v
@@ -106,6 +156,7 @@ python -m pytest tests/test_cli_dashboard.py::TestCLIDashboard::test_mock_event_
 ### Test Categories and Markers
 
 #### Unit Tests
+
 ```bash
 # Fast unit tests
 python -m pytest tests/ -m unit -v
@@ -115,18 +166,21 @@ python -m pytest tests/ -m "not slow" -v
 ```
 
 #### Integration Tests
+
 ```bash
 # System integration tests
 python -m pytest tests/ -m integration -v
 ```
 
 #### Hardware-Free Tests
+
 ```bash
 # Tests that don't require hardware
 python -m pytest tests/ -m "not hardware" -v
 ```
 
 #### Performance Tests
+
 ```bash
 # Performance and memory usage tests
 python -m pytest tests/ -m performance -v
@@ -139,6 +193,7 @@ python -m pytest tests/ -m performance -v
 Tests use sophisticated synthetic signal generation to ensure realistic testing:
 
 #### Key Fob Signal Generation
+
 ```python
 # Generate realistic key fob signals
 def generate_test_signal(signal_type='key_fob', duration=0.1, noise_level=0.1):
@@ -149,6 +204,7 @@ def generate_test_signal(signal_type='key_fob', duration=0.1, noise_level=0.1):
 ```
 
 #### TPMS Signal Generation
+
 ```python
 # Generate TPMS (Tire Pressure Monitoring System) signals
 def generate_tpms_signal(frequency=433.92e6, modulation_index=0.5):
@@ -160,6 +216,7 @@ def generate_tpms_signal(frequency=433.92e6, modulation_index=0.5):
 ### Mock Hardware Integration
 
 #### RTL-SDR Mocking
+
 ```python
 # Mock RTL-SDR for testing without hardware
 @patch('rtl_sdr.automotive_signal_analyzer.RTLSDR')
@@ -169,6 +226,7 @@ def test_signal_analysis(mock_rtl):
 ```
 
 #### Network Mocking
+
 ```python
 # Mock TCP connections for testing
 @patch('socket.socket')
@@ -178,6 +236,7 @@ def test_tcp_communication(mock_socket):
 ```
 
 #### NFC Module Mocking
+
 ```python
 # Mock PN532 NFC module for testing
 @patch('pico.nfc_module.PN532')
@@ -195,6 +254,7 @@ def test_nfc_detection(mock_nfc):
 ### Signal Analysis Validation
 
 #### Confidence Scoring
+
 ```python
 # Validate confidence scores are within expected ranges
 assert 0.8 <= detected_signal.confidence <= 1.0
@@ -204,6 +264,7 @@ assert detected_signal.signal_type in ['key_fob', 'tpms', 'unknown']
 ```
 
 #### Feature Extraction
+
 ```python
 # Validate extracted features
 assert len(signal_features.power_spectrum) == expected_length
@@ -214,6 +275,7 @@ assert signal_features.frequency_deviation > 0
 ### Threat Detection Validation
 
 #### Brute Force Detection
+
 ```python
 # Validate threat level escalation
 assert threat_level in ['suspicious', 'moderate', 'high', 'critical']
@@ -223,6 +285,7 @@ assert temporal_analysis['signals_per_minute'] >= threshold
 ```
 
 #### Jamming Detection
+
 ```python
 # Validate jamming pattern recognition
 assert jamming_result['jamming_type'] in ['continuous', 'pulse', 'sweep', 'spot']
@@ -230,6 +293,7 @@ assert 0.0 <= jamming_result['confidence'] <= 1.0
 ```
 
 #### NFC Correlation Validation
+
 ```python
 # Validate NFC correlation activation
 assert correlation_state['active'] is True
@@ -245,6 +309,7 @@ assert event['threat_level'] >= 0.85  # High threat for correlated events
 ### Performance Validation
 
 #### Processing Latency
+
 ```python
 # Validate real-time processing requirements
 assert processing_latency < 100  # milliseconds
@@ -269,6 +334,7 @@ assert memory_usage < 50  # MB for 1000-signal buffer
 ### Test Coverage Reports
 
 #### HTML Coverage Report
+
 ```bash
 # Generate detailed HTML coverage report
 python -m pytest tests/ --cov=rtl_sdr --cov=detection --cov-report=html
@@ -278,6 +344,7 @@ python -m pytest tests/ --cov=rtl_sdr --cov=detection --cov-report=html
 ```
 
 #### Terminal Coverage Summary
+
 ```bash
 # Quick coverage summary
 python -m pytest tests/ --cov=rtl_sdr --cov=detection --cov-report=term-missing
@@ -313,6 +380,7 @@ jobs:
 ## Debugging Tests
 
 ### Verbose Test Output
+
 ```bash
 # Detailed test output
 python -m pytest tests/test_automotive_signal_analyzer.py -v -s
@@ -322,6 +390,7 @@ python -m pytest tests/test_brute_force_detector.py -v -s
 ```
 
 ### Test Debugging
+
 ```bash
 # Run specific test with debugging
 python -m pytest tests/test_jamming_detector.py::TestJammingDetector::test_continuous_jamming -v --pdb
@@ -331,6 +400,7 @@ python -m pytest tests/test_enhanced_signal_bridge.py -v --log-cli-level=DEBUG
 ```
 
 ### Performance Profiling
+
 ```bash
 # Profile test performance
 python -m pytest tests/test_enhanced_signal_bridge.py --durations=10
@@ -344,6 +414,7 @@ python -m pytest tests/test_automotive_signal_analyzer.py --memray
 ### Common Issues
 
 #### Import Errors
+
 ```bash
 # Fix import path issues
 export PYTHONPATH=$PYTHONPATH:$(pwd)
@@ -351,12 +422,14 @@ python -m pytest tests/test_automotive_signal_analyzer.py
 ```
 
 #### Missing Dependencies
+
 ```bash
 # Install test dependencies
 pip install pytest pytest-cov pytest-mock
 ```
 
 #### Hardware Dependencies
+
 ```bash
 # Skip hardware-dependent tests
 python -m pytest tests/ -m "not hardware" -v
@@ -365,6 +438,7 @@ python -m pytest tests/ -m "not hardware" -v
 ### Test Environment Setup
 
 #### Virtual Environment
+
 ```bash
 # Create test environment
 python -m venv test_env
@@ -377,6 +451,7 @@ pip install pytest pytest-cov
 ```
 
 #### Docker Testing
+
 ```bash
 # Run tests in Docker
 docker run -v $(pwd):/app python:3.8 bash -c "
@@ -409,6 +484,7 @@ def test_key_fob_detection():
 ### Test Data Management
 
 #### Synthetic Data Generation
+
 ```python
 # Use consistent test data generation
 def generate_test_signal(signal_type, parameters):
@@ -417,6 +493,7 @@ def generate_test_signal(signal_type, parameters):
 ```
 
 #### Test Fixtures
+
 ```python
 # Use pytest fixtures for common test data
 @pytest.fixture
@@ -428,12 +505,14 @@ def mock_signal_data():
 ## Performance Benchmarks
 
 ### Signal Processing Performance
+
 - **Latency**: <100ms from capture to detection
 - **Throughput**: 3.2 MS/s sustained processing
 - **Memory**: <50MB for 1000-signal buffer
 - **CPU**: <10% utilization on modern hardware
 
 ### Test Execution Time
+
 - **Unit tests**: <30 seconds for full suite
 - **Integration tests**: <60 seconds for full pipeline
 - **Performance tests**: <5 minutes for comprehensive profiling
