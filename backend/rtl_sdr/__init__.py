@@ -13,13 +13,13 @@ Modules:
 - startup_server: System startup orchestration and health checks
 """
 
-from .signal_bridge import SignalBridge
-from .rtl_tcp_server import RTLTCPServer
-from .startup_server import StartupServer
+from .signal_bridge import SignalProcessingBridge
+from .rtl_tcp_server import RTLTCPServerManager
+from .startup_server import AutomotiveSecurityServer
 
 __version__ = "0.1.0"
 __all__ = [
-    "SignalBridge",
-    "RTLTCPServer", 
-    "StartupServer",
+    "SignalProcessingBridge",
+    "RTLTCPServerManager", 
+    "AutomotiveSecurityServer",
 ]
