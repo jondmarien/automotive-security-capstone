@@ -24,6 +24,7 @@ See backend/README.md for full project context.
 
 import argparse
 import asyncio
+import sys
 import time
 from datetime import datetime
 from collections import deque
@@ -2295,18 +2296,46 @@ def flatten_detection(event, detection):
         flat["NFC"] = "!!!"
         flat["Threat"] = "Critical"  # Upgrade threat level for correlated attacks
     elif "NFC" in flat["Type"]:
-        flat["NFC"] = "*"
+        flat["NFC"] = "NFC"
 
     return flat
 
 
-if __name__ == "__main__":
+def main_mock():
+    """Entry point for mock demo mode."""
+    import sys
+    sys.argv = ['cli_dashboard', '--mock']
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nDashboard stopped. Exiting.")
+        console.print("\n[yellow]Dashboard interrupted by user.[/yellow]")
     except Exception as e:
-        print(f"Error: {e}")
-        import traceback
+        console.print(f"[red]Unexpected error: {e}[/red]")
+        console.print("[dim]Check logs for more details.[/dim]")
 
-        traceback.print_exc()
+def main_synthetic():
+    """Entry point for synthetic demo mode."""
+    import sys
+    sys.argv = ['cli_dashboard', '--mock', '--synthetic']
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Dashboard interrupted by user.[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Unexpected error: {e}[/red]")
+        console.print("[dim]Check logs for more details.[/dim]")
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == '--mock':
+        if len(sys.argv) > 2 and sys.argv[2] == '--synthetic':
+            main_synthetic()
+        else:
+            main_mock()
+    else:
+        try:
+            asyncio.run(main())
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Dashboard interrupted by user.[/yellow]")
+        except Exception as e:
+            console.print(f"[red]Unexpected error: {e}[/red]")
+            console.print("[dim]Check logs for more details.[/dim]")

@@ -7,13 +7,12 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = "MIT"
 keywords = ["automotive", "security", "rf-analysis", "rtl-sdr", "threat-detection"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Education",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -47,8 +46,11 @@ dependencies = [
 
 [project.scripts]
 autosec-dashboard = "cli_dashboard:main"
-autosec-server = "rtl_sdr.startup_server:main"
-autosec-analyzer = "detection.security_analyzer:main"
+autosec-demo-mock = "cli_dashboard:main_mock"
+autosec-demo-synthetic = "cli_dashboard:main_synthetic"
+autosec-deploy-pico = "deploy_pico:main"
+autosec-demo = "demo_scenarios:main"
+autosec-hardware = "real_hardware_launcher:main"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
@@ -92,7 +94,6 @@ lint = [
 ]
 rtlsdr = [
     "pyrtlsdr>=0.3.0",
-    "rtlsdr>=0.1.0",
 ]
 
 # Ruff configuration
