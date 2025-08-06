@@ -1,14 +1,29 @@
 [project]
 name = "automotive-security-backend"
 version = "0.1.0"
-description = "Backend for Automotive Security Capstone Project"
+description = "Backend for Automotive Security Capstone Project - Real-time RF signal analysis and automotive security threat detection"
 authors = [
     {name = "Jonathan Marien", email = "jon@chron0.tech"}
 ]
 readme = "README.md"
 requires-python = ">=3.11"
+license = {text = "MIT"}
+keywords = ["automotive", "security", "rf-analysis", "rtl-sdr", "threat-detection"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: System :: Hardware :: Hardware Drivers",
+]
 
 dependencies = [
+    "asyncio>=3.4.3",
     "fastapi>=0.110.0",
     "uvicorn[standard]>=0.27.0",
     "pydantic>=2.6.0",
@@ -20,7 +35,6 @@ dependencies = [
     "python-json-logger>=3.3.0",
     "motor>=3.7.1",
     "numpy>=1.26.4",
-    "asyncio>=3.4.3",
     "aiohttp>=3.12.15",
     "matplotlib>=3.10.3",
     "scikit-learn>=1.7.1",
@@ -28,21 +42,57 @@ dependencies = [
     "pyfiglet>=1.0.3",
     "rich>=14.1.0",
     "prompt-toolkit>=3.0.51",
-    "ty>=0.0.1a16",
-    "ruff>=0.12.7",
-    "pytest>=8.4.1",
+    "typer>=0.15.1",
 ]
 
-[tool.hatch.build.targets.wheel]
-packages = ["pico", "rtl_sdr", "utils"]
+[project.scripts]
+autosec-dashboard = "cli_dashboard:main"
+autosec-server = "rtl_sdr.startup_server:main"
+autosec-analyzer = "detection.security_analyzer:main"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]  # Current directory (backend) contains our packages
+include = ["detection*", "rtl_sdr*", "pico*", "utils*", "hardware*"]
+exclude = ["tests*", "docs*", "exports*", "logs*", "results*", "rtl_sdr_bin*"]
+
+# uv-specific configuration
+[tool.uv]
+package = true
+dev-dependencies = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "black>=24.0.0",
+    "mypy>=1.13.0",
+]
 
 [dependency-groups]
 dev = [
-    "pytest-asyncio>=1.1.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "black>=24.0.0",
+    "mypy>=1.13.0",
+    "pre-commit>=4.0.0",
+]
+test = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "pytest-mock>=3.14.0",
+]
+lint = [
+    "ruff>=0.12.7",
+    "black>=24.0.0",
+    "mypy>=1.13.0",
+    "pre-commit>=4.0.0",
+]
+rtlsdr = [
+    "pyrtlsdr>=0.3.0",
+    "rtlsdr>=0.1.0",
 ]
 
 # Ruff configuration

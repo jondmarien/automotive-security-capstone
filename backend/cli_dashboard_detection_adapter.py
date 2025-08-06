@@ -1520,8 +1520,12 @@ async def generate_synthetic_event():
     }
 
     # Probability weights for different scenarios
-    # Normal operation should be most common, followed by occasional attacks
     scenario_weights = {
+        # Normal operation should be most common, followed by occasional attacks
+        # Suspicious events - detected through pattern analysis and anomaly detection
+        # These events don't match known attack signatures but exhibit unusual characteristics
+        # Detection methods include: timing anomalies, frequency deviations, signal strength irregularities,
+        # unknown protocols, partial pattern matches, and behavioral inconsistencies
         ScenarioType.NORMAL_OPERATION.value: 0.45,  # 45% chance for normal events
         # Malicious attack scenarios (lower probability due to lower impact)
         ScenarioType.REPLAY_ATTACK.value: 0.05,  # 5% chance for replay attacks
