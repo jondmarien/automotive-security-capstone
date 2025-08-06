@@ -2,7 +2,7 @@
 
 This repository contains a comprehensive proof-of-concept (POC) automotive RF/NFC security monitoring system. The system uses RTL-SDR V4 hardware, advanced Python signal processing, and Raspberry Pi Pico W to detect, classify, and alert on suspicious automotive wireless activity in real-time. Features include multi-modal attack detection through NFC correlation, comprehensive hardware management with automatic recovery, and a professional CLI dashboard with technical evidence presentation.
 
-**Latest Enhancements**: Professional CLI dashboard with enhanced startup experience and graceful exit handling, advanced synthetic event generation with realistic attack scenarios, comprehensive session data export capabilities, improved event navigation with pagination, and enhanced user experience with Rich-based dialogs and ASCII art presentation.
+**Key Features**: Professional CLI dashboard with enhanced startup experience and graceful exit handling, advanced synthetic event generation with realistic attack scenarios, comprehensive session data export capabilities, improved event navigation with pagination, and enhanced user experience with Rich-based dialogs and ASCII art presentation.
 
 ---
 <details>
@@ -39,9 +39,6 @@ This repository contains a comprehensive proof-of-concept (POC) automotive RF/NF
 <img width="2504" height="474" alt="Goodbye Screen" src="https://github.com/user-attachments/assets/43d67e15-d56e-497f-a383-20c215454991" />
 
 </details>
-
-
-
 
 ## Project Structure
 
@@ -88,52 +85,14 @@ automotive-security-capstone/
 
 ## System Architecture & Core Components
 
-### RF Signal Processing Pipeline
+### Core Capabilities
 
-- **RTL-SDR V4 Hardware**: Professional-grade RF capture (500 kHz - 1.75 GHz, up to 3.2 MS/s)
-- **Advanced Signal Analysis**: Real-time FFT processing, automotive-specific pattern recognition, FSK detection
-- **Automotive Signal Analyzer**: Specialized detection for key fobs (315/433 MHz), TPMS sensors, and RKE systems
-- **Signal History Buffer**: Temporal analysis for replay attack detection and pattern correlation
-
-### Comprehensive Threat Detection Engine
-
-- **Multi-Algorithm Detection**: Replay attacks, jamming detection, brute force attempts, signal injection
-- **Temporal Analysis**: Multi-window analysis for sophisticated attack pattern recognition
-- **Threat Classification**: BENIGN → SUSPICIOUS → MODERATE → HIGH → CRITICAL with escalating responses
-- **Evidence Collection**: Comprehensive technical evidence gathering for forensic analysis
-- **Confidence Scoring**: Advanced multi-factor confidence calculation with >90% accuracy validation
-
-### Hardware Management System
-
-- **Centralized Coordination**: HardwareManager orchestrates all hardware components with health monitoring
-- **Automatic Detection**: RTL-SDR and Pico W auto-discovery with capability validation
-- **Failure Recovery**: Exponential backoff retry logic with graceful degradation to mock mode
-- **Connection Management**: Robust TCP connection handling with heartbeat monitoring and auto-reconnection
-
-### Multi-Modal Attack Detection
-
-- **RF-NFC Correlation**: Correlates suspicious RF signals with physical NFC proximity events
-- **Coordinated Attack Detection**: Identifies sophisticated multi-vector attacks combining wireless and physical access
-- **Threat Escalation**: Automatic threat level escalation for correlated multi-modal events
-- **Visual Indicators**: LED-based alert system with NFC correlation status display
-
-### Professional CLI Dashboard
-
-- **Enhanced Startup Experience**: Professional ASCII art presentation with timing effects and system information display
-- **Real-Time Monitoring**: Live event streaming with color-coded threat levels and advanced signal analysis
-- **Professional Exit Experience**: Rich-based confirmation dialogs with session data export options (events, logs, reports)
-- **Event Navigation**: Enhanced pagination (20 events per page) with improved selection stability
-- **Technical Evidence Display**: Detailed attack-specific evidence presentation with proper formatting
-- **Signal Visualization**: RSSI, SNR, modulation type, burst count with sparklines and progress bars
-- **Advanced Demo Modes**: `--mock` for enhanced demonstrations, `--synthetic` for realistic attack scenario testing
-- **Session Data Export**: Comprehensive export capabilities in JSON/CSV formats with progress indicators
-
-### Embedded Alert System
-
-- **Raspberry Pi Pico W**: Dedicated hardware for immediate threat response with WiFi connectivity
-- **NFC Integration**: PN532 module for proximity-based interactions and correlation detection
-- **Visual Alerts**: RGB LED indicators for threat levels with correlation status
-- **Automated Deployment**: Streamlined firmware deployment with serial connection management
+- **RF Signal Processing**: RTL-SDR V4 hardware with real-time FFT analysis for automotive frequencies (315/433 MHz)
+- **Threat Detection**: Multi-algorithm detection for replay attacks, jamming, brute force, and signal injection
+- **RF-NFC Correlation**: Multi-modal attack detection combining wireless and physical proximity events
+- **Professional Dashboard**: Rich CLI interface with real-time monitoring and technical evidence display
+- **Hardware Management**: Auto-discovery, health monitoring, and graceful failure recovery
+- **Embedded Alerts**: Raspberry Pi Pico W with NFC integration and visual threat indicators
 
 ---
 
@@ -170,32 +129,32 @@ uv run python real_hardware_launcher.py --frequency 315000000
 ### 🔧 Development Setup
 
 ```bash
-# Environment setup with UV (recommended)
+# Modern setup with uv (recommended - lightning fast!)
 cd backend
-uv venv
-uv pip install -r requirements.txt
+uv sync  # Installs all dependencies from pyproject.toml
+
+# Build the project (native uv build backend)
+uv build  # Creates wheel in dist/
+
+# Install CLI tools globally
+uv tool install .
 
 # Traditional setup (fallback)
-python -m venv .venv
-.venv\Scripts\activate  # Windows
-source .venv/bin/activate  # Linux/Mac
-pip install -r requirements.txt
+uv venv
+uv pip install -e .
 ```
 
-### 📊 Validation & Testing
+### 📊 Testing & Validation
 
 ```bash
-# Validate >90% detection accuracy requirement
+# Run full test suite with coverage
+uv run pytest tests/ --cov=rtl_sdr --cov=detection --cov-report=html
+
+# Validate >90% detection accuracy
 uv run python utils/validate_detection_accuracy.py
 
-# Run comprehensive demonstration scenarios
+# Performance benchmarks
 uv run python demo_scenarios.py --scenario comprehensive
-
-# Execute full test suite (63 tests)
-uv run pytest tests/ -v
-
-# Performance validation for real-time processing
-uv run pytest tests/test_automotive_signal_analyzer.py::TestAutomotiveSignalAnalyzer::test_performance -v
 ```
 
 ### 📱 Pico W Deployment
@@ -211,81 +170,23 @@ uv run python deploy_pico.py /dev/ttyACM0  # Linux
 
 ---
 
-## Technology Stack & Architecture
+## Technology Stack
 
-### Core Technologies
-
-- **Python 3.11+**: Primary backend language with modern type hints and asyncio support
-- **RTL-SDR V4**: Professional RF hardware (R828D tuner + RTL2832U, USB 3.0)
-- **Raspberry Pi Pico W**: RP2040 dual-core MCU with 802.11n WiFi
-- **PN532 NFC Module**: 13.56 MHz NFC/RFID interface for proximity detection
-
-### Signal Processing & Analysis
-
-- **NumPy/SciPy**: Vectorized operations, FFT analysis, advanced signal processing functions
-- **Custom DSP**: Tailored algorithms for automotive signal patterns and FSK detection
-- **Real-Time Processing**: <100ms latency for threat detection with optimized performance
-
-### User Interface & Visualization
-
-- **Rich Terminal UI**: Modern CLI dashboard with colors, tables, progress bars, signal visualization
-- **Professional Display**: Live updating displays, technical evidence presentation, event navigation
-- **Demo-Friendly**: Excellent for presentations with `--mock` and `--synthetic` modes
-
-### Development & Quality Assurance
-
-- **UV Package Manager**: Next-generation Python dependency management (10-100x faster than pip)
-- **pytest Framework**: Comprehensive testing with 63 tests covering signal processing and NFC correlation
-- **Type Safety**: Full type hints with mypy static analysis
-- **Code Quality**: Black formatting, isort, flake8 linting for professional standards
-
-### Hardware Integration
-
-- **Asynchronous Architecture**: Non-blocking I/O for real-time performance with asyncio
-- **TCP Event Streaming**: Efficient inter-component communication without database dependency
-- **Hardware Abstraction**: Clean separation between hardware and logic layers for testing
-- **Automatic Recovery**: Exponential backoff retry logic with graceful degradation
-
-### Security & Validation
-
-- **Multi-Modal Detection**: RF-NFC correlation for coordinated attack identification
-- **Temporal Analysis**: Multi-window analysis for sophisticated attack pattern recognition
-- **Evidence Collection**: Comprehensive technical evidence gathering for forensic analysis
-- **Accuracy Validation**: >90% detection accuracy with confusion matrix generation and benchmarking
+- **Python 3.11+** with native uv build backend for lightning-fast builds
+- **RTL-SDR V4** professional RF hardware (500 kHz - 1.75 GHz)
+- **Raspberry Pi Pico W** with RP2040 dual-core MCU and WiFi
+- **Rich Terminal UI** for professional CLI dashboard experience
+- **NumPy/SciPy** for real-time signal processing (<100ms latency)
+- **pytest** comprehensive testing framework (109+ tests)
 
 ---
 
-## Key Features & Capabilities
+## Key Features
 
-### 🔍 Advanced Threat Detection
-
-- **Replay Attack Detection**: Signal similarity analysis with temporal clustering and evidence collection
-- **Jamming Detection**: Four pattern types (continuous, pulse, sweep, spot) with confidence scoring
-- **Brute Force Detection**: Multi-window temporal analysis with escalating threat levels
-- **Signal Injection**: Pattern recognition for unauthorized signal injection attempts
-- **Multi-Modal Correlation**: RF-NFC coordinated attack detection with automatic threat escalation
-
-### 🎛️ Professional CLI Dashboard
-
-- **Real-Time Monitoring**: Live event streaming with color-coded threat levels and professional styling
-- **Signal Analysis Visualization**: RSSI, SNR, modulation type, burst count with progress bars
-- **Technical Evidence Display**: Attack-specific evidence presentation with detailed formatting
-- **Event Navigation**: Historical event analysis with keyboard controls and event selection
-- **Performance Metrics**: System health monitoring with processing latency and accuracy counters
-
-### 🔧 Comprehensive Hardware Management
-
-- **Automatic Detection**: RTL-SDR and Pico W auto-discovery with capability validation
-- **Health Monitoring**: Continuous hardware status monitoring with diagnostic reporting
-- **Failure Recovery**: Exponential backoff retry logic with graceful degradation
-- **Mock Mode Fallback**: Seamless transition to demonstration mode when hardware unavailable
-
-### 📊 Validation & Testing Framework
-
-- **Detection Accuracy**: >90% accuracy validation with confusion matrix generation
-- **Synthetic Signal Generation**: Advanced test signal creation for validation and demonstrations
-- **Performance Benchmarking**: Real-time processing validation (<100ms latency requirements)
-- **Comprehensive Test Suite**: 63 tests covering all components with extensive coverage
+- **🔍 Advanced Threat Detection**: Replay attacks, jamming, brute force, signal injection with >90% accuracy
+- **🎛️ Professional CLI Dashboard**: Real-time monitoring with Rich UI and technical evidence display
+- **🔧 Hardware Auto-Management**: RTL-SDR/Pico W discovery, health monitoring, and failure recovery
+- **📊 Comprehensive Testing**: 109+ tests with coverage reporting and performance validation
 
 ## Documentation & Resources
 
