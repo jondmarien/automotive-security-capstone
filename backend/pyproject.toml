@@ -52,14 +52,10 @@ autosec-deploy-pico = "deploy_pico:main"
 autosec-demo = "demo_scenarios:main"
 autosec-hardware = "real_hardware_launcher:main"
 
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-where = ["."]  # Current directory (backend) contains our packages
-include = ["detection*", "rtl_sdr*", "pico*", "utils*", "hardware*"]
-exclude = ["tests*", "docs*", "exports*", "logs*", "results*", "rtl_sdr_bin*"]
+[build-system]
+requires = ["uv_build>=0.8.4,<0.9.0"]
+build-backend = "uv_build"
 
 # uv-specific configuration
 [tool.uv]
@@ -71,6 +67,11 @@ dev-dependencies = [
     "black>=24.0.0",
     "mypy>=1.13.0",
 ]
+
+[tool.uv.build-backend]
+module-root = "."
+module-name = ""
+namespace = true
 
 [dependency-groups]
 dev = [
