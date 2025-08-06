@@ -14,7 +14,7 @@ Modules:
 
 from .threat_levels import ThreatLevel
 from .packet import Packet
-from .event_logic import EventLogic
+from .event_logic import analyze_event
 from .security_analyzer import SecurityAnalyzer
 from .security_report import SecurityReport
 
@@ -22,7 +22,7 @@ __version__ = "0.1.0"
 __all__ = [
     "ThreatLevel",
     "Packet", 
-    "EventLogic",
+    "analyze_event",
     "SecurityAnalyzer",
     "SecurityReport",
 ]

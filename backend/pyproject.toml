@@ -72,6 +72,8 @@ dev-dependencies = [
 module-root = "."
 module-name = ""
 namespace = true
+source-exclude = ["*.bin", "detection*", "rtl_sdr*", "pico*", "utils*", "hardware*"]
+source-include = ["tests/**", "docs/**", "exports/**", "logs/**", "results/**", "rtl_sdr_bin/**"]
 
 [dependency-groups]
 dev = [
